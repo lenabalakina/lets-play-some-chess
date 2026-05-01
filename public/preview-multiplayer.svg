@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180">
+  <rect width="320" height="180" fill="#0a0f1a" rx="8"/>
+  <!-- Chess board -->
+  <g transform="translate(110, 20)">
+    <rect width="100" height="100" fill="#1a2235" rx="4"/>
+    <!-- Board squares -->
+    <rect x="0" y="0" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <rect x="50" y="0" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <rect x="25" y="25" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <rect x="75" y="25" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <rect x="0" y="50" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <rect x="50" y="50" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <rect x="25" y="75" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <rect x="75" y="75" width="25" height="25" fill="#00e5ff" opacity="0.15"/>
+    <!-- Pieces -->
+    <text x="12" y="22" font-size="18" text-anchor="middle" fill="#00e5ff">♜</text>
+    <text x="87" y="97" font-size="18" text-anchor="middle" fill="white">♖</text>
+    <text x="50" y="60" font-size="20" text-anchor="middle" fill="#00e5ff">♛</text>
+  </g>
+  <!-- Player 1 -->
+  <circle cx="60" cy="70" r="22" fill="#1a2235" stroke="#00e5ff" stroke-width="1.5"/>
+  <circle cx="60" cy="62" r="9" fill="#00e5ff" opacity="0.7"/>
+  <path d="M38 95 Q60 80 82 95" fill="#00e5ff" opacity="0.4"/>
+  <text x="60" y="120" font-size="9" text-anchor="middle" fill="#00e5ff">Player 1</text>
+  <!-- Player 2 -->
+  <circle cx="260" cy="70" r="22" fill="#1a2235" stroke="#00e5ff" stroke-width="1.5"/>
+  <circle cx="260" cy="62" r="9" fill="#00e5ff" opacity="0.7"/>
+  <path d="M238 95 Q260 80 282 95" fill="#00e5ff" opacity="0.4"/>
+  <text x="260" y="120" font-size="9" text-anchor="middle" fill="#00e5ff">Player 2</text>
+  <!-- VS -->
+  <text x="160" y="75" font-size="14" font-weight="bold" text-anchor="middle" fill="#00e5ff" opacity="0.5">VS</text>
+  <!-- Connection dots -->
+  <circle cx="90" cy="70" r="3" fill="#00e5ff" opacity="0.6"/>
+  <circle cx="115" cy="70" r="3" fill="#00e5ff" opacity="0.4"/>
+  <circle cx="205" cy="70" r="3" fill="#00e5ff" opacity="0.4"/>
+  <circle cx="230" cy="70" r="3" fill="#00e5ff" opacity="0.6"/>
+  <!-- Label -->
+  <text x="160" y="165" font-size="10" text-anchor="middle" fill="#334155">Play anywhere in the world</text>
+</svg>

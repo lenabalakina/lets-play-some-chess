@@ -37,7 +37,7 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-black mb-4 tracking-tight neon-text">
-          LET&apos;S PLAY<br />SOME CHESS
+          SO, YOU&apos;RE READY<br />FOR SOME CHESS?
         </h1>
 
         <p className="text-slate-400 text-xl mb-10 max-w-lg font-light">
@@ -87,14 +87,15 @@ export default function LandingPage() {
         {/* Feature grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-3xl w-full">
           {[
-            { icon: Globe,  title: 'Online Multiplayer',  desc: 'Create a room, share a code, play against a friend anywhere' },
-            { icon: Bot,    title: 'AI Opponent',         desc: 'Easy, Intermediate, or Hard — powered by Stockfish engine' },
-            { icon: Swords, title: '3D Board + Themes',   desc: 'Neon, Void, Ember, Arctic — flip to 3D with one toggle' },
+            { icon: Globe,  title: 'Online Multiplayer',  desc: 'Create a room, share a code, play against a friend anywhere', preview: '/preview-multiplayer.svg' },
+            { icon: Bot,    title: 'AI Opponent',         desc: 'Easy, Intermediate, or Hard — powered by Stockfish engine',   preview: '/preview-ai.svg' },
+            { icon: Swords, title: '3D Board + Themes',   desc: 'Neon, Void, Ember, Arctic — flip to 3D with one toggle',      preview: '/preview-3d.svg' },
           ].map(f => (
             <div key={f.title} className="glass-panel rounded-xl p-5 text-left">
               <f.icon className="w-5 h-5 text-cyan-400 mb-3" />
               <h3 className="font-bold mb-1 text-sm">{f.title}</h3>
               <p className="text-slate-500 text-xs leading-relaxed">{f.desc}</p>
+              <img src={f.preview} alt={f.title} className="mt-3 w-full rounded-lg opacity-80" />
             </div>
           ))}
         </div>
