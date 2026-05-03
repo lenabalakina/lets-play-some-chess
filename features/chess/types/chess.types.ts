@@ -71,12 +71,12 @@ export const THEME_COLORS: Record<BoardTheme, {
   light: string; dark: string; highlight: string; move: string; selected: string; check: string
 }> = {
   neon: {
-    light:     '#1e3a5f',   // medium blue
-    dark:      '#0a1628',   // very dark navy — much stronger contrast
-    highlight: 'rgba(6, 182, 212, 0.55)',
-    move:      'rgba(6, 182, 212, 0.30)',
-    selected:  'rgba(6, 182, 212, 0.65)',
-    check:     'rgba(239, 68, 68, 0.70)',
+    light:     '#1a3d6b',   // brighter blue — more visible on mobile
+    dark:      '#071220',   // very dark navy
+    highlight: 'rgba(6, 182, 212, 0.60)',
+    move:      'rgba(6, 182, 212, 0.35)',
+    selected:  'rgba(6, 182, 212, 0.70)',
+    check:     'rgba(239, 68, 68, 0.75)',
   },
   void: {
     light:     '#312244',   // medium purple
