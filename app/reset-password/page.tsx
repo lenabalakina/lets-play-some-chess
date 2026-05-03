@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const router       = useRouter()
   const supabase     = createClient()
@@ -138,5 +138,17 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#070d1a] flex items-center justify-center">
+        <div className="text-slate-400 text-sm animate-pulse">Loading…</div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }
