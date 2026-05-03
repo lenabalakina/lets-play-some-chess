@@ -112,8 +112,8 @@ export function ChessBoard2D({
                 onClick={() => !isGameOver && onSquareClick(sq)}
                 className="relative flex items-center justify-center"
                 style={{
-                  width: 'clamp(48px, 8vw, 80px)',
-                  height: 'clamp(48px, 8vw, 80px)',
+                  width: 'clamp(36px, calc((100vw - 16px) / 8), 80px)',
+                  height: 'clamp(36px, calc((100vw - 16px) / 8), 80px)',
                   ...getSquareStyle(file, rank),
                   cursor: isGameOver ? 'default' : (isMyTurn ? 'pointer' : 'default'),
                   transition: 'background 0.15s',

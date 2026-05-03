@@ -11,7 +11,7 @@ import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { chessAudio } from '@/lib/audio'
 import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/types/chess.types'
 import { THEME_COLORS } from '@/features/chess/types/chess.types'
-import { Copy, Check, Wifi, WifiOff, Clock } from 'lucide-react'
+import { Copy, Check, Wifi, WifiOff } from 'lucide-react'
 
 interface Props {
   code:     string
@@ -33,10 +33,10 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const [promoDialog,    setPromoDialog]     = useState(false)
   const [theme]                             = useState<BoardTheme>('neon')
   const [copied,         setCopied]         = useState(false)
+  const [mobileTab,      setMobileTab]      = useState<'moves' | 'info'>('moves')
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const prevMoveCountRef = useRef(0)
 
-  // Play sound on new moves
   useEffect(() => {
     if (room.moves.length > prevMoveCountRef.current) {
       chessAudio.move()
@@ -55,7 +55,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     if (room.status !== 'playing') return
 
     if (selectedSquare && legalMoves.includes(sq)) {
-      // Check promotion
       const chess = new Chess(room.fen)
       const piece = chess.get(selectedSquare as Parameters<typeof chess.get>[0])
       const isPromo = piece?.type === 'p' && (
@@ -73,10 +72,9 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       return
     }
 
-    // Select piece
     const chess = new Chess(room.fen)
     const moves = chess.moves({ square: sq as Parameters<typeof chess.moves>[0]['square'], verbose: true })
-    const myMoves = moves.filter(m => {
+    const myMoves = moves.filter(() => {
       const piece = chess.get(sq as Parameters<typeof chess.get>[0])
       return piece?.color === myColor
     })
@@ -103,7 +101,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const isGameOver = room.status === 'finished'
   const opponentColor: Color = myColor === 'w' ? 'b' : 'w'
 
-  // Build move history for MoveLog
   const moveHistory: MoveRecord[] = room.moves.map((m, i) => ({
     san:        m.san,
     from:       m.from,
@@ -115,7 +112,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
   function statusText() {
     if (!room.connected)             return '⏳ Connecting…'
-    if (room.status === 'waiting')   return '⏳ Waiting for opponent to join…'
+    if (room.status === 'waiting')   return '⏳ Waiting for opponent…'
     if (isGameOver) {
       if (room.winner === 'draw')    return 'Draw!'
       if (room.winner === myColor)   return '🏆 You win!'
@@ -128,9 +125,10 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const colors = THEME_COLORS[theme]
 
   return (
-    <div className="flex flex-col h-screen bg-[#070d1a] text-white overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-slate-800/50">
+    <div className="flex flex-col h-[100dvh] bg-[#070d1a] text-white overflow-hidden">
+
+      {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
+      <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-cyan-400 text-lg">♟</span>
           <div>
@@ -138,9 +136,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             <p className="text-slate-600 text-[10px] tracking-wider">Online · Room {code}</p>
           </div>
         </div>
-
-        {/* Room code share */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {room.connected
             ? <Wifi className="w-3.5 h-3.5 text-emerald-400" />
             : <WifiOff className="w-3.5 h-3.5 text-red-400 animate-pulse" />
@@ -155,14 +151,40 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
           </button>
           <span className="text-slate-600 text-[10px]">Share this code</span>
         </div>
-
         <a href="/" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">← Leave</a>
       </header>
 
-      {/* Main layout */}
-      <main className="flex-1 flex overflow-hidden">
-        {/* Left: color info */}
-        <aside className="w-48 shrink-0 border-r border-slate-800/40 flex flex-col p-4 gap-4">
+      {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
+      <header className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-slate-800/50 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-cyan-400">♟</span>
+          <div>
+            <h1 className="font-black text-[10px] tracking-widest neon-text uppercase">CHESS</h1>
+            <p className="text-slate-600 text-[9px]">Room {code}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {room.connected
+            ? <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+            : <WifiOff className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+          }
+          <button
+            onClick={copyCode}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-800 border border-slate-700
+              text-xs font-mono font-bold text-slate-300 transition-all"
+          >
+            <span className="text-cyan-400">{code}</span>
+            {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+          </button>
+          <a href="/" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">← Leave</a>
+        </div>
+      </header>
+
+      {/* ── MAIN CONTENT ─────────────────────────────────────── */}
+      <main className="flex-1 flex overflow-hidden min-h-0">
+
+        {/* Left: color info — desktop only */}
+        <aside className="hidden lg:flex w-48 shrink-0 border-r border-slate-800/40 flex-col p-4 gap-4">
           <div>
             <p className="text-slate-600 text-[10px] font-semibold tracking-widest uppercase mb-2">You are playing</p>
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${myColor === 'w'
@@ -185,12 +207,11 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             </div>
           </div>
 
-          {/* Status */}
           <div className="mt-auto">
             {room.status === 'waiting' && (
               <div className="glass-panel rounded-xl p-3 text-center">
                 <p className="text-[10px] text-slate-500 mb-1">Invite friend with code</p>
-                <p className="font-black text-2xl tracking-widest text-cyan-400 font-mono">{code}</p>
+                <p className="font-black text-2xl tracking-widest text-cyan-400 font-mono my-2">{code}</p>
                 <button
                   onClick={copyCode}
                   className="mt-2 w-full py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs text-slate-300 transition-colors"
@@ -213,60 +234,138 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
         </aside>
 
         {/* Center: board */}
-        <section className="flex-1 flex flex-col items-center justify-center gap-3 px-4 py-2 min-w-0">
-          {/* Status bar */}
-          <div className={`text-xs font-semibold tracking-widest uppercase transition-colors ${
-            isGameOver
-              ? (room.winner === myColor ? 'text-emerald-400' : room.winner === 'draw' ? 'text-slate-400' : 'text-red-400')
-              : isMyTurn ? 'text-cyan-300' : 'text-slate-500'
-          }`}>
-            {statusText()}
+        <section className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+          {/* Mobile: opponent color strip */}
+          <div className="lg:hidden px-2 pt-2 pb-1 shrink-0">
+            <div className={`flex items-center justify-between px-3 py-2 glass-panel rounded-xl`}>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{opponentColor === 'w' ? '♔' : '♚'}</span>
+                <span className={`font-bold text-sm ${opponentColor === 'w' ? 'text-cyan-300' : 'text-purple-300'}`}>
+                  Opponent ({opponentColor === 'w' ? 'White' : 'Black'})
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Waiting overlay hint */}
-          <AnimatePresence>
-            {room.status === 'waiting' && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="absolute top-24 left-1/2 -translate-x-1/2 z-20
-                  glass-panel rounded-2xl px-8 py-5 text-center shadow-2xl"
-              >
-                <p className="text-slate-400 text-sm mb-1">Share this code with your opponent:</p>
-                <p className="font-black text-4xl tracking-widest text-cyan-400 font-mono my-2">{code}</p>
-                <button onClick={copyCode}
-                  className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-                >
-                  {copied ? '✓ Link copied' : 'Copy code'}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Board area */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 px-2 py-1 min-h-0 lg:gap-3 lg:px-4 lg:py-2">
+            <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 ${
+              isGameOver
+                ? (room.winner === myColor ? 'text-emerald-400' : room.winner === 'draw' ? 'text-slate-400' : 'text-red-400')
+                : isMyTurn ? 'text-cyan-300' : 'text-slate-500'
+            }`}>
+              {statusText()}
+            </div>
 
-          <ChessBoard2D
-            fen={room.fen}
-            selectedSquare={selectedSquare}
-            legalMoves={legalMoves}
-            lastMove={room.lastMove as { from: Square; to: Square } | null}
-            theme={theme}
-            showCoords={true}
-            playerColor={myColor}
-            isMyTurn={isMyTurn}
-            isGameOver={isGameOver}
-            onSquareClick={handleSquareClick}
-          />
+            {/* Waiting overlay */}
+            <AnimatePresence>
+              {room.status === 'waiting' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute top-24 left-1/2 -translate-x-1/2 z-20
+                    glass-panel rounded-2xl px-6 py-4 text-center shadow-2xl w-[85vw] max-w-sm"
+                >
+                  <p className="text-slate-400 text-sm mb-1">Share code with opponent:</p>
+                  <p className="font-black text-4xl tracking-widest text-cyan-400 font-mono my-2">{code}</p>
+                  <button onClick={copyCode}
+                    className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    {copied ? '✓ Copied' : 'Copy code'}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <ChessBoard2D
+              fen={room.fen}
+              selectedSquare={selectedSquare}
+              legalMoves={legalMoves}
+              lastMove={room.lastMove as { from: Square; to: Square } | null}
+              theme={theme}
+              showCoords={true}
+              playerColor={myColor}
+              isMyTurn={isMyTurn}
+              isGameOver={isGameOver}
+              onSquareClick={handleSquareClick}
+            />
+          </div>
+
+          {/* Mobile: my color strip */}
+          <div className="lg:hidden px-2 pb-1 shrink-0">
+            <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{myColor === 'w' ? '♔' : '♚'}</span>
+                <span className={`font-bold text-sm ${myColor === 'w' ? 'text-cyan-300' : 'text-purple-300'}`}>
+                  You ({myColor === 'w' ? 'White' : 'Black'})
+                </span>
+              </div>
+              {!isGameOver && room.status === 'playing' && (
+                <button
+                  onClick={resign}
+                  className="px-3 py-1 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
+                    text-xs font-semibold transition-all"
+                >
+                  Resign
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile tabs: Moves / Info */}
+          <div className="lg:hidden flex flex-col border-t border-slate-800/50 shrink-0" style={{ height: 120 }}>
+            <div className="flex border-b border-slate-800/50 shrink-0">
+              {(['moves', 'info'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setMobileTab(tab)}
+                  className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
+                    ${mobileTab === tab
+                      ? 'text-cyan-300 border-b-2 border-cyan-500'
+                      : 'text-slate-600 hover:text-slate-400'
+                    }`}
+                >
+                  {tab === 'moves' ? 'Moves' : 'Info'}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 overflow-hidden min-h-0">
+              {mobileTab === 'moves' && <MoveLog moves={moveHistory} />}
+              {mobileTab === 'info' && (
+                <div className="p-3 space-y-2 overflow-y-auto h-full">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${myColor === 'w'
+                    ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
+                    : 'border-purple-500/40 bg-purple-500/10 text-purple-300'
+                  }`}>
+                    <span>{myColor === 'w' ? '♔' : '♚'}</span>
+                    <span className="font-bold text-xs">You — {myColor === 'w' ? 'White' : 'Black'}</span>
+                  </div>
+                  <div className="glass-panel rounded-xl p-3 text-center">
+                    <p className="text-[10px] text-slate-500 mb-1">Room code</p>
+                    <p className="font-black text-xl tracking-widest text-cyan-400 font-mono">{code}</p>
+                    <button onClick={copyCode} className="mt-1 text-[10px] text-slate-500 hover:text-slate-300">
+                      {copied ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
         </section>
 
-        {/* Right: move log */}
-        <aside className="w-56 shrink-0 border-l border-slate-800/40 flex flex-col">
-          <div className="px-4 py-3 border-b border-slate-800/50">
+        {/* Right: move log — desktop only */}
+        <aside className="hidden lg:flex w-56 shrink-0 border-l border-slate-800/40 flex-col">
+          <div className="px-4 py-3 border-b border-slate-800/50 shrink-0">
             <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Move History</p>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden min-h-0">
             <MoveLog moves={moveHistory} />
           </div>
         </aside>
+
       </main>
 
       <PromotionDialog

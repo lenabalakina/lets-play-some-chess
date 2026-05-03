@@ -18,7 +18,7 @@ import type { Difficulty } from './DifficultyPanel'
 import { useChessGame } from '@/features/chess/hooks/useChessGame'
 import { useStockfish } from '@/features/ai/useStockfish'
 import type { AiLevel } from '@/features/ai/useStockfish'
-import { useTimer } from '@/features/chess/hooks/useTimer'
+import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/chess.types'
@@ -35,9 +35,9 @@ interface PlayerInfo {
 }
 
 interface Props {
-  me:             PlayerInfo
-  opponent:       PlayerInfo
-  initialAi?:     boolean
+  me:              PlayerInfo
+  opponent:        PlayerInfo
+  initialAi?:      boolean
   initialAiLevel?: AiLevel
 }
 
@@ -46,6 +46,31 @@ const MODE_TO_TIME: Record<GameMode, TimeControl> = {
   blitz:   'blitz_3',
   rapid:   'rapid_10',
   classic: 'classic_15',
+}
+
+function MobilePlayerStrip({
+  username, elo, ms, isActive, color,
+}: { username: string; elo: number; ms: number; isActive: boolean; color: Color }) {
+  const low = ms < 30_000
+  return (
+    <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+          {username.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <p className="text-white font-semibold text-xs truncate">{username}</p>
+          <p className="text-slate-400 text-[10px]">ELO {elo}</p>
+        </div>
+      </div>
+      <div className={`font-mono text-xl font-bold tracking-widest shrink-0 ml-2
+        ${isActive && low  ? 'text-red-400 animate-pulse' :
+          isActive         ? (color === 'w' ? 'text-cyan-300' : 'text-purple-300') :
+          'text-slate-500'}`}>
+        {formatTime(ms)}
+      </div>
+    </div>
+  )
 }
 
 export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = 'easy' }: Props) {
@@ -57,10 +82,11 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [coords,      setCoords]      = useState(true)
   const [view3D,      setView3D]      = useState(false)
   const [muted,       setMuted]       = useState(false)
-  const [tweaksOpen,  setTweaksOpen]  = useState(true)
+  const [tweaksOpen,  setTweaksOpen]  = useState(false)
   const [resigned,    setResigned]    = useState(false)
   const [promoDialog,  setPromoDialog]  = useState(false)
   const [activeTab,    setActiveTab]    = useState<'moves' | 'chat'>('moves')
+  const [mobileTab,    setMobileTab]    = useState<'moves' | 'chat' | 'play'>('moves')
   const [difficulty,   setDifficulty]   = useState<Difficulty>('vision')
   const [aiLevel,      setAiLevel]      = useState<AiLevel>(initialAiLevel)
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
@@ -102,6 +128,12 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
 
   const isGameOver = state.isGameOver || resigned
   const myInfo     = { ...me,       color: playerColor }
+  const oppInfo    = { ...opponent, color: (playerColor === 'w' ? 'b' : 'w') as Color }
+
+  const myMs  = playerColor === 'w' ? whiteMs : blackMs
+  const oppMs = oppInfo.color === 'w' ? whiteMs : blackMs
+  const myActive  = !isGameOver && state.turn === playerColor
+  const oppActive = !isGameOver && state.turn === oppInfo.color
 
   const { thinking: aiThinking } = useStockfish({
     enabled:  aiEnabled && !isGameOver,
@@ -114,9 +146,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
       chessAudio.move()
     },
   })
-  const oppInfo    = { ...opponent, color: (playerColor === 'w' ? 'b' : 'w') as Color }
 
-  // Click-to-move with promotion detection
   const handleSquareClick = useCallback((square: string) => {
     if (isGameOver) return
     if (aiEnabled && (state.turn !== playerColor || aiThinking)) return
@@ -151,13 +181,11 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     pendingPromoRef.current = null
   }, [makeMove])
 
-  // ── Fog of War: hide enemy pieces outside attack range ───────────────────
   function getShadowFen(fen: string, myColor: Color): string {
     try {
       const chess    = new Chess(fen)
       const board    = chess.board()
       const visible  = new Set<string>()
-      // My pieces + squares I can move to are always visible
       for (const row of board) {
         for (const cell of row) {
           if (!cell || cell.color !== myColor) continue
@@ -166,7 +194,6 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             .forEach(m => visible.add(m.to))
         }
       }
-      // Remove enemy pieces on invisible squares from a copy
       const shadow = new Chess(fen)
       for (const row of board) {
         for (const cell of row) {
@@ -183,7 +210,6 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     ? getShadowFen(state.fen, state.turn)
     : state.fen
 
-  // When playing vs AI it's only my turn when it's my color's move and AI isn't thinking
   const isMyTurn = aiEnabled ? (state.turn === playerColor && !aiThinking) : true
 
   const sharedBoardProps = {
@@ -197,16 +223,51 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     isGameOver,
     onSquareClick:  handleSquareClick,
   }
-  // When vs AI: always show from white's perspective (player is always white)
-  // When pass-and-play: flip each turn so active player sees their pieces at bottom
   const board2DProps = { ...sharedBoardProps, playerColor: aiEnabled ? playerColor : state.turn }
-  // 3D stays fixed from white's side — flipping breaks the 3D coordinate system
   const board3DProps = { ...sharedBoardProps, playerColor: 'w' as const }
 
+  const statusText = isGameOver
+    ? (resigned
+        ? 'Game over — better luck next time'
+        : state.winner === 'draw'
+          ? 'Draw!'
+          : `${state.winner === 'w' ? 'White' : 'Black'} wins!`)
+    : aiEnabled && aiThinking
+      ? '🤖 AI is thinking…'
+      : aiEnabled
+        ? (state.turn === playerColor ? '♔ Your move' : '♚ AI to move')
+        : (state.turn === 'w' ? '♔ White to move' : '♚ Black to move')
+
+  const statusColor = isGameOver
+    ? 'text-slate-400'
+    : state.turn === 'w' ? 'text-cyan-300' : 'text-purple-300'
+
+  const tweaksPanelJSX = (
+    <TweaksPanel
+      theme={theme}
+      timeControl={timeControl}
+      aiEnabled={aiEnabled}
+      aiLevel={aiLevel}
+      coordinates={coords}
+      view3D={view3D}
+      onTheme={setTheme}
+      onTime={(tc) => {
+        setTimeControl(tc)
+        resetTimer(TIME_CONTROL_MS[tc], TIME_CONTROL_MS[tc])
+      }}
+      onAI={setAiEnabled}
+      onAILevel={setAiLevel}
+      onCoords={setCoords}
+      on3D={setView3D}
+      onClose={() => setTweaksOpen(false)}
+    />
+  )
+
   return (
-    <div className="flex flex-col h-screen bg-[#070d1a] text-white overflow-hidden">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-slate-800/50">
+    <div className="flex flex-col h-[100dvh] bg-[#070d1a] text-white overflow-hidden">
+
+      {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
+      <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-cyan-400 text-lg">♟</span>
           <div>
@@ -214,9 +275,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             <p className="text-slate-600 text-[10px] tracking-wider">Your move. Make it legendary.</p>
           </div>
         </div>
-
         <ModeSelector activeMode={gameMode} onChange={handleModeChange} />
-
         <div className="flex items-center gap-3">
           <button
             onClick={() => { const m = !muted; setMuted(m); chessAudio.setMuted(m) }}
@@ -232,11 +291,35 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
         </div>
       </header>
 
-      {/* Main 3-column layout */}
-      <main className="flex-1 flex overflow-hidden">
-        {/* Left: Player panel + Difficulty */}
-        <aside className="w-56 shrink-0 border-r border-slate-800/40 flex flex-col overflow-hidden">
-          {/* Players fill remaining space */}
+      {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
+      <header className="lg:hidden flex items-center gap-2 px-3 py-2 border-b border-slate-800/50 shrink-0">
+        <span className="text-cyan-400 shrink-0">♟</span>
+        <span className="font-black text-[10px] tracking-widest neon-text uppercase shrink-0 hidden xs:block">
+          LET&apos;S PLAY SOME CHESS
+        </span>
+        {/* Scrollable mode selector */}
+        <div className="flex-1 overflow-x-auto scrollbar-none">
+          <ModeSelector activeMode={gameMode} onChange={handleModeChange} />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => { const m = !muted; setMuted(m); chessAudio.setMuted(m) }}
+            className="text-slate-500 hover:text-slate-300 transition-colors p-1"
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE
+          </div>
+        </div>
+      </header>
+
+      {/* ── MAIN CONTENT ─────────────────────────────────────── */}
+      <main className="flex-1 flex overflow-hidden min-h-0">
+
+        {/* Left panel — desktop only */}
+        <aside className="hidden lg:flex w-56 shrink-0 border-r border-slate-800/40 flex-col overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0">
             <PlayerPanel
               player={myInfo}
@@ -247,39 +330,86 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
               isGameOver={isGameOver}
             />
           </div>
-          {/* Difficulty pinned at bottom */}
           <div className="border-t border-slate-800/40 shrink-0">
             <DifficultyPanel value={difficulty} onChange={setDifficulty} />
           </div>
         </aside>
 
-        {/* Center: Board */}
-        <section className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-2 min-w-0">
-          {/* Status */}
-          <div className={`text-xs font-semibold tracking-widest uppercase ${
-            isGameOver ? 'text-slate-400'
-            : state.turn === 'w' ? 'text-cyan-300' : 'text-purple-300'
-          }`}>
-            {isGameOver
-              ? (resigned ? 'Game over — better luck next time' : state.winner === 'draw' ? 'Draw!' : `${state.winner === 'w' ? 'White wins!' : 'Black wins!'}`)
-              : aiEnabled && aiThinking
-                ? '🤖 AI is thinking…'
-                : aiEnabled
-                  ? (state.turn === playerColor ? '♔ Your move' : '♚ AI to move')
-                  : (state.turn === 'w' ? '♔ White to move' : '♚ Black to move')
+        {/* Center — board + mobile UI */}
+        <section className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+          {/* Mobile opponent strip */}
+          <div className="lg:hidden px-2 pt-2 pb-1 shrink-0">
+            <MobilePlayerStrip
+              username={opponent.username}
+              elo={opponent.elo}
+              ms={oppMs}
+              isActive={oppActive}
+              color={oppInfo.color}
+            />
+          </div>
+
+          {/* Board area */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-1 px-2 py-1 min-h-0 lg:gap-4 lg:px-4 lg:py-2">
+            <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 ${statusColor}`}>
+              {statusText}
+            </div>
+            {view3D
+              ? <ChessBoard3D {...board3DProps} />
+              : <ChessBoard2D {...board2DProps} />
             }
           </div>
 
-          {view3D
-            ? <ChessBoard3D {...board3DProps} />
-            : <ChessBoard2D {...board2DProps} />
-          }
+          {/* Mobile my strip */}
+          <div className="lg:hidden px-2 pt-1 pb-1 shrink-0">
+            <MobilePlayerStrip
+              username={me.username}
+              elo={me.elo}
+              ms={myMs}
+              isActive={myActive}
+              color={playerColor}
+            />
+          </div>
+
+          {/* Mobile tabs: Moves / Chat / Play */}
+          <div className="lg:hidden flex flex-col border-t border-slate-800/50 shrink-0" style={{ height: 130 }}>
+            <div className="flex border-b border-slate-800/50 shrink-0">
+              {(['moves', 'chat', 'play'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setMobileTab(tab)}
+                  className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
+                    ${mobileTab === tab
+                      ? 'text-cyan-300 border-b-2 border-cyan-500'
+                      : 'text-slate-600 hover:text-slate-400'
+                    }`}
+                >
+                  {tab === 'moves' ? 'Moves' : tab === 'chat' ? '💬 Chat' : '⚙ Play'}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 overflow-hidden min-h-0">
+              {mobileTab === 'moves' && <MoveLog moves={state.moveHistory} />}
+              {mobileTab === 'chat' && (
+                <ChatPanel
+                  whiteUsername={me.username}
+                  blackUsername={opponent.username}
+                  turn={state.turn}
+                />
+              )}
+              {mobileTab === 'play' && (
+                <div className="overflow-y-auto h-full p-2">
+                  <DifficultyPanel value={difficulty} onChange={setDifficulty} />
+                </div>
+              )}
+            </div>
+          </div>
+
         </section>
 
-        {/* Right: tabs — Move log / Chat / Tweaks */}
-        <aside className="w-64 shrink-0 border-l border-slate-800/40 flex flex-col">
-          {/* Tab switcher */}
-          <div className="flex border-b border-slate-800/50">
+        {/* Right panel — desktop only */}
+        <aside className="hidden lg:flex w-64 shrink-0 border-l border-slate-800/40 flex-col">
+          <div className="flex border-b border-slate-800/50 shrink-0">
             {(['moves', 'chat'] as const).map(tab => (
               <button
                 key={tab}
@@ -294,8 +424,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
               </button>
             ))}
           </div>
-
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden min-h-0">
             {activeTab === 'moves'
               ? <MoveLog moves={state.moveHistory} />
               : <ChatPanel
@@ -305,8 +434,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                 />
             }
           </div>
-
-          <div className="p-3 border-t border-slate-800/40">
+          <div className="p-3 border-t border-slate-800/40 shrink-0">
             <AnimatePresence>
               {tweaksOpen && (
                 <motion.div
@@ -315,33 +443,17 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <TweaksPanel
-                    theme={theme}
-                    timeControl={timeControl}
-                    aiEnabled={aiEnabled}
-                    aiLevel={aiLevel}
-                    coordinates={coords}
-                    view3D={view3D}
-                    onTheme={setTheme}
-                    onTime={(tc) => {
-                      setTimeControl(tc)
-                      resetTimer(TIME_CONTROL_MS[tc], TIME_CONTROL_MS[tc])
-                    }}
-                    onAI={setAiEnabled}
-                    onAILevel={setAiLevel}
-                    onCoords={setCoords}
-                    on3D={setView3D}
-                    onClose={() => setTweaksOpen(false)}
-                  />
+                  {tweaksPanelJSX}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </aside>
+
       </main>
 
-      {/* Bottom controls */}
-      <footer className="border-t border-slate-800/50">
+      {/* ── FOOTER ───────────────────────────────────────────── */}
+      <footer className="border-t border-slate-800/50 shrink-0">
         <GameControls
           onResign={handleResign}
           onDraw={() => {}}
@@ -350,6 +462,38 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           disabled={isGameOver}
         />
       </footer>
+
+      {/* ── MOBILE SETTINGS BOTTOM SHEET ─────────────────────── */}
+      <AnimatePresence>
+        {tweaksOpen && (
+          <motion.div
+            className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setTweaksOpen(false)}
+            />
+            <motion.div
+              className="relative bg-[#0d1829] border-t border-slate-700/50 rounded-t-2xl overflow-y-auto max-h-[88vh]"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-slate-600 rounded-full" />
+              </div>
+              <div className="p-4">
+                {tweaksPanelJSX}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Promotion dialog */}
       <PromotionDialog
