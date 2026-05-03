@@ -1,4 +1,5 @@
 import { RegisterForm } from '@/features/auth/components/RegisterForm'
+import { PawnIcon } from '@/components/ui/PawnIcon'
 
 export default function RegisterPage() {
   return (
@@ -6,7 +7,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
-            <span className="text-4xl text-cyan-400">♟</span>
+            <PawnIcon size={36} />
             <h1 className="text-xl font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</h1>
           </div>
           <p className="text-slate-500 text-sm">Create your account</p>

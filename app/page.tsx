@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Trophy, Swords, Bot, Users, Globe } from 'lucide-react'
+import { PawnIcon } from '@/components/ui/PawnIcon'
 
 export default function LandingPage() {
   return (
@@ -7,7 +8,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-8 py-5 border-b border-slate-800/50">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-400 text-2xl">♟</span>
+          <PawnIcon size={22} />
           <span className="font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</span>
         </div>
         <div className="flex items-center gap-3">
@@ -28,12 +29,7 @@ export default function LandingPage() {
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
         <div className="mb-6">
-          <span
-            className="text-9xl text-cyan-400 select-none"
-            style={{ textShadow: '0 0 80px rgba(6,182,212,0.7), 0 0 160px rgba(6,182,212,0.3)' }}
-          >
-            ♟
-          </span>
+          <PawnIcon size={120} glow />
         </div>
 
         <h1 className="text-5xl md:text-7xl font-black mb-4 tracking-tight neon-text">

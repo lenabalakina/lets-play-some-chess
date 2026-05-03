@@ -23,6 +23,7 @@ import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/chess.types'
 import { Radio, Volume2, VolumeX } from 'lucide-react'
+import { PawnIcon } from '@/components/ui/PawnIcon'
 
 const ChessBoard3D = dynamic(
   () => import('@/components/3d/ChessBoard3D').then(m => ({ default: m.ChessBoard3D })),
@@ -269,7 +270,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
       {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
       <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-cyan-400 text-lg">♟</span>
+          <PawnIcon size={18} />
           <div>
             <h1 className="font-black text-sm tracking-widest neon-text uppercase">LET&apos;S PLAY SOME CHESS</h1>
             <p className="text-slate-600 text-[10px] tracking-wider">Your move. Make it legendary.</p>
@@ -293,7 +294,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
 
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
       <header className="lg:hidden flex items-center gap-2 px-3 py-2 border-b border-slate-800/50 shrink-0">
-        <span className="text-cyan-400 shrink-0">♟</span>
+        <PawnIcon size={16} />
         <span className="font-black text-[10px] tracking-widest neon-text uppercase shrink-0 hidden xs:block">
           LET&apos;S PLAY SOME CHESS
         </span>

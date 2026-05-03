@@ -12,6 +12,7 @@ import { chessAudio } from '@/lib/audio'
 import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/types/chess.types'
 import { THEME_COLORS } from '@/features/chess/types/chess.types'
 import { Copy, Check, Wifi, WifiOff } from 'lucide-react'
+import { PawnIcon } from '@/components/ui/PawnIcon'
 
 interface Props {
   code:     string
@@ -130,7 +131,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
       <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-cyan-400 text-lg">♟</span>
+          <PawnIcon size={18} />
           <div>
             <h1 className="font-black text-sm tracking-widest neon-text uppercase">Let&apos;s Play Some Chess</h1>
             <p className="text-slate-600 text-[10px] tracking-wider">Online · Room {code}</p>
@@ -157,7 +158,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
       <header className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-slate-800/50 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-400">♟</span>
+          <PawnIcon size={16} />
           <div>
             <h1 className="font-black text-[10px] tracking-widest neon-text uppercase">CHESS</h1>
             <p className="text-slate-600 text-[9px]">Room {code}</p>

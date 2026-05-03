@@ -4,6 +4,7 @@ import { signOut } from '@/features/auth/actions/auth'
 import Link from 'next/link'
 import { Trophy, Swords, TrendingUp, LogOut } from 'lucide-react'
 import type { User, Game } from '@/lib/supabase/types'
+import { PawnIcon } from '@/components/ui/PawnIcon'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <header className="border-b border-slate-800/50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-cyan-400 text-xl">♟</span>
+          <PawnIcon size={20} />
           <h1 className="font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</h1>
         </div>
         <div className="flex items-center gap-4">

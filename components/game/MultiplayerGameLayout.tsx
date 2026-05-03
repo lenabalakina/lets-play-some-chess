@@ -23,6 +23,7 @@ import { chessAudio } from '@/lib/audio'
 import type { BoardTheme, Color, GameResultColor, MoveRecord, TimeControl } from '@/features/chess/types/chess.types'
 import { resultToWinner } from '@/features/chess/types/chess.types'
 import { Radio, Wifi, WifiOff, Volume2, VolumeX } from 'lucide-react'
+import { PawnIcon } from '@/components/ui/PawnIcon'
 
 const ChessBoard3D = dynamic(
   () => import('@/components/3d/ChessBoard3D').then(m => ({ default: m.ChessBoard3D })),
@@ -319,7 +320,7 @@ export function MultiplayerGameLayout({
       {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
       <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-cyan-400 text-lg">♟</span>
+          <PawnIcon size={18} />
           <h1 className="font-bold text-base tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</h1>
         </div>
         <ModeSelector activeMode="rapid" onChange={() => {}} />
@@ -346,7 +347,7 @@ export function MultiplayerGameLayout({
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
       <header className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-slate-800/50 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-400">♟</span>
+          <PawnIcon size={16} />
           <h1 className="font-black text-[10px] tracking-widest neon-text uppercase">LET&apos;S PLAY SOME CHESS</h1>
         </div>
         <div className="flex items-center gap-2">

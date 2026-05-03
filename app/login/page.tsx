@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PawnIcon } from '@/components/ui/PawnIcon'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 
 export default function LoginPage() {
@@ -8,7 +9,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
-            <span className="text-4xl text-cyan-400">♟</span>
+            <PawnIcon size={36} />
             <h1 className="text-xl font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</h1>
           </div>
           <p className="text-slate-500 text-sm">Sign in to track your rating</p>
