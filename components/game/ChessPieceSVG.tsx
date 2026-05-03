@@ -48,11 +48,7 @@ export function KnightSVG({ fill, stroke, size = 45 }: PieceProps) {
         d="M16.5 37 C16 30 18 25 21 22 C18 21 16 18 17 13 C18.5 8 24 6 28 9 C34 11 37 18 35 24 C33 29 30 31 30 35 L30 37 Z"
         fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
       />
-      {/* Mane indent */}
-      <path
-        d="M21 22 C20 19 19 16 20 13"
-        fill="none" stroke={stroke} strokeWidth="1" strokeLinecap="round"
-      />
+
       {/* Base */}
       <path d="M9.5 37 H35.5 V39 H9.5 Z" fill={fill} stroke={stroke} strokeWidth="1.5"/>
       {/* Eye */}
