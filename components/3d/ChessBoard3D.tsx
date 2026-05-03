@@ -92,17 +92,17 @@ export function ChessBoard3D({
           <CameraRig playerColor={playerColor} />
 
           {/* Lighting */}
-          <ambientLight intensity={0.3} />
+          <ambientLight intensity={0.6} color="#ffffff" />
           <directionalLight
             position={[5, 12, 8]}
-            intensity={0.7}
+            intensity={1.4}
             color="#ffffff"
             castShadow
             shadow-mapSize={[1024, 1024]}
           />
           {/* Neon fill lights */}
-          <pointLight position={[0, 4, 0]}   intensity={1.2}  color="#06b6d4" distance={12} />
-          <pointLight position={[-4, 2, -4]} intensity={1.2}  color="#a855f7" distance={10} />
+          <pointLight position={[0, 4, 0]}   intensity={0.8}  color="#06b6d4" distance={12} />
+          <pointLight position={[-4, 2, -4]} intensity={0.6}  color="#a855f7" distance={10} />
           <pointLight position={[4, 2, 4]}   intensity={0.4}  color="#0ea5e9" distance={10} />
 
           {/* Environment map — gives metallic pieces bright chrome reflections */}
@@ -138,9 +138,9 @@ export function ChessBoard3D({
           {/* Post-processing */}
           <EffectComposer>
             <Bloom
-              luminanceThreshold={0.55}
-              luminanceSmoothing={0.3}
-              intensity={1.0}
+              luminanceThreshold={0.6}
+              luminanceSmoothing={0.4}
+              intensity={0.7}
               mipmapBlur
             />
           </EffectComposer>

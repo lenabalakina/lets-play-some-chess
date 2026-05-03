@@ -37,9 +37,9 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   const mat = useMemo(() => new THREE.MeshStandardMaterial({
     color:             new THREE.Color('#ffffff'),
     emissive:          color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE,
-    emissiveIntensity: color === 'w' ? 0.12 : 0.18,
-    roughness:         color === 'w' ? 0.05 : 0.08,
-    metalness:         color === 'w' ? 0.90 : 0.85,
+    emissiveIntensity: color === 'w' ? 0.20 : 0.30,
+    roughness:         0.30,
+    metalness:         0.15,
   }), [color])
 
   // Apply material to every child mesh after each render
@@ -87,7 +87,7 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
     groupRef.current.position.set(...current.current)
 
     // Animate emissive intensity
-    const base = color === 'w' ? 0.12 : 0.18
+    const base = color === 'w' ? 0.20 : 0.30
     mat.emissiveIntensity = isSelected
       ? 0.7 + Math.sin(Date.now() * 0.005) * 0.15
       : isInCheck ? 0.7 : base
