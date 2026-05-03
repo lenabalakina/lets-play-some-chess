@@ -76,16 +76,6 @@ export function ChatPanel({ whiteUsername, blackUsername, turn }: Props) {
       transition={{ duration: 0.5 }}
       className="flex flex-col h-full"
     >
-      {/* Header */}
-      <div className="flex border-b border-slate-800/60">
-        {(['chat', 'stickers'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
-              ${tab === t ? 'text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-600 hover:text-slate-400'}`}>
-            {t === 'chat' ? '💬 Chat' : '😂 Stickers'}
-          </button>
-        ))}
-      </div>
 
       {/* Chat messages */}
       <AnimatePresence mode="wait">

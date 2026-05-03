@@ -400,7 +400,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                       : 'text-slate-600 hover:text-slate-400'
                     }`}
                 >
-                  {tab === 'moves' ? 'Moves' : tab === 'chat' ? '💬 Chat' : '⚙ Play'}
+                  {tab === 'moves' ? 'Moves' : tab === 'chat' ? 'Chat' : '⚙ Play'}
                 </button>
               ))}
             </div>
@@ -432,7 +432,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
                   ${activeTab === tab ? 'text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-600 hover:text-slate-400'}`}>
-                {tab === 'chat' ? '💬 Chat' : 'Moves'}
+                {tab === 'chat' ? 'Chat' : 'Moves'}
               </button>
             ))}
           </div>
