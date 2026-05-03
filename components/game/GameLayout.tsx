@@ -22,7 +22,7 @@ import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/chess.types'
-import { Radio, Volume2, VolumeX, LayoutDashboard, LogOut, Clock, Bot } from 'lucide-react'
+import { Radio, Volume2, VolumeX, LayoutDashboard, LogOut, Clock, Bot, X, AlignJustify, MessageCircle, Gamepad2 } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
 import { GameResultModal } from './GameResultModal'
@@ -87,11 +87,11 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [coords,      setCoords]      = useState(true)
   const [view3D,      setView3D]      = useState(false)
   const [muted,       setMuted]       = useState(false)
-  const [tweaksOpen,  setTweaksOpen]  = useState(false)
-  const [resigned,    setResigned]    = useState(false)
+  const [tweaksOpen,   setTweaksOpen]   = useState(false)
+  const [resigned,     setResigned]     = useState(false)
   const [promoDialog,  setPromoDialog]  = useState(false)
   const [activeTab,    setActiveTab]    = useState<'moves' | 'chat'>('chat')
-  const [mobileTab,    setMobileTab]    = useState<'moves' | 'chat' | 'play'>('moves')
+  const [mobileSheet,  setMobileSheet]  = useState<'moves' | 'chat' | 'play' | null>(null)
   const [difficulty,   setDifficulty]   = useState<Difficulty>('vision')
   const [aiLevel,      setAiLevel]      = useState<AiLevel>(initialAiLevel)
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
@@ -387,38 +387,23 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             />
           </div>
 
-          {/* Mobile tabs: Moves / Chat / Play */}
-          <div className="lg:hidden flex flex-col border-t border-slate-800/50 shrink-0" style={{ height: 130 }}>
-            <div className="flex border-b border-slate-800/50 shrink-0">
-              {(['moves', 'chat', 'play'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setMobileTab(tab)}
-                  className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
-                    ${mobileTab === tab
-                      ? 'text-cyan-300 border-b-2 border-cyan-500'
-                      : 'text-slate-600 hover:text-slate-400'
-                    }`}
-                >
-                  {tab === 'moves' ? 'Moves' : tab === 'chat' ? 'Chat' : '⚙ Play'}
-                </button>
-              ))}
-            </div>
-            <div className="flex-1 overflow-hidden min-h-0">
-              {mobileTab === 'moves' && <MoveLog moves={state.moveHistory} />}
-              {mobileTab === 'chat' && (
-                <ChatPanel
-                  whiteUsername={me.username}
-                  blackUsername={opponent.username}
-                  turn={state.turn}
-                />
-              )}
-              {mobileTab === 'play' && (
-                <div className="overflow-y-auto h-full p-2">
-                  <DifficultyPanel value={difficulty} onChange={setDifficulty} />
-                </div>
-              )}
-            </div>
+          {/* Mobile action bar — slim icon row, opens bottom sheets */}
+          <div className="lg:hidden flex items-stretch border-t border-slate-800/50 shrink-0 h-10">
+            {([
+              { id: 'moves' as const, Icon: AlignJustify, label: 'Moves' },
+              { id: 'chat'  as const, Icon: MessageCircle, label: 'Chat'  },
+              { id: 'play'  as const, Icon: Gamepad2,      label: 'Play'  },
+            ]).map(({ id, Icon, label }) => (
+              <button
+                key={id}
+                onClick={() => setMobileSheet(s => s === id ? null : id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors
+                  ${mobileSheet === id ? 'text-cyan-300 bg-cyan-500/10' : 'text-slate-600 hover:text-slate-400'}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
 
         </section>
@@ -482,6 +467,46 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
         </aside>
 
       </main>
+
+      {/* ── Mobile bottom sheet (slides up above footer) ─────── */}
+      <AnimatePresence>
+        {mobileSheet && (
+          <motion.div
+            className="lg:hidden fixed inset-x-0 z-40"
+            style={{ bottom: 44 }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+          >
+            <div className="bg-[#0d1829] border-t border-slate-700/40 rounded-t-xl overflow-hidden" style={{ maxHeight: '45vh' }}>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/50 shrink-0">
+                <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                  {mobileSheet === 'moves' ? 'Move Log' : mobileSheet === 'chat' ? 'Chat' : 'Play Settings'}
+                </span>
+                <button onClick={() => setMobileSheet(null)} className="text-slate-600 hover:text-slate-300 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-hidden" style={{ height: 'calc(45vh - 36px)' }}>
+                {mobileSheet === 'moves' && <MoveLog moves={state.moveHistory} />}
+                {mobileSheet === 'chat' && (
+                  <ChatPanel
+                    whiteUsername={me.username}
+                    blackUsername={opponent.username}
+                    turn={state.turn}
+                  />
+                )}
+                {mobileSheet === 'play' && (
+                  <div className="overflow-y-auto h-full p-3">
+                    <DifficultyPanel value={difficulty} onChange={setDifficulty} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── FOOTER ───────────────────────────────────────────── */}
       <footer className="border-t border-slate-800/50 shrink-0">

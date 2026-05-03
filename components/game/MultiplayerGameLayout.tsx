@@ -23,7 +23,7 @@ import { recordMove, resignGame, offerDraw } from '@/features/multiplayer/action
 import { chessAudio } from '@/lib/audio'
 import type { BoardTheme, Color, GameResultColor, MoveRecord, TimeControl } from '@/features/chess/types/chess.types'
 import { resultToWinner } from '@/features/chess/types/chess.types'
-import { Radio, Wifi, WifiOff, Volume2, VolumeX } from 'lucide-react'
+import { Radio, Wifi, WifiOff, Volume2, VolumeX, X, AlignJustify, MessageCircle } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
 
@@ -80,6 +80,7 @@ export function MultiplayerGameLayout({
   const [muted,          setMuted]          = useState(false)
   const [tweaksOpen,     setTweaksOpen]     = useState(false)
   const [activeTab,      setActiveTab]      = useState<'chat' | 'moves'>('chat')
+  const [mobileSheet,    setMobileSheet]    = useState<'moves' | 'chat' | null>(null)
   const [opponentOnline, setOpponentOnline] = useState(true)
 
   // Game over
@@ -500,14 +501,22 @@ export function MultiplayerGameLayout({
             </div>
           </div>
 
-          {/* Mobile move log strip */}
-          <div className="lg:hidden flex flex-col border-t border-slate-800/50 shrink-0" style={{ height: 100 }}>
-            <div className="px-4 pt-2 pb-1 shrink-0">
-              <p className="text-slate-500 text-[10px] font-semibold tracking-widest uppercase">Moves</p>
-            </div>
-            <div className="flex-1 overflow-hidden min-h-0">
-              <MoveLog moves={state.moveHistory} />
-            </div>
+          {/* Mobile action bar */}
+          <div className="lg:hidden flex items-stretch border-t border-slate-800/50 shrink-0 h-10">
+            {([
+              { id: 'moves' as const, Icon: AlignJustify,  label: 'Moves' },
+              { id: 'chat'  as const, Icon: MessageCircle, label: 'Chat'  },
+            ]).map(({ id, Icon, label }) => (
+              <button
+                key={id}
+                onClick={() => setMobileSheet(s => s === id ? null : id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors
+                  ${mobileSheet === id ? 'text-cyan-300 bg-cyan-500/10' : 'text-slate-600 hover:text-slate-400'}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
 
         </section>
@@ -591,6 +600,41 @@ export function MultiplayerGameLayout({
         </aside>
 
       </main>
+
+      {/* ── Mobile bottom sheet ─────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileSheet && (
+          <motion.div
+            className="lg:hidden fixed inset-x-0 z-40"
+            style={{ bottom: 44 }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+          >
+            <div className="bg-[#0d1829] border-t border-slate-700/40 rounded-t-xl overflow-hidden" style={{ maxHeight: '45vh' }}>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/50 shrink-0">
+                <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                  {mobileSheet === 'moves' ? 'Move Log' : 'Chat'}
+                </span>
+                <button onClick={() => setMobileSheet(null)} className="text-slate-600 hover:text-slate-300 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-hidden" style={{ height: 'calc(45vh - 36px)' }}>
+                {mobileSheet === 'moves' && <MoveLog moves={state.moveHistory} />}
+                {mobileSheet === 'chat' && (
+                  <ChatPanel
+                    whiteUsername={me.username}
+                    blackUsername={opponent.username}
+                    turn={me.color}
+                  />
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Bottom controls ──────────────────────────────────────── */}
       <footer className="border-t border-slate-800/50 shrink-0">
