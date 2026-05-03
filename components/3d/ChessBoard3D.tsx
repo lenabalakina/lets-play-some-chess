@@ -135,9 +135,9 @@ export function ChessBoard3D({
           {/* Post-processing */}
           <EffectComposer>
             <Bloom
-              luminanceThreshold={0.2}
-              luminanceSmoothing={0.4}
-              intensity={0.8}
+              luminanceThreshold={0.55}
+              luminanceSmoothing={0.3}
+              intensity={1.0}
               mipmapBlur
             />
           </EffectComposer>
