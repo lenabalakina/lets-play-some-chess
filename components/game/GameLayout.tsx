@@ -24,6 +24,7 @@ import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/chess.types'
 import { Radio, Volume2, VolumeX } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
+import { useBoardSize } from '@/hooks/useBoardSize'
 
 const ChessBoard3D = dynamic(
   () => import('@/components/3d/ChessBoard3D').then(m => ({ default: m.ChessBoard3D })),
@@ -91,6 +92,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [difficulty,   setDifficulty]   = useState<Difficulty>('vision')
   const [aiLevel,      setAiLevel]      = useState<AiLevel>(initialAiLevel)
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
+  const { ref: boardAreaRef, size: boardSize } = useBoardSize()
 
   const { state, selectSquare, makeMove, resetGame } = useChessGame(playerColor)
 
@@ -355,13 +357,12 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 py-1 ${statusColor}`}>
               {statusText}
             </div>
-            {/* container-type:size lets cqw/cqh units measure this box */}
+            {/* ref measures this box; boardSize = min(width, height, 640) */}
             <div
+              ref={boardAreaRef}
               className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden"
-              style={{ containerType: 'size' }}
             >
-              {/* board is min(container-width, container-height, 640px) — always square, always fits */}
-              <div style={{ width: 'min(100cqw, 100cqh, 640px)', height: 'min(100cqw, 100cqh, 640px)' }}>
+              <div style={{ width: boardSize, height: boardSize, flexShrink: 0 }}>
                 {view3D
                   ? <ChessBoard3D {...board3DProps} />
                   : <ChessBoard2D {...board2DProps} />

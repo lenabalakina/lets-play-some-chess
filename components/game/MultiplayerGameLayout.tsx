@@ -24,6 +24,7 @@ import type { BoardTheme, Color, GameResultColor, MoveRecord, TimeControl } from
 import { resultToWinner } from '@/features/chess/types/chess.types'
 import { Radio, Wifi, WifiOff, Volume2, VolumeX } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
+import { useBoardSize } from '@/hooks/useBoardSize'
 
 const ChessBoard3D = dynamic(
   () => import('@/components/3d/ChessBoard3D').then(m => ({ default: m.ChessBoard3D })),
@@ -309,6 +310,7 @@ export function MultiplayerGameLayout({
     onSquareClick:  handleSquareClick,
   }
 
+  const { ref: boardAreaRef, size: boardSize } = useBoardSize()
   const myMs  = me.color  === 'w' ? whiteMs : blackMs
   const oppMs = opponent.color === 'w' ? whiteMs : blackMs
   const myActive  = !isGameOver && state.turn === me.color
@@ -439,10 +441,10 @@ export function MultiplayerGameLayout({
               {statusText()}
             </div>
             <div
+              ref={boardAreaRef}
               className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden"
-              style={{ containerType: 'size' }}
             >
-              <div style={{ width: 'min(100cqw, 100cqh, 640px)', height: 'min(100cqw, 100cqh, 640px)' }}>
+              <div style={{ width: boardSize, height: boardSize, flexShrink: 0 }}>
                 {view3D
                   ? <ChessBoard3D {...boardProps} />
                   : <ChessBoard2D {...boardProps} />

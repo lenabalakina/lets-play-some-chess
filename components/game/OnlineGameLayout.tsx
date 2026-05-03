@@ -13,6 +13,7 @@ import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/typ
 import { THEME_COLORS } from '@/features/chess/types/chess.types'
 import { Copy, Check, Wifi, WifiOff } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
+import { useBoardSize } from '@/hooks/useBoardSize'
 
 interface Props {
   code:     string
@@ -35,6 +36,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const [theme]                             = useState<BoardTheme>('neon')
   const [copied,         setCopied]         = useState(false)
   const [mobileTab,      setMobileTab]      = useState<'moves' | 'info'>('moves')
+  const { ref: boardAreaRef, size: boardSize } = useBoardSize()
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const prevMoveCountRef = useRef(0)
 
@@ -281,10 +283,10 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             </AnimatePresence>
 
             <div
+              ref={boardAreaRef}
               className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden"
-              style={{ containerType: 'size' }}
             >
-              <div style={{ width: 'min(100cqw, 100cqh, 640px)', height: 'min(100cqw, 100cqh, 640px)' }}>
+              <div style={{ width: boardSize, height: boardSize, flexShrink: 0 }}>
                 <ChessBoard2D
                   fen={room.fen}
                   selectedSquare={selectedSquare}
