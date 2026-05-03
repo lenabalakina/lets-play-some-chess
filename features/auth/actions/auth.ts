@@ -58,3 +58,32 @@ export async function signOut() {
   if (supabase) await supabase.auth.signOut()
   redirect('/login')
 }
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = formData.get('email')?.toString().trim()
+  if (!email) return { error: 'Email is required' }
+
+  const supabase = await getClient()
+  if (!supabase) return { error: 'Accounts are not enabled yet.' }
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://letsplaysomechess.com'
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/reset-password`,
+  })
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function updatePassword(formData: FormData) {
+  const password = formData.get('password')?.toString()
+  if (!password || password.length < 6) return { error: 'Password must be at least 6 characters' }
+
+  const supabase = await getClient()
+  if (!supabase) return { error: 'Accounts are not enabled yet.' }
+
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) return { error: error.message }
+  redirect('/dashboard')
+}
