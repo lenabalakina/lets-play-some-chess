@@ -22,10 +22,12 @@ import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/chess.types'
-import { Radio, Volume2, VolumeX } from 'lucide-react'
+import { Radio, Volume2, VolumeX, LayoutDashboard, LogOut, Clock, Bot } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
 import { GameResultModal } from './GameResultModal'
+import { signOut } from '@/features/auth/actions/auth'
+import Link from 'next/link'
 
 const ChessBoard3D = dynamic(
   () => import('@/components/3d/ChessBoard3D').then(m => ({ default: m.ChessBoard3D })),
@@ -424,66 +426,12 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
         {/* Right panel — desktop only */}
         <aside className="hidden lg:flex w-64 shrink-0 border-l border-slate-800/40 flex-col">
 
-          {/* Always-visible: themes + 3D */}
-          <div className="px-3 pt-3 pb-2 border-b border-slate-800/50 shrink-0 space-y-2.5">
-            {/* Theme picker */}
-            <div>
-              <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase mb-1.5">Board Theme</p>
-              <div className="grid grid-cols-4 gap-1">
-                {([
-                  { id: 'neon',   dot: '#06b6d4', label: 'Neon'   },
-                  { id: 'void',   dot: '#8b5cf6', label: 'Void'   },
-                  { id: 'ember',  dot: '#f97316', label: 'Ember'  },
-                  { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
-                ] as const).map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTheme(t.id)}
-                    title={t.label}
-                    className={`flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all
-                      ${theme === t.id
-                        ? 'border-slate-500 bg-slate-700 text-white'
-                        : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'}`}
-                  >
-                    <span className="w-3 h-3 rounded-full" style={{ background: t.dot }} />
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 3D + Coordinates toggles */}
-            <div className="space-y-1.5">
-              {[
-                { label: '3D Board', value: view3D,   onChange: (v: boolean) => setView3D(v) },
-                { label: 'Coordinates', value: coords, onChange: (v: boolean) => setCoords(v) },
-              ].map(({ label, value, onChange }) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="text-slate-300 text-xs">{label}</span>
-                  <button
-                    role="switch" aria-checked={value}
-                    onClick={() => onChange(!value)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${value ? 'bg-cyan-500' : 'bg-slate-700'}`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Tabs: Chat / Moves */}
+          {/* Chat / Moves tabs */}
           <div className="flex border-b border-slate-800/50 shrink-0">
             {(['chat', 'moves'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+              <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
-                  ${activeTab === tab
-                    ? 'text-cyan-300 border-b-2 border-cyan-500'
-                    : 'text-slate-600 hover:text-slate-400'
-                  }`}
-              >
+                  ${activeTab === tab ? 'text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-600 hover:text-slate-400'}`}>
                 {tab === 'chat' ? '💬 Chat' : 'Moves'}
               </button>
             ))}
@@ -492,31 +440,44 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           <div className="flex-1 overflow-hidden min-h-0">
             {activeTab === 'moves'
               ? <MoveLog moves={state.moveHistory} />
-              : <ChatPanel
-                  whiteUsername={me.username}
-                  blackUsername={opponent.username}
-                  turn={state.turn}
-                />
+              : <ChatPanel whiteUsername={me.username} blackUsername={opponent.username} turn={state.turn} />
             }
           </div>
 
-          {/* Collapsible: AI + Time settings */}
-          <div className="border-t border-slate-800/40 shrink-0">
-            <AnimatePresence>
-              {tweaksOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-3">
-                    {tweaksPanelJSX}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* DESIGN — always visible at bottom */}
+          <div className="border-t border-slate-800/50 shrink-0 px-3 py-3 space-y-2.5">
+            <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase">Design</p>
+
+            {/* Theme picker */}
+            <div className="grid grid-cols-4 gap-1">
+              {([
+                { id: 'neon',   dot: '#06b6d4', label: 'Neon'   },
+                { id: 'void',   dot: '#8b5cf6', label: 'Void'   },
+                { id: 'ember',  dot: '#f97316', label: 'Ember'  },
+                { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
+              ] as const).map(t => (
+                <button key={t.id} onClick={() => setTheme(t.id)} title={t.label}
+                  className={`flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all
+                    ${theme === t.id ? 'border-slate-500 bg-slate-700 text-white' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'}`}>
+                  <span className="w-3 h-3 rounded-full" style={{ background: t.dot }} />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 3D + Coordinates */}
+            {[
+              { label: '3D Board', value: view3D, set: setView3D },
+              { label: 'Coordinates', value: coords, set: setCoords },
+            ].map(({ label, value, set }) => (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-slate-300 text-xs">{label}</span>
+                <button role="switch" aria-checked={value} onClick={() => set((v: boolean) => !v)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${value ? 'bg-cyan-500' : 'bg-slate-700'}`}>
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            ))}
           </div>
         </aside>
 
@@ -533,32 +494,128 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
         />
       </footer>
 
-      {/* ── MOBILE SETTINGS BOTTOM SHEET ─────────────────────── */}
+      {/* ── SETTINGS MODAL (all screen sizes) ───────────────────── */}
       <AnimatePresence>
         {tweaksOpen && (
           <motion.div
-            className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end"
+            className="fixed inset-0 z-50 flex items-end lg:items-center justify-center p-0 lg:p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div
-              className="absolute inset-0 bg-black/60"
-              onClick={() => setTweaksOpen(false)}
-            />
+            <div className="absolute inset-0 bg-black/60" onClick={() => setTweaksOpen(false)} />
             <motion.div
-              className="relative bg-[#0d1829] border-t border-slate-700/50 rounded-t-2xl overflow-y-auto max-h-[88vh]"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              className="relative bg-[#0d1829] w-full lg:max-w-sm lg:rounded-2xl rounded-t-2xl border border-slate-700/50 overflow-y-auto max-h-[90vh]"
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', damping: 30, stiffness: 400 }}
             >
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 bg-slate-600 rounded-full" />
+              <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800/50">
+                <h2 className="font-black text-sm tracking-widest text-white uppercase">Settings</h2>
+                <button onClick={() => setTweaksOpen(false)} className="text-slate-500 hover:text-slate-300 text-lg leading-none">✕</button>
               </div>
-              <div className="p-4">
-                {tweaksPanelJSX}
+
+              <div className="p-5 space-y-5">
+
+                {/* Design (mobile only — on desktop it's always visible) */}
+                <div className="lg:hidden space-y-3">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Design</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {([
+                      { id: 'neon', dot: '#06b6d4', label: 'Neon' },
+                      { id: 'void', dot: '#8b5cf6', label: 'Void' },
+                      { id: 'ember', dot: '#f97316', label: 'Ember' },
+                      { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
+                    ] as const).map(t => (
+                      <button key={t.id} onClick={() => setTheme(t.id)}
+                        className={`flex flex-col items-center gap-1 py-2 rounded-xl border text-[10px] font-bold transition-all
+                          ${theme === t.id ? 'border-slate-500 bg-slate-700 text-white' : 'border-slate-800 text-slate-500 hover:border-slate-600'}`}>
+                        <span className="w-3.5 h-3.5 rounded-full" style={{ background: t.dot }} />
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                  {[
+                    { label: '3D Board', value: view3D, set: setView3D },
+                    { label: 'Coordinates', value: coords, set: setCoords },
+                  ].map(({ label, value, set }) => (
+                    <div key={label} className="flex items-center justify-between">
+                      <span className="text-slate-300 text-sm">{label}</span>
+                      <button role="switch" aria-checked={value} onClick={() => set((v: boolean) => !v)}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${value ? 'bg-cyan-500' : 'bg-slate-700'}`}>
+                        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Game settings */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" /> Time Control
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {([
+                      { id: 'blitz_3', label: '3M', sub: 'Blitz' },
+                      { id: 'blitz_5', label: '5M', sub: 'Blitz' },
+                      { id: 'rapid_10', label: '10M', sub: 'Rapid' },
+                      { id: 'classic_15', label: '15M', sub: 'Classic' },
+                    ] as const).map(t => (
+                      <button key={t.id} onClick={() => {
+                        setTimeControl(t.id)
+                        resetTimer(TIME_CONTROL_MS[t.id], TIME_CONTROL_MS[t.id])
+                      }}
+                        className={`py-2 rounded-xl text-xs font-bold transition-all
+                          ${timeControl === t.id ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/60' : 'bg-slate-800/50 text-slate-400 border border-slate-800 hover:border-slate-600'}`}>
+                        {t.label}
+                        <span className="block text-[9px] font-normal mt-0.5 opacity-60">{t.sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase flex items-center gap-1.5">
+                    <Bot className="w-3 h-3" /> AI Opponent
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 text-sm">Play vs AI</span>
+                    <button role="switch" aria-checked={aiEnabled} onClick={() => setAiEnabled(v => !v)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${aiEnabled ? 'bg-cyan-500' : 'bg-slate-700'}`}>
+                      <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${aiEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                  {aiEnabled && (
+                    <div className="flex gap-1.5">
+                      {(['easy', 'intermediate', 'hard'] as const).map(l => (
+                        <button key={l} onClick={() => setAiLevel(l)}
+                          className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold capitalize transition-all
+                            ${aiLevel === l ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/60' : 'bg-slate-800/50 text-slate-500 border border-slate-800 hover:border-slate-600'}`}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Account */}
+                <div className="space-y-2 border-t border-slate-800/50 pt-4">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Account</p>
+                  <Link href="/dashboard" onClick={() => setTweaksOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white transition-all text-sm font-medium">
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                  <form action={signOut}>
+                    <button type="submit"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-red-900/20 border border-red-900/40 text-red-400 hover:border-red-700/60 hover:bg-red-900/30 transition-all text-sm font-medium">
+                      <LogOut className="w-4 h-4" />
+                      Log Out
+                    </button>
+                  </form>
+                </div>
               </div>
             </motion.div>
           </motion.div>
