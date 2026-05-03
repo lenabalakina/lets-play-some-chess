@@ -102,6 +102,8 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   })
 
   const PieceShape = PIECE_COMPONENTS[type]
+  // Knight snout faces +Z; white pieces sit at +Z (near camera) so rotate 180° to face the opponent
+  const knightRotY = type === 'n' && color === 'w' ? Math.PI : 0
 
   return (
     <group
@@ -111,7 +113,9 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
       onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
       onPointerOut={(e) => { e.stopPropagation(); document.body.style.cursor = 'default' }}
     >
-      <PieceShape />
+      <group rotation={[0, knightRotY, 0]}>
+        <PieceShape />
+      </group>
     </group>
   )
 }
