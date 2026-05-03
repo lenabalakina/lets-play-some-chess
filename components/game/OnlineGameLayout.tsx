@@ -280,8 +280,11 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
               )}
             </AnimatePresence>
 
-            <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
-              <div style={{ width: '100%', maxWidth: 640, aspectRatio: '1 / 1', maxHeight: '100%' }}>
+            <div
+              className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden"
+              style={{ containerType: 'size' }}
+            >
+              <div style={{ width: 'min(100cqw, 100cqh, 640px)', height: 'min(100cqw, 100cqh, 640px)' }}>
                 <ChessBoard2D
                   fen={room.fen}
                   selectedSquare={selectedSquare}

@@ -438,8 +438,11 @@ export function MultiplayerGameLayout({
             <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 py-1 ${statusColor()}`}>
               {statusText()}
             </div>
-            <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
-              <div style={{ width: '100%', maxWidth: 640, aspectRatio: '1 / 1', maxHeight: '100%' }}>
+            <div
+              className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden"
+              style={{ containerType: 'size' }}
+            >
+              <div style={{ width: 'min(100cqw, 100cqh, 640px)', height: 'min(100cqw, 100cqh, 640px)' }}>
                 {view3D
                   ? <ChessBoard3D {...boardProps} />
                   : <ChessBoard2D {...boardProps} />
