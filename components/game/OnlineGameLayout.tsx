@@ -250,8 +250,8 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
           </div>
 
           {/* Board area */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 px-2 py-1 min-h-0 lg:gap-3 lg:px-4 lg:py-2">
-            <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 ${
+          <div className="flex-1 flex flex-col items-center min-h-0 overflow-hidden px-2 py-1 lg:px-4 lg:py-2">
+            <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 py-1 ${
               isGameOver
                 ? (room.winner === myColor ? 'text-emerald-400' : room.winner === 'draw' ? 'text-slate-400' : 'text-red-400')
                 : isMyTurn ? 'text-cyan-300' : 'text-slate-500'
@@ -280,18 +280,22 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
               )}
             </AnimatePresence>
 
-            <ChessBoard2D
-              fen={room.fen}
-              selectedSquare={selectedSquare}
-              legalMoves={legalMoves}
-              lastMove={room.lastMove as { from: Square; to: Square } | null}
-              theme={theme}
-              showCoords={true}
-              playerColor={myColor}
-              isMyTurn={isMyTurn}
-              isGameOver={isGameOver}
-              onSquareClick={handleSquareClick}
-            />
+            <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
+              <div style={{ width: '100%', maxWidth: 640, aspectRatio: '1 / 1', maxHeight: '100%' }}>
+                <ChessBoard2D
+                  fen={room.fen}
+                  selectedSquare={selectedSquare}
+                  legalMoves={legalMoves}
+                  lastMove={room.lastMove as { from: Square; to: Square } | null}
+                  theme={theme}
+                  showCoords={true}
+                  playerColor={myColor}
+                  isMyTurn={isMyTurn}
+                  isGameOver={isGameOver}
+                  onSquareClick={handleSquareClick}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Mobile: my color strip */}

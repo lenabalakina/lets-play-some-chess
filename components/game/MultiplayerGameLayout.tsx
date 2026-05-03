@@ -434,15 +434,18 @@ export function MultiplayerGameLayout({
           </div>
 
           {/* Board area */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-1 px-2 py-1 min-h-0 lg:gap-4 lg:px-4 lg:py-2">
-            <div className={`text-[11px] font-semibold tracking-widest uppercase ${statusColor()}`}>
+          <div className="flex-1 flex flex-col items-center min-h-0 overflow-hidden px-2 py-1 lg:px-4 lg:py-2">
+            <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 py-1 ${statusColor()}`}>
               {statusText()}
             </div>
-
-            {view3D
-              ? <ChessBoard3D {...boardProps} />
-              : <ChessBoard2D {...boardProps} />
-            }
+            <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
+              <div style={{ width: '100%', maxWidth: 640, aspectRatio: '1 / 1', maxHeight: '100%' }}>
+                {view3D
+                  ? <ChessBoard3D {...boardProps} />
+                  : <ChessBoard2D {...boardProps} />
+                }
+              </div>
+            </div>
 
             {/* Post-game CTAs */}
             <AnimatePresence>

@@ -2,7 +2,7 @@
 
 import type { PieceType } from '@/features/chess/types/chess.types'
 
-interface PieceProps { fill: string; stroke: string; size?: number }
+interface PieceProps { fill: string; stroke: string; size?: number | string }
 
 export function PawnSVG({ fill, stroke, size = 45 }: PieceProps) {
   return (
@@ -122,7 +122,7 @@ interface ChessPieceSVGProps {
   type:        PieceType
   isWhite:     boolean
   isSelected?: boolean
-  size?:       number
+  size?:       number | string
 }
 
 export function ChessPieceSVG({ type, isWhite, isSelected, size = 45 }: ChessPieceSVGProps) {

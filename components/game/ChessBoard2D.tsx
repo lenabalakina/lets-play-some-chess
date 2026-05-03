@@ -20,7 +20,6 @@ interface Props {
   isMyTurn:       boolean
   isGameOver:     boolean
   onSquareClick:  (sq: Square) => void
-  inCheckSquare?: Square | null   // king square that is in check
 }
 
 function getInCheckSquare(fen: string): Square | null {
@@ -49,23 +48,20 @@ export function ChessBoard2D({
   const colors = THEME_COLORS[theme]
   const checkSquare = getInCheckSquare(fen)
 
-  // Flip board if playing as black
   const ranks = playerColor === 'b' ? [...RANKS].reverse() : RANKS
   const files = playerColor === 'b' ? [...FILES].reverse() : FILES
 
   function getSquareStyle(file: string, rank: string): React.CSSProperties {
     const sq = `${file}${rank}` as Square
-    const isLight = (FILES.indexOf(file) + parseInt(rank)) % 2 === 1
+    const isLight    = (FILES.indexOf(file) + parseInt(rank)) % 2 === 1
     const isSelected = sq === selectedSquare
-    const isLegal    = legalMoves.includes(sq)
-    const isLastFrom  = lastMove?.from === sq
-    const isLastTo    = lastMove?.to === sq
-    const isCheck     = sq === checkSquare
+    const isLastFrom = lastMove?.from === sq
+    const isLastTo   = lastMove?.to   === sq
+    const isCheck    = sq === checkSquare
 
     let bg = isLight ? colors.light : colors.dark
-
-    if (isCheck)    bg = colors.check
-    else if (isSelected) bg = colors.selected
+    if (isCheck)                    bg = colors.check
+    else if (isSelected)            bg = colors.selected
     else if (isLastFrom || isLastTo) bg = colors.highlight
 
     return { background: bg }
@@ -75,10 +71,6 @@ export function ChessBoard2D({
     const file = files[fileIdx]
     const rank = ranks[rankIdx]
     const sq   = `${file}${rank}` as Square
-
-    // Map to board array (board[0] = rank 8 for white, rank 1 for black)
-    const boardRankIdx = playerColor === 'b' ? rankIdx : rankIdx
-    const boardFileIdx = playerColor === 'b' ? 7 - fileIdx : fileIdx
     const actualRankIdx = RANKS.indexOf(rank)
     const actualFileIdx = FILES.indexOf(file)
     const cell = board[actualRankIdx]?.[actualFileIdx]
@@ -86,22 +78,22 @@ export function ChessBoard2D({
   }
 
   return (
-    <div className="relative select-none">
+    // w-full h-full — fills whatever container the parent gives it
+    <div className="relative select-none w-full h-full">
       {/* Board border glow */}
       <div
-        className="absolute inset-0 rounded-sm pointer-events-none"
+        className="absolute inset-0 rounded-sm pointer-events-none z-10"
         style={{ boxShadow: `0 0 40px rgba(6,182,212,0.15), inset 0 0 20px rgba(0,0,0,0.5)` }}
       />
 
-      {/* Board grid */}
+      {/* Board grid — fills the container, 8×8 equal cells */}
       <div
-        className="relative grid"
+        className="relative w-full h-full grid"
         style={{ gridTemplateColumns: 'repeat(8, 1fr)', gridTemplateRows: 'repeat(8, 1fr)' }}
       >
         {ranks.map((rank, rankIdx) =>
           files.map((file, fileIdx) => {
             const { sq, cell } = getCellFromCoords(fileIdx, rankIdx)
-            const isLight    = (FILES.indexOf(file) + parseInt(rank)) % 2 === 1
             const isLegal    = legalMoves.includes(sq)
             const isSelected = sq === selectedSquare
             const isWhitePiece = cell?.color === 'w'
@@ -110,10 +102,8 @@ export function ChessBoard2D({
               <div
                 key={sq}
                 onClick={() => !isGameOver && onSquareClick(sq)}
-                className="relative flex items-center justify-center"
+                className="relative"
                 style={{
-                  width: 'clamp(36px, calc((100vw - 16px) / 8), 80px)',
-                  height: 'clamp(36px, calc((100vw - 16px) / 8), 80px)',
                   ...getSquareStyle(file, rank),
                   cursor: isGameOver ? 'default' : (isMyTurn ? 'pointer' : 'default'),
                   transition: 'background 0.15s',
@@ -121,26 +111,27 @@ export function ChessBoard2D({
               >
                 {/* Coordinate labels */}
                 {showCoords && fileIdx === 0 && (
-                  <span className="absolute top-0.5 left-1 text-[9px] font-medium opacity-50 text-white leading-none">
+                  <span className="absolute top-0.5 left-0.5 text-[9px] font-medium opacity-50 text-white leading-none z-20 pointer-events-none select-none">
                     {rank}
                   </span>
                 )}
                 {showCoords && rankIdx === 7 && (
-                  <span className="absolute bottom-0.5 right-1 text-[9px] font-medium opacity-50 text-white leading-none">
+                  <span className="absolute bottom-0.5 right-0.5 text-[9px] font-medium opacity-50 text-white leading-none z-20 pointer-events-none select-none">
                     {file}
                   </span>
                 )}
 
-                {/* Legal move dot or ring */}
+                {/* Legal move dot */}
                 {isLegal && !cell && (
                   <div
-                    className="w-[28%] h-[28%] rounded-full pointer-events-none"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28%] h-[28%] rounded-full pointer-events-none z-10"
                     style={{ background: THEME_COLORS[theme].move, boxShadow: `0 0 8px ${THEME_COLORS[theme].highlight}` }}
                   />
                 )}
+                {/* Legal move ring (capture) */}
                 {isLegal && cell && (
                   <div
-                    className="absolute inset-0 rounded-sm pointer-events-none"
+                    className="absolute inset-0 rounded-sm pointer-events-none z-10"
                     style={{
                       border: `3px solid ${THEME_COLORS[theme].highlight}`,
                       boxShadow: `inset 0 0 8px ${THEME_COLORS[theme].highlight}`,
@@ -148,7 +139,7 @@ export function ChessBoard2D({
                   />
                 )}
 
-                {/* Piece — sharp SVG */}
+                {/* Piece */}
                 {cell && (
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -157,14 +148,16 @@ export function ChessBoard2D({
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.75, opacity: 0 }}
                       transition={{ duration: 0.1 }}
-                      className="relative z-10 pointer-events-none select-none"
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10"
                     >
-                      <ChessPieceSVG
-                        type={cell.type as PieceType}
-                        isWhite={isWhitePiece}
-                        isSelected={isSelected}
-                        size={56}
-                      />
+                      <div className="w-[82%] h-[82%]">
+                        <ChessPieceSVG
+                          type={cell.type as PieceType}
+                          isWhite={isWhitePiece}
+                          isSelected={isSelected}
+                          size="100%"
+                        />
+                      </div>
                     </motion.div>
                   </AnimatePresence>
                 )}
@@ -176,7 +169,7 @@ export function ChessBoard2D({
 
       {/* Game over overlay */}
       {isGameOver && (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center rounded-sm">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center rounded-sm z-20">
           <div className="glass-panel rounded-xl px-8 py-4 text-center">
             <p className="text-white font-bold text-lg">Game Over</p>
           </div>
