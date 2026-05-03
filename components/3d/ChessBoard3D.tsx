@@ -4,7 +4,6 @@ import { Canvas } from '@react-three/fiber'
 import { Chess } from 'chess.js'
 import { Suspense } from 'react'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import { Environment } from '@react-three/drei'
 import { Board3D } from './Board3D'
 import { ChessPiece3D } from './ChessPiece3D'
 import { CameraRig } from './CameraRig'
@@ -104,9 +103,6 @@ export function ChessBoard3D({
           <pointLight position={[0, 4, 0]}   intensity={0.8}  color="#06b6d4" distance={12} />
           <pointLight position={[-4, 2, -4]} intensity={0.6}  color="#a855f7" distance={10} />
           <pointLight position={[4, 2, 4]}   intensity={0.4}  color="#0ea5e9" distance={10} />
-
-          {/* Environment map — gives metallic pieces bright chrome reflections */}
-          <Environment preset="city" background={false} />
 
           {/* Board */}
           <Board3D
