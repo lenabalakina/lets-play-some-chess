@@ -25,6 +25,7 @@ import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/ches
 import { Radio, Volume2, VolumeX } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
+import { GameResultModal } from './GameResultModal'
 
 const ChessBoard3D = dynamic(
   () => import('@/components/3d/ChessBoard3D').then(m => ({ default: m.ChessBoard3D })),
@@ -37,7 +38,7 @@ interface PlayerInfo {
 }
 
 interface Props {
-  me:              PlayerInfo
+  me:              PlayerInfo & { id?: string }
   opponent:        PlayerInfo
   initialAi?:      boolean
   initialAiLevel?: AiLevel
@@ -511,6 +512,21 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
         open={promoDialog}
         color={playerColor}
         onSelect={handlePromoSelect}
+      />
+
+      {/* Game result modal */}
+      <GameResultModal
+        open={isGameOver && !promoDialog}
+        result={resigned ? (playerColor === 'w' ? 'black' : 'white') as 'black' | 'white' : state.winner === 'w' ? 'white' : state.winner === 'b' ? 'black' : state.winner ?? null}
+        myColor={playerColor}
+        reason={resigned ? 'resign' : state.winner === 'draw' ? 'draw' : 'checkmate'}
+        myUsername={me.username}
+        oppUsername={opponent.username}
+        myElo={me.elo}
+        userId={me.id ?? ''}
+        onNewGame={handleNewGame}
+        onDashboard={handleNewGame}
+        onRematch={handleNewGame}
       />
     </div>
   )

@@ -619,6 +619,7 @@ export function MultiplayerGameLayout({
         userId={me.id}
         onNewGame={() => router.push('/play')}
         onDashboard={() => router.push('/dashboard')}
+        onRematch={() => router.push('/play')}
       />
     </div>
   )
