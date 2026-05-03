@@ -80,20 +80,26 @@ export function BishopSVG({ fill, stroke, size = 45 }: PieceProps) {
 export function QueenSVG({ fill, stroke, size = 45 }: PieceProps) {
   return (
     <svg viewBox="0 0 45 45" width={size} height={size}>
-      <circle cx="6" cy="12" r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
-      <circle cx="14" cy="9" r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
-      <circle cx="22.5" cy="8" r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
-      <circle cx="31" cy="9" r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
-      <circle cx="39" cy="12" r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
+      {/* 5 crown balls — symmetric around x=22.5 */}
+      <circle cx="6"    cy="12" r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
+      <circle cx="14"   cy="9"  r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
+      <circle cx="22.5" cy="8"  r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
+      <circle cx="31"   cy="9"  r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
+      <circle cx="39"   cy="12" r="2.75" fill={fill} stroke={stroke} strokeWidth="1.5"/>
+      {/* Body — explicitly symmetric: cubic mirrors around x=22.5 */}
       <path
-        d="M9 26c8.5-8.5 15.5-4 16.5 2 1-6 8-10.5 16.5-2l3-12c-11-6-22 2-20.5 2C26 14.5 15 6.5 4 12l5 14z"
+        d="M9 26 C10 17 15.5 14 22.5 14 C29.5 14 35 17 36 26 L34 36 H11 L9 26Z"
         fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="butt" strokeLinejoin="round"
       />
+      {/* Crown spike connectors — each pair mirrors around x=22.5 */}
       <path
-        d="M9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z"
-        fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="butt" strokeLinejoin="round"
+        d="M6 14.5 L9 26 M14 11.5 L12 24 M22.5 10.75 L22.5 14 M31 11.5 L33 24 M39 14.5 L36 26"
+        fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round"
       />
-      <path d="M11.5 30c3.5-1 18.5-1 22 0M12 33.5c4-1.5 17-1.5 21 0" fill="none" stroke={stroke} strokeWidth="1"/>
+      {/* Belt lines — symmetric */}
+      <path d="M11.5 30 H33.5 M12 33.5 H33" fill="none" stroke={stroke} strokeWidth="1"/>
+      {/* Base */}
+      <path d="M9.5 36 H35.5 V39 H9.5 Z" fill={fill} stroke={stroke} strokeWidth="1.5"/>
     </svg>
   )
 }

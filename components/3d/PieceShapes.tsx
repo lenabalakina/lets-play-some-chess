@@ -108,9 +108,9 @@ export function Queen() {
       <Disc r={0.36} h={0.07} y={0.035} />
       <Cyl  rt={0.13} rb={0.19} h={0.36} y={0.25} />
       <Sph  r={0.24}  y={0.56} />
-      {/* Crown points */}
+      {/* Crown points — start at π/2 so one sphere faces camera (+Z) giving symmetric view */}
       {[0, 1, 2, 3, 4].map(i => {
-        const angle = (i / 5) * Math.PI * 2
+        const angle = Math.PI / 2 + (i / 5) * Math.PI * 2
         return (
           <mesh key={i} position={[Math.cos(angle) * 0.2, 0.75, Math.sin(angle) * 0.2]} castShadow>
             <sphereGeometry args={[0.05, 8, 8]} />
