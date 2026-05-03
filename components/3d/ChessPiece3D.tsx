@@ -35,11 +35,11 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   // Create material imperatively — avoids the JSX ref-override bug where
   // spreading material.props clobbered MaterialProvider's ref, leaving meshes uncolored
   const mat = useMemo(() => new THREE.MeshStandardMaterial({
-    color:             new THREE.Color(color === 'w' ? '#cce8ff' : '#cc99ff'),
+    color:             new THREE.Color(color === 'w' ? '#e8f6ff' : '#ede6ff'),
     emissive:          color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE,
-    emissiveIntensity: color === 'w' ? 0.20 : 0.55,
-    roughness:         color === 'w' ? 0.08 : 0.12,
-    metalness:         color === 'w' ? 0.85 : 0.45,
+    emissiveIntensity: color === 'w' ? 0.18 : 0.28,
+    roughness:         color === 'w' ? 0.07 : 0.09,
+    metalness:         color === 'w' ? 0.88 : 0.72,
   }), [color])
 
   // Apply material to every child mesh after each render
@@ -87,7 +87,7 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
     groupRef.current.position.set(...current.current)
 
     // Animate emissive intensity
-    const base = color === 'w' ? 0.20 : 0.55
+    const base = color === 'w' ? 0.18 : 0.28
     mat.emissiveIntensity = isSelected
       ? 0.7 + Math.sin(Date.now() * 0.005) * 0.15
       : isInCheck ? 0.7 : base
