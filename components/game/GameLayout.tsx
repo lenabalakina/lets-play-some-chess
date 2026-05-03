@@ -201,7 +201,8 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
       const shadow = new Chess(fen)
       for (const row of board) {
         for (const cell of row) {
-          if (cell && cell.color !== myColor && !visible.has(cell.square)) {
+          // Never remove the king — chess.js requires both kings in a valid position
+          if (cell && cell.color !== myColor && cell.type !== 'k' && !visible.has(cell.square)) {
             shadow.remove(cell.square as Parameters<typeof shadow.remove>[0])
           }
         }
