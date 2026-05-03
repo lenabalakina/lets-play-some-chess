@@ -126,9 +126,9 @@ interface ChessPieceSVGProps {
 }
 
 export function ChessPieceSVG({ type, isWhite, isSelected, size = 45 }: ChessPieceSVGProps) {
-  // White = bright ice-white, Black = deep navy — both use the site's cyan accent
-  const fill   = isWhite ? '#e8f9ff' : '#0e2038'
-  const stroke = '#06b6d4'
+  // White = bright ice, Black = vivid purple — both equally vibrant, NO blur
+  const fill   = isWhite ? '#dff6ff' : '#c084fc'
+  const stroke = isWhite ? '#06b6d4' : '#7c3aed'
 
   const Piece = { p: PawnSVG, r: RookSVG, n: KnightSVG, b: BishopSVG, q: QueenSVG, k: KingSVG }[type]
 
@@ -138,10 +138,8 @@ export function ChessPieceSVG({ type, isWhite, isSelected, size = 45 }: ChessPie
       transition: 'transform 0.12s ease',
       lineHeight: 0,
       filter: isSelected
-        ? 'brightness(1.5) saturate(1.8) drop-shadow(0 0 8px rgba(6,182,212,0.95))'
-        : isWhite
-          ? 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))'
-          : 'drop-shadow(0 0 4px rgba(6,182,212,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.8))',
+        ? (isWhite ? 'brightness(1.4) saturate(1.5)' : 'brightness(1.4) saturate(1.5)')
+        : 'none',
     }}>
       <Piece fill={fill} stroke={stroke} size={size} />
     </div>
