@@ -105,6 +105,9 @@ export function ChessBoard3D({
           <pointLight position={[-4, 2, -4]} intensity={1.2}  color="#a855f7" distance={10} />
           <pointLight position={[4, 2, 4]}   intensity={0.4}  color="#0ea5e9" distance={10} />
 
+          {/* Environment map — gives metallic pieces bright chrome reflections */}
+          <Environment preset="city" background={false} />
+
           {/* Board */}
           <Board3D
             fen={fen}
