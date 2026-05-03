@@ -210,8 +210,9 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     } catch { return fen }
   }
 
+  // Shadow: always from the player's perspective (not the current turn)
   const displayFen = difficulty === 'shadow'
-    ? getShadowFen(state.fen, state.turn)
+    ? getShadowFen(state.fen, playerColor)
     : state.fen
 
   const isMyTurn = aiEnabled ? (state.turn === playerColor && !aiThinking) : true
@@ -421,6 +422,56 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
 
         {/* Right panel — desktop only */}
         <aside className="hidden lg:flex w-64 shrink-0 border-l border-slate-800/40 flex-col">
+
+          {/* Always-visible: themes + 3D */}
+          <div className="px-3 pt-3 pb-2 border-b border-slate-800/50 shrink-0 space-y-2.5">
+            {/* Theme picker */}
+            <div>
+              <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase mb-1.5">Board Theme</p>
+              <div className="grid grid-cols-4 gap-1">
+                {([
+                  { id: 'neon',   dot: '#06b6d4', label: 'Neon'   },
+                  { id: 'void',   dot: '#8b5cf6', label: 'Void'   },
+                  { id: 'ember',  dot: '#f97316', label: 'Ember'  },
+                  { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
+                ] as const).map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    title={t.label}
+                    className={`flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all
+                      ${theme === t.id
+                        ? 'border-slate-500 bg-slate-700 text-white'
+                        : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'}`}
+                  >
+                    <span className="w-3 h-3 rounded-full" style={{ background: t.dot }} />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3D + Coordinates toggles */}
+            <div className="space-y-1.5">
+              {[
+                { label: '3D Board', value: view3D,   onChange: (v: boolean) => setView3D(v) },
+                { label: 'Coordinates', value: coords, onChange: (v: boolean) => setCoords(v) },
+              ].map(({ label, value, onChange }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <span className="text-slate-300 text-xs">{label}</span>
+                  <button
+                    role="switch" aria-checked={value}
+                    onClick={() => onChange(!value)}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${value ? 'bg-cyan-500' : 'bg-slate-700'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tabs: Moves / Chat */}
           <div className="flex border-b border-slate-800/50 shrink-0">
             {(['moves', 'chat'] as const).map(tab => (
               <button
@@ -436,6 +487,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
               </button>
             ))}
           </div>
+
           <div className="flex-1 overflow-hidden min-h-0">
             {activeTab === 'moves'
               ? <MoveLog moves={state.moveHistory} />
@@ -446,16 +498,21 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                 />
             }
           </div>
-          <div className="p-3 border-t border-slate-800/40 shrink-0">
+
+          {/* Collapsible: AI + Time settings */}
+          <div className="border-t border-slate-800/40 shrink-0">
             <AnimatePresence>
               {tweaksOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
                 >
-                  {tweaksPanelJSX}
+                  <div className="p-3">
+                    {tweaksPanelJSX}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
