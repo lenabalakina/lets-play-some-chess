@@ -39,11 +39,6 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: securityHeaders,
       },
-      // No-cache on homepage so phones always get fresh HTML (fixes stale emoji cache on iOS/Android)
-      {
-        source: '/',
-        headers: [{ key: 'Cache-Control', value: 'no-store, must-revalidate' }],
-      },
     ]
   },
 
