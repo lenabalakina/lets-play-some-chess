@@ -9,6 +9,7 @@ import { Chess } from 'chess.js'
 import { ChessBoard2D } from './ChessBoard2D'
 import { PlayerPanel } from './PlayerPanel'
 import { MoveLog } from './MoveLog'
+import { ChatPanel } from './ChatPanel'
 import { TweaksPanel } from './TweaksPanel'
 import { GameControls } from './GameControls'
 import { ModeSelector } from './ModeSelector'
@@ -78,6 +79,7 @@ export function MultiplayerGameLayout({
   const [view3D,         setView3D]         = useState(false)
   const [muted,          setMuted]          = useState(false)
   const [tweaksOpen,     setTweaksOpen]     = useState(false)
+  const [activeTab,      setActiveTab]      = useState<'chat' | 'moves'>('chat')
   const [opponentOnline, setOpponentOnline] = useState(true)
 
   // Game over
@@ -510,19 +512,62 @@ export function MultiplayerGameLayout({
 
         </section>
 
-        {/* Right: Move log + Tweaks — desktop only */}
+        {/* Right: Chat + Moves + Tweaks — desktop only */}
         <aside className="hidden lg:flex w-64 shrink-0 border-l border-slate-800/40 flex-col">
-          <div className="flex-1 overflow-hidden min-h-0">
-            <MoveLog moves={state.moveHistory} />
+
+          {/* Always-visible board controls */}
+          <div className="px-3 pt-3 pb-2 border-b border-slate-800/50 shrink-0 space-y-2.5">
+            <div>
+              <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase mb-1.5">Board Theme</p>
+              <div className="grid grid-cols-4 gap-1">
+                {([
+                  { id: 'neon',   dot: '#06b6d4', label: 'Neon'   },
+                  { id: 'void',   dot: '#8b5cf6', label: 'Void'   },
+                  { id: 'ember',  dot: '#f97316', label: 'Ember'  },
+                  { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
+                ] as const).map(t => (
+                  <button key={t.id} onClick={() => setTheme(t.id)} title={t.label}
+                    className={`flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all
+                      ${theme === t.id ? 'border-slate-500 bg-slate-700 text-white' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'}`}>
+                    <span className="w-3 h-3 rounded-full" style={{ background: t.dot }} />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-300 text-xs">3D Board</span>
+              <button role="switch" aria-checked={view3D} onClick={() => setView3D(v => !v)}
+                className={`relative w-10 h-5 rounded-full transition-colors ${view3D ? 'bg-cyan-500' : 'bg-slate-700'}`}>
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${view3D ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
           </div>
-          <div className="p-3 border-t border-slate-800/40 shrink-0">
+
+          {/* Chat / Moves tabs */}
+          <div className="flex border-b border-slate-800/50 shrink-0">
+            {(['chat', 'moves'] as const).map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
+                  ${activeTab === tab ? 'text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-600 hover:text-slate-400'}`}>
+                {tab === 'chat' ? '💬 Chat' : 'Moves'}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-hidden min-h-0">
+            {activeTab === 'chat'
+              ? <ChatPanel whiteUsername={me.username} blackUsername={opponent.username} turn={me.color} />
+              : <MoveLog moves={state.moveHistory} />
+            }
+          </div>
+
+          <div className="border-t border-slate-800/40 shrink-0">
             <AnimatePresence>
               {tweaksOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                >
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                  <div className="p-3">
                   <TweaksPanel
                     theme={theme}
                     timeControl={timeControl}
@@ -538,6 +583,7 @@ export function MultiplayerGameLayout({
                     on3D={setView3D}
                     onClose={() => setTweaksOpen(false)}
                   />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

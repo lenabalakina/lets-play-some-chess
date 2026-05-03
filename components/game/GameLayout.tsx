@@ -88,7 +88,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [tweaksOpen,  setTweaksOpen]  = useState(false)
   const [resigned,    setResigned]    = useState(false)
   const [promoDialog,  setPromoDialog]  = useState(false)
-  const [activeTab,    setActiveTab]    = useState<'moves' | 'chat'>('moves')
+  const [activeTab,    setActiveTab]    = useState<'moves' | 'chat'>('chat')
   const [mobileTab,    setMobileTab]    = useState<'moves' | 'chat' | 'play'>('moves')
   const [difficulty,   setDifficulty]   = useState<Difficulty>('vision')
   const [aiLevel,      setAiLevel]      = useState<AiLevel>(initialAiLevel)
@@ -472,9 +472,9 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             </div>
           </div>
 
-          {/* Tabs: Moves / Chat */}
+          {/* Tabs: Chat / Moves */}
           <div className="flex border-b border-slate-800/50 shrink-0">
-            {(['moves', 'chat'] as const).map(tab => (
+            {(['chat', 'moves'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -484,7 +484,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                     : 'text-slate-600 hover:text-slate-400'
                   }`}
               >
-                {tab === 'moves' ? 'Moves' : '💬 Chat'}
+                {tab === 'chat' ? '💬 Chat' : 'Moves'}
               </button>
             ))}
           </div>
