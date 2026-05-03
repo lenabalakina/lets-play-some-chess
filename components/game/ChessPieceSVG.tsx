@@ -43,25 +43,20 @@ export function RookSVG({ fill, stroke, size = 45 }: PieceProps) {
 export function KnightSVG({ fill, stroke, size = 45 }: PieceProps) {
   return (
     <svg viewBox="0 0 45 45" width={size} height={size}>
-      {/* Horse body — centered (shifted left 4px from original so center≈22.5) */}
+      {/* Horse head silhouette — single closed path */}
       <path
-        d="M18 10c10.5 1 16.5 8 16 29H11c0-9 10-6.5 8-21"
+        d="M16.5 37 C16 30 18 25 21 22 C18 21 16 18 17 13 C18.5 8 24 6 28 9 C34 11 37 18 35 24 C33 29 30 31 30 35 L30 37 Z"
         fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
       />
-      {/* Mane detail */}
+      {/* Mane indent */}
       <path
-        d="M20 18c.38 5.12-5.55 7.37-8 11.46 1-1.23 5.44-7 5.5-11.02"
-        fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-      />
-      {/* Ear/nostril detail */}
-      <path
-        d="M11 15.5c-.69.87-1.89 1.04-2.82 2.15-.76.9-1.18 2.17-.68 3.35"
+        d="M21 22 C20 19 19 16 20 13"
         fill="none" stroke={stroke} strokeWidth="1" strokeLinecap="round"
       />
-      {/* Base — replaces the disconnected floating circle */}
+      {/* Base */}
       <path d="M9.5 37 H35.5 V39 H9.5 Z" fill={fill} stroke={stroke} strokeWidth="1.5"/>
       {/* Eye */}
-      <circle cx="21" cy="10.5" r="1.5" fill={stroke}/>
+      <circle cx="28" cy="14" r="1.5" fill={stroke}/>
     </svg>
   )
 }
