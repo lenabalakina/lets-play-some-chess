@@ -92,18 +92,18 @@ export function ChessBoard3D({
           <CameraRig playerColor={playerColor} />
 
           {/* Lighting */}
-          <ambientLight intensity={0.4} />
+          <ambientLight intensity={0.3} />
           <directionalLight
             position={[5, 12, 8]}
-            intensity={1.2}
+            intensity={0.7}
             color="#ffffff"
             castShadow
             shadow-mapSize={[1024, 1024]}
           />
           {/* Neon fill lights */}
-          <pointLight position={[0, 4, 0]}   intensity={1.5}  color="#06b6d4" distance={12} />
-          <pointLight position={[-4, 2, -4]} intensity={0.8}  color="#a855f7" distance={10} />
-          <pointLight position={[4, 2, 4]}   intensity={0.5}  color="#0ea5e9" distance={10} />
+          <pointLight position={[0, 4, 0]}   intensity={1.2}  color="#06b6d4" distance={12} />
+          <pointLight position={[-4, 2, -4]} intensity={1.2}  color="#a855f7" distance={10} />
+          <pointLight position={[4, 2, 4]}   intensity={0.4}  color="#0ea5e9" distance={10} />
 
           {/* Board */}
           <Board3D

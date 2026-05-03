@@ -67,7 +67,7 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
 
     // Pulse emissive when selected
     if (matRef.current) {
-      const base = color === 'w' ? 0.15 : 0.25
+      const base = color === 'w' ? 0.20 : 0.50
       const intensity = isSelected
         ? 0.7 + Math.sin(Date.now() * 0.005) * 0.15
         : isInCheck ? 0.6 : base
@@ -92,15 +92,15 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   const emissive   = isInCheck ? CHECK_COLOR : (color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE)
   const PieceShape = PIECE_COMPONENTS[type]
 
-  // White = radiant chrome-white with cyan tint, Black = radiant white with purple tint
+  // White = icy chrome-white (cyan glow), Black = bright lavender-purple (purple glow)
   const material = (
     <meshStandardMaterial
       ref={matRef}
-      color={color === 'w' ? '#ddf2ff' : '#ede6ff'}
+      color={color === 'w' ? '#cce8ff' : '#cc99ff'}
       emissive={emissive}
-      emissiveIntensity={isSelected ? 0.9 : color === 'w' ? 0.15 : 0.25}
+      emissiveIntensity={isSelected ? 0.9 : color === 'w' ? 0.20 : 0.50}
       roughness={color === 'w' ? 0.08 : 0.10}
-      metalness={color === 'w' ? 0.85 : 0.80}
+      metalness={color === 'w' ? 0.85 : 0.45}
     />
   )
 
