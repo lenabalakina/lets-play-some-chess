@@ -92,15 +92,15 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   const emissive   = isInCheck ? CHECK_COLOR : (color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE)
   const PieceShape = PIECE_COMPONENTS[type]
 
-  // White = bright pearl, Black = dark charcoal — clearly distinct even without color
+  // White = gleaming chrome-white, Black = vivid metallic purple — clearly distinct
   const material = (
     <meshStandardMaterial
       ref={matRef}
-      color={color === 'w' ? '#dff6ff' : '#1a0a2e'}
+      color={color === 'w' ? '#e8f4ff' : '#7c3aed'}
       emissive={emissive}
-      emissiveIntensity={isSelected ? 0.8 : color === 'w' ? 0.12 : 0.35}
-      roughness={color === 'w' ? 0.15 : 0.4}
-      metalness={color === 'w' ? 0.7  : 0.3}
+      emissiveIntensity={isSelected ? 0.9 : color === 'w' ? 0.1 : 0.4}
+      roughness={color === 'w' ? 0.1 : 0.15}
+      metalness={color === 'w' ? 0.8 : 0.7}
     />
   )
 
