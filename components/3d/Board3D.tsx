@@ -132,29 +132,17 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
       {tiles}
 
-      {/* Subtle edge glow strips */}
+      {/* Edge glow strips — 8.4 matches frame width so all 4 corners connect */}
       {[-4.1, 4.1].map((x) => (
         <mesh key={x} position={[x, 0.06, 0]}>
-          <boxGeometry args={[0.04, 0.12, 8.0]} />
-          <meshStandardMaterial
-            color="#06b6d4"
-            emissive="#06b6d4"
-            emissiveIntensity={1.5}
-            transparent
-            opacity={0.6}
-          />
+          <boxGeometry args={[0.06, 0.12, 8.4]} />
+          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} transparent opacity={0.9} />
         </mesh>
       ))}
       {[-4.1, 4.1].map((z) => (
         <mesh key={z} position={[0, 0.06, z]}>
-          <boxGeometry args={[8.0, 0.12, 0.04]} />
-          <meshStandardMaterial
-            color="#06b6d4"
-            emissive="#06b6d4"
-            emissiveIntensity={1.5}
-            transparent
-            opacity={0.6}
-          />
+          <boxGeometry args={[8.4, 0.12, 0.06]} />
+          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} transparent opacity={0.9} />
         </mesh>
       ))}
     </group>
