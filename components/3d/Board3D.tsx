@@ -143,10 +143,10 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
       {tiles}
 
-      {/* Single frame shape — one mesh, no corners, no seams */}
+      {/* Single frame — extruded so glow shows on top AND down the sides */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.065, 0]}>
-        <shapeGeometry args={[frameShape]} />
-        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={2} side={THREE.DoubleSide} />
+        <extrudeGeometry args={[frameShape, { depth: 0.15, bevelEnabled: false }]} />
+        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.8} side={THREE.DoubleSide} />
       </mesh>
     </group>
   )
