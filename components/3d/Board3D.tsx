@@ -132,16 +132,16 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
       {tiles}
 
-      {/* Edge glow strips — full 8.4 length so they naturally overlap at all 4 corners */}
-      {[-4.1, 4.1].map((x) => (
-        <mesh key={`x${x}`} position={[x, 0.06, 0]}>
-          <boxGeometry args={[0.10, 0.12, 8.4]} />
+      {/* Edge glow — butt joints: front/back full width, left/right fit between them */}
+      {[-4.1, 4.1].map((z) => (
+        <mesh key={`z${z}`} position={[0, 0.06, z]}>
+          <boxGeometry args={[8.4, 0.12, 0.08]} />
           <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} transparent opacity={0.9} />
         </mesh>
       ))}
-      {[-4.1, 4.1].map((z) => (
-        <mesh key={`z${z}`} position={[0, 0.06, z]}>
-          <boxGeometry args={[8.4, 0.12, 0.10]} />
+      {[-4.1, 4.1].map((x) => (
+        <mesh key={`x${x}`} position={[x, 0.06, 0]}>
+          <boxGeometry args={[0.08, 0.12, 8.24]} />
           <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} transparent opacity={0.9} />
         </mesh>
       ))}
