@@ -143,11 +143,24 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
       {tiles}
 
-      {/* Flat frame ring — raised above tiles to avoid z-fighting */}
+      {/* Top ring — flat shape handles connected corners */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.09, 0]} renderOrder={1}>
         <shapeGeometry args={[frameShape]} />
         <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={2} depthWrite={false} />
       </mesh>
+      {/* Side glow — thin strips on the outer faces of the board surround */}
+      {([-4.21, 4.21] as number[]).map(x => (
+        <mesh key={`sx${x}`} position={[x, -0.04, 0]}>
+          <boxGeometry args={[0.03, 0.12, 8.4]} />
+          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} />
+        </mesh>
+      ))}
+      {([-4.21, 4.21] as number[]).map(z => (
+        <mesh key={`sz${z}`} position={[0, -0.04, z]}>
+          <boxGeometry args={[8.4, 0.12, 0.03]} />
+          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} />
+        </mesh>
+      ))}
     </group>
   )
 }
