@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import * as THREE from 'three'
 import type { BoardTheme, Color, Square } from '@/features/chess/types/chess.types'
 import { THEME_COLORS } from '@/features/chess/types/chess.types'
@@ -85,6 +86,16 @@ interface Props {
 }
 
 export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, theme, playerColor, onSquareClick, showCoords }: Props) {
+  // Single frame shape — no corners, no seams
+  const frameShape = useMemo(() => {
+    const s = new THREE.Shape()
+    s.moveTo(-4.2, -4.2); s.lineTo(4.2, -4.2); s.lineTo(4.2, 4.2); s.lineTo(-4.2, 4.2); s.closePath()
+    const hole = new THREE.Path()
+    hole.moveTo(-4.06, -4.06); hole.lineTo(4.06, -4.06); hole.lineTo(4.06, 4.06); hole.lineTo(-4.06, 4.06); hole.closePath()
+    s.holes.push(hole)
+    return s
+  }, [])
+
   const tiles: React.ReactNode[] = []
 
   for (const rank of RANKS) {
@@ -132,19 +143,11 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
       {tiles}
 
-      {/* Edge glow — all 4 strips identical length/width, corners overlap invisibly */}
-      {[-4.1, 4.1].map((z) => (
-        <mesh key={`z${z}`} position={[0, 0.06, z]}>
-          <boxGeometry args={[8.4, 0.12, 0.06]} />
-          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} transparent opacity={0.9} />
-        </mesh>
-      ))}
-      {[-4.1, 4.1].map((x) => (
-        <mesh key={`x${x}`} position={[x, 0.06, 0]}>
-          <boxGeometry args={[0.06, 0.12, 8.4]} />
-          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} transparent opacity={0.9} />
-        </mesh>
-      ))}
+      {/* Single frame shape — one mesh, no corners, no seams */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.065, 0]}>
+        <shapeGeometry args={[frameShape]} />
+        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={2} side={THREE.DoubleSide} />
+      </mesh>
     </group>
   )
 }
