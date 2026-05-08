@@ -13,25 +13,27 @@ export function CameraRig({ playerColor }: Props) {
   const cameraRef = useRef<ThreePerspectiveCamera>(null)
 
   // White sees board from +Z side, black from -Z
-  const z = playerColor === 'w' ? 7.5 : -7.5
+  const z = playerColor === 'w' ? 10 : -10
 
   return (
     <>
       <PerspectiveCamera
         ref={cameraRef}
         makeDefault
-        position={[0, 8.5, z]}
-        fov={40}
+        position={[0, 10, z]}
+        fov={50}
         near={0.1}
         far={100}
       />
       <OrbitControls
         enablePan={false}
-        enableZoom={false}
-        minPolarAngle={Math.PI / 5}     // ~36° — can't go top-down
-        maxPolarAngle={Math.PI / 2.4}   // ~75° — can't go too flat
-        minAzimuthAngle={-Math.PI / 5}  // ±36° horizontal rotation
-        maxAzimuthAngle={Math.PI / 5}
+        enableZoom
+        minDistance={7}
+        maxDistance={20}
+        minPolarAngle={Math.PI / 6}     // ~30° — can't go fully top-down
+        maxPolarAngle={Math.PI / 2.2}   // ~82° — can't go too flat
+        minAzimuthAngle={-Math.PI / 3}  // ±60° horizontal rotation
+        maxAzimuthAngle={Math.PI / 3}
         dampingFactor={0.08}
         enableDamping
       />

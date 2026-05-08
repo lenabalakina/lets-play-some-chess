@@ -73,10 +73,8 @@ export function ChessBoard3D({
 
   return (
     <div
-      className="relative rounded-sm overflow-hidden"
+      className="relative rounded-sm overflow-hidden w-full h-full"
       style={{
-        width:  'clamp(360px, 55vw, 640px)',
-        height: 'clamp(360px, 55vw, 640px)',
         boxShadow: '0 0 60px rgba(6,182,212,0.15), 0 0 120px rgba(139,92,246,0.08)',
         cursor: isGameOver ? 'default' : (isMyTurn ? 'crosshair' : 'default'),
       }}
