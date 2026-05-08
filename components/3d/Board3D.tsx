@@ -143,10 +143,10 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
       {tiles}
 
-      {/* Single frame — rotation [+π/2] extrudes downward so glow wraps top AND sides */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0.065, 0]}>
-        <extrudeGeometry args={[frameShape, { depth: 0.15, bevelEnabled: false }]} />
-        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.8} side={THREE.DoubleSide} />
+      {/* Flat frame ring — raised above tiles to avoid z-fighting */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.09, 0]} renderOrder={1}>
+        <shapeGeometry args={[frameShape]} />
+        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={2} depthWrite={false} />
       </mesh>
     </group>
   )
