@@ -29,19 +29,28 @@ export function MatchmakingLobby({ username, elo }: Props) {
   const { state, timeControl, setTimeControl, searchSeconds, error, startSearching, cancelSearch } = useMatchmaking()
 
   return (
-    <div className="min-h-screen bg-[#070d1a] text-white flex flex-col">
+    <div className="min-h-screen text-white flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-slate-800/50">
-        <div className="flex items-center gap-2">
-          <span className="text-cyan-400 text-xl">♟</span>
-          <span className="font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</span>
-        </div>
+      <header className="game-header sticky top-0 z-40 flex items-center justify-between px-6 md:px-10 h-14">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <span className="text-cyan-400">♟</span>
+          <span
+            className="hidden sm:block font-bold text-white/70 group-hover:text-white/95 transition-colors duration-200"
+            style={{ fontSize: '10px', letterSpacing: '0.17em', textTransform: 'uppercase' }}
+          >
+            Let&apos;s Play Some Chess
+          </span>
+        </Link>
         <div className="flex items-center gap-4">
-          <div className="text-sm">
+          <div style={{ fontSize: '12px' }}>
             <span className="text-slate-400">{username}</span>
             <span className="ml-2 text-cyan-400 font-mono font-bold">{elo}</span>
           </div>
-          <Link href="/dashboard" className="text-slate-500 hover:text-slate-300 text-xs transition-colors">
+          <Link
+            href="/dashboard"
+            className="font-semibold text-slate-500 hover:text-slate-300 transition-colors duration-200"
+            style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+          >
             Dashboard
           </Link>
         </div>

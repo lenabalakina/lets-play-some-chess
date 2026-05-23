@@ -34,22 +34,35 @@ export default async function DashboardPage() {
   const winRate     = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0
 
   return (
-    <div className="min-h-screen bg-[#070d1a] text-white">
+    <div className="min-h-screen text-white">
       {/* Header */}
-      <header className="border-b border-slate-800/50 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <PawnIcon size={20} />
-          <h1 className="font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</h1>
-        </div>
+      <header className="game-header sticky top-0 z-40 px-6 md:px-10 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <PawnIcon size={16} />
+          <span
+            className="hidden sm:block font-bold text-white/70 group-hover:text-white/95 transition-colors duration-200"
+            style={{ fontSize: '10px', letterSpacing: '0.17em', textTransform: 'uppercase' }}
+          >
+            Let&apos;s Play Some Chess
+          </span>
+        </Link>
         <div className="flex items-center gap-4">
-          <Link href={`/profile/${user?.id}`} className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
+          <Link
+            href={`/profile/${user?.id}`}
+            className="font-semibold text-slate-400 hover:text-white transition-colors duration-200"
+            style={{ fontSize: '12px', letterSpacing: '0.06em' }}
+          >
             {username}
           </Link>
-          <Link href="/leaderboard" className="text-slate-500 hover:text-slate-300 text-xs transition-colors flex items-center gap-1">
-            <Trophy className="w-3.5 h-3.5" /> Leaderboard
+          <Link
+            href="/leaderboard"
+            className="flex items-center gap-1.5 font-semibold text-slate-500 hover:text-slate-200 transition-colors duration-200"
+            style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' }}
+          >
+            <Trophy className="w-3 h-3" /> Leaderboard
           </Link>
           <form action={signOut}>
-            <button type="submit" className="text-slate-500 hover:text-slate-300 transition-colors">
+            <button type="submit" className="text-slate-600 hover:text-slate-300 transition-colors duration-200">
               <LogOut className="w-4 h-4" />
             </button>
           </form>

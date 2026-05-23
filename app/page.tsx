@@ -1,104 +1,78 @@
 import Link from 'next/link'
-import { Trophy, Swords, Bot, Users, Globe } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
+import { ScrollAnimatedHero } from '@/components/ScrollAnimatedHero'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#070d1a] text-white flex flex-col">
+    <div
+      className="relative min-h-screen text-white flex flex-col overflow-x-hidden"
+      style={{
+        backgroundImage: [
+          'radial-gradient(ellipse 110% 65% at 68% 12%, rgba(6,182,212,0.09) 0%, transparent 58%)',
+          'radial-gradient(ellipse 70% 50% at 10% 92%, rgba(168,85,247,0.065) 0%, transparent 55%)',
+          'radial-gradient(ellipse 50% 35% at 88% 78%, rgba(14,165,233,0.04) 0%, transparent 50%)',
+        ].join(', '),
+      }}
+    >
+      {/* Film grain */}
+      <div
+        aria-hidden="true"
+        className="grain-overlay fixed inset-0 pointer-events-none"
+        style={{ zIndex: 40, opacity: 0.025 }}
+      />
+
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-5 border-b border-slate-800/50">
-        <div className="flex items-center gap-2">
-          <PawnIcon size={22} />
-          <span className="font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="text-slate-400 hover:text-white text-sm transition-colors px-4 py-2">
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 h-16"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(3,10,20,0.96) 0%, rgba(4,12,22,0.82) 100%)',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 1px 0 rgba(6,182,212,0.07), 0 8px 40px rgba(0,0,0,0.5)',
+        }}
+      >
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <PawnIcon size={18} />
+          <span
+            className="hidden sm:block font-bold text-white/75 group-hover:text-white/95 transition-colors duration-200"
+            style={{ fontSize: '11px', letterSpacing: '0.17em', textTransform: 'uppercase' }}
+          >
+            Let&apos;s Play Some Chess
+          </span>
+        </Link>
+
+        <div className="flex items-center gap-1.5">
+          <Link
+            href="/login"
+            className="px-3.5 py-2 font-bold text-slate-600 hover:text-slate-200 transition-colors duration-200"
+            style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase' }}
+          >
             Sign In
           </Link>
           <Link
             href="/register"
-            className="px-4 py-2 rounded-lg text-sm font-semibold
-              bg-cyan-500/20 text-cyan-300 border border-cyan-500/60
-              hover:bg-cyan-500/30 transition-all"
+            className="btn-game-primary px-5 py-2.5 rounded-lg font-black text-slate-950 bg-cyan-400 hover:bg-cyan-300"
+            style={{
+              fontSize: '11px',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              boxShadow: '0 0 20px rgba(6,182,212,0.3), 0 2px 8px rgba(0,0,0,0.4)',
+            }}
           >
             Get Started
           </Link>
         </div>
       </header>
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
-        <div className="mb-6">
-          <PawnIcon size={120} glow />
-        </div>
-
-        <h1 className="text-5xl md:text-7xl font-black mb-4 tracking-tight neon-text">
-          SO, YOU&apos;RE READY<br />FOR SOME CHESS?
-        </h1>
-
-        <p className="text-slate-400 text-xl mb-10 max-w-lg font-light">
-          Your move. Make it legendary.
-        </p>
-
-        {/* Play options */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <Link
-            href="/play/online"
-            className="flex items-center gap-3 px-8 py-4 rounded-xl font-black tracking-wider text-lg
-              bg-cyan-500 text-slate-950 hover:bg-cyan-400
-              shadow-[0_0_40px_rgba(6,182,212,0.5)] hover:shadow-[0_0_60px_rgba(6,182,212,0.8)]
-              transition-all"
-          >
-            <Globe className="w-5 h-5" />
-            PLAY ONLINE
-          </Link>
-          <Link
-            href="/play/ai"
-            className="flex items-center gap-3 px-8 py-4 rounded-xl font-black tracking-wider text-lg
-              border border-slate-700 text-slate-300
-              hover:border-cyan-500/50 hover:text-white transition-all"
-          >
-            <Bot className="w-5 h-5" />
-            VS AI
-          </Link>
-          <Link
-            href="/play/local"
-            className="flex items-center gap-3 px-8 py-4 rounded-xl font-black tracking-wider text-lg
-              border border-slate-700/50 text-slate-500
-              hover:border-slate-600 hover:text-slate-300 transition-all"
-          >
-            <Users className="w-5 h-5" />
-            PASS &amp; PLAY
-          </Link>
-        </div>
-
-        <p className="text-slate-600 text-sm mb-16">
-          No account needed •{' '}
-          <Link href="/register" className="text-cyan-600 hover:text-cyan-400 transition-colors">
-            Create one
-          </Link>
-          {' '}to track your rating
-        </p>
-
-        {/* Feature grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-3xl w-full">
-          {[
-            { icon: Globe,  title: 'Online Multiplayer',  desc: 'Create a room, share a code, play against a friend anywhere', preview: '/preview-multiplayer.svg' },
-            { icon: Bot,    title: 'AI Opponent',         desc: 'Easy, Intermediate, or Hard — powered by Stockfish engine',   preview: '/preview-ai.svg' },
-            { icon: Swords, title: '3D Board + Themes',   desc: 'Neon, Void, Ember, Arctic — flip to 3D with one toggle',      preview: '/preview-3d.svg' },
-          ].map(f => (
-            <div key={f.title} className="glass-panel rounded-xl p-5 text-left">
-              <f.icon className="w-5 h-5 text-cyan-400 mb-3" />
-              <h3 className="font-bold mb-1 text-sm">{f.title}</h3>
-              <p className="text-slate-500 text-xs leading-relaxed">{f.desc}</p>
-              <img src={f.preview} alt={f.title} className="mt-3 w-full rounded-lg opacity-80" />
-            </div>
-          ))}
-        </div>
+      <main className="relative z-10 flex-1">
+        <ScrollAnimatedHero />
       </main>
 
-      <footer className="text-center py-6 text-slate-700 text-xs border-t border-slate-800/30">
-        Let&apos;s Play Some Chess
+      <footer className="relative z-10 py-6 border-t border-white/[0.04] text-center">
+        <span style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(51,65,85,0.7)' }}>
+          Let&apos;s Play Some Chess
+        </span>
       </footer>
     </div>
   )

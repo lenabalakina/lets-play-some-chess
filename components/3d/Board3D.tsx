@@ -16,19 +16,44 @@ function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
 }
 
 interface TileProps {
-  square:     Square
-  isLight:    boolean
-  isSelected: boolean
-  isLegal:    boolean
-  isLastFrom: boolean
-  isLastTo:   boolean
-  isCheck:    boolean
-  theme:      BoardTheme
-  onClick:    (sq: Square) => void
+  square:       Square
+  isLight:      boolean
+  isSelected:   boolean
+  isLegal:      boolean
+  isLastFrom:   boolean
+  isLastTo:     boolean
+  isCheck:      boolean
+  theme:        BoardTheme
+  transparentBg: boolean
+  onClick:      (sq: Square) => void
 }
 
-function Tile({ square, isLight, isSelected, isLegal, isLastFrom, isLastTo, isCheck, theme, onClick }: TileProps) {
+function Tile({ square, isLight, isSelected, isLegal, isLastFrom, isLastTo, isCheck, theme, transparentBg, onClick }: TileProps) {
   const tc = THEME_COLORS[theme]
+
+  const hasMarking = isCheck || isSelected || isLastFrom || isLastTo
+
+  // In transparent-bg mode: dark tiles with no marking become invisible (alpha=0)
+  // Geometry is kept for click detection in game mode, but harmless in hero.
+  if (!isLight && !hasMarking && transparentBg) {
+    return (
+      <group position={[0, 0, 0]}>
+        <mesh
+          position={squareTo3D(square, 'w')}
+          onClick={(e) => { e.stopPropagation(); onClick(square) }}
+        >
+          <boxGeometry args={[0.98, 0.12, 0.98]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+        {isLegal && (
+          <mesh position={[...squareTo3D(square, 'w').slice(0, 1), 0.08, squareTo3D(square, 'w')[2]] as [number, number, number]}>
+            <cylinderGeometry args={[0.18, 0.18, 0.04, 20]} />
+            <meshStandardMaterial color={tc.highlight} emissive={tc.highlight} emissiveIntensity={0.8} transparent opacity={0.75} />
+          </mesh>
+        )}
+      </group>
+    )
+  }
 
   let tileColor = isLight ? tc.light : tc.dark
   let emissiveColor = '#000000'
@@ -83,9 +108,10 @@ interface Props {
   playerColor:    Color
   onSquareClick:  (sq: Square) => void
   showCoords:     boolean
+  transparentBg?: boolean
 }
 
-export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, theme, playerColor, onSquareClick, showCoords }: Props) {
+export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, theme, playerColor, onSquareClick, showCoords, transparentBg = false }: Props) {
   // Single frame shape — no corners, no seams
   const frameShape = useMemo(() => {
     const s = new THREE.Shape()
@@ -121,6 +147,7 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
           isLastTo={isLastTo}
           isCheck={isCheck}
           theme={theme}
+          transparentBg={transparentBg}
           onClick={onSquareClick}
         />
       )
@@ -129,16 +156,13 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
   return (
     <group>
-      {/* Board surround / frame */}
-      <mesh position={[0, -0.06, 0]} receiveShadow>
+      {/* Board surround — invisible in transparent mode, visible dark frame otherwise */}
+      <mesh position={[0, -0.06, 0]} receiveShadow={!transparentBg}>
         <boxGeometry args={[8.4, 0.12, 8.4]} />
-        <meshStandardMaterial
-          color="#020818"
-          emissive="#06b6d4"
-          emissiveIntensity={0.04}
-          roughness={0.8}
-          metalness={0.3}
-        />
+        {transparentBg
+          ? <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          : <meshStandardMaterial color="#020818" emissive="#06b6d4" emissiveIntensity={0.04} roughness={0.8} metalness={0.3} />
+        }
       </mesh>
 
       {tiles}
