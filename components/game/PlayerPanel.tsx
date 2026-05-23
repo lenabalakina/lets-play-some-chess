@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { Globe, Trophy, Bot, CalendarDays, Users, Layers } from 'lucide-react'
 import { formatTime } from '@/features/chess/hooks/useTimer'
 import type { Color } from '@/features/chess/types/chess.types'
 
@@ -17,6 +19,15 @@ interface Props {
   turn:      Color
   isGameOver: boolean
 }
+
+const MODES = [
+  { icon: Globe,        title: 'Online',  tag: 'LIVE',        accent: '#06b6d4', href: '/play/online' },
+  { icon: Trophy,       title: 'Ranked',  tag: 'ELO',         accent: '#f59e0b', href: '/play/online' },
+  { icon: Bot,          title: 'AI',      tag: 'STOCKFISH',   accent: '#a855f7', href: '/play/ai'     },
+  { icon: CalendarDays, title: 'Puzzle',  tag: 'DAILY',       accent: '#10b981', href: '/'            },
+  { icon: Users,        title: 'Private', tag: 'INVITE',      accent: '#0ea5e9', href: '/play/online' },
+  { icon: Layers,       title: '3D',      tag: 'THEMES',      accent: '#f43f5e', href: '/play/local'  },
+]
 
 function Avatar({ username, size = 'md' }: { username: string; size?: 'md' | 'sm' }) {
   const initials = username.slice(0, 2).toUpperCase()
@@ -48,9 +59,9 @@ export function PlayerPanel({ player, opponent, whiteMs, blackMs, turn, isGameOv
   const oppActive = !isGameOver && turn === opponent.color
 
   return (
-    <div className="flex flex-col flex-1 justify-between p-4">
+    <div className="flex flex-col flex-1 justify-between p-4 min-h-0 overflow-hidden">
       {/* Opponent (top) */}
-      <div className="glass-panel rounded-xl p-4 space-y-3">
+      <div className="glass-panel rounded-xl p-4 space-y-3 shrink-0">
         <div className="flex items-center gap-3">
           <Avatar username={opponent.username} />
           <div className="min-w-0">
@@ -64,13 +75,37 @@ export function PlayerPanel({ player, opponent, whiteMs, blackMs, turn, isGameOv
         )}
       </div>
 
-      {/* Center info */}
-      <div className="text-center">
-        <p className="text-slate-500 text-xs font-medium tracking-widest uppercase">Pass &amp; Play</p>
+      {/* Game modes — 2×3 compact cards */}
+      <div className="flex-1 flex flex-col justify-center py-3 min-h-0">
+        <p className="text-[8px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Game Modes</p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {MODES.map(m => (
+            <Link
+              key={m.title}
+              href={m.href}
+              className="game-card relative flex items-center gap-1.5 px-2 py-2 rounded-xl border border-white/[0.04] bg-[rgba(5,12,28,0.6)] hover:border-white/[0.09] overflow-hidden group"
+            >
+              <div
+                className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: `linear-gradient(to right, transparent, ${m.accent}55, transparent)` }}
+              />
+              <div
+                className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: `${m.accent}18` }}
+              >
+                <m.icon className="w-3 h-3" style={{ color: m.accent }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-white leading-none truncate">{m.title}</p>
+                <p className="text-[7px] font-bold tracking-widest mt-0.5 truncate" style={{ color: `${m.accent}80` }}>{m.tag}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Me (bottom) */}
-      <div className="glass-panel rounded-xl p-4 space-y-3">
+      <div className="glass-panel rounded-xl p-4 space-y-3 shrink-0">
         <TimerBlock ms={myMs} isActive={myActive} color={player.color} />
         {myActive && (
           <div className="space-y-1">
