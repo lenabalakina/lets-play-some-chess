@@ -69,36 +69,10 @@ export default function LandingPage() {
         <ScrollAnimatedHero />
       </main>
 
-      <footer className="relative z-10 border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-        <div className="max-w-5xl mx-auto px-6 md:px-14 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2.5">
-            <PawnIcon size={14} />
-            <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.17em', textTransform: 'uppercase', color: 'rgba(100,116,139,0.5)' }}>
-              Let&apos;s Play Some Chess
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {([
-              ['Play Online', '/play/online'],
-              ['vs AI', '/play/ai'],
-              ['Pass & Play', '/play/local'],
-              ['Sign In', '/login'],
-              ['Register', '/register'],
-            ] as [string, string][]).map(([label, href]) => (
-              <Link
-                key={href}
-                href={href}
-                className="hover:text-slate-400 transition-colors duration-200"
-                style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(100,116,139,0.35)' }}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-          <span style={{ fontSize: '10px', color: 'rgba(51,65,85,0.4)', letterSpacing: '0.1em' }}>
-            Free forever
-          </span>
-        </div>
+      <footer className="relative z-10 py-6 border-t border-white/[0.04] text-center">
+        <span style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(51,65,85,0.7)' }}>
+          Let&apos;s Play Some Chess
+        </span>
       </footer>
     </div>
   )
