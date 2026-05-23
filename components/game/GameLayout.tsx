@@ -434,18 +434,34 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase">Design</p>
 
             {/* Theme picker */}
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-2 gap-1.5">
               {([
-                { id: 'neon',   dot: '#06b6d4', label: 'Neon'   },
-                { id: 'void',   dot: '#8b5cf6', label: 'Void'   },
-                { id: 'ember',  dot: '#f97316', label: 'Ember'  },
-                { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
+                { id: 'neon',   dot: '#06b6d4', label: 'Neon',   tag: 'ELECTRIC' },
+                { id: 'void',   dot: '#8b5cf6', label: 'Void',   tag: 'DARK'     },
+                { id: 'ember',  dot: '#f97316', label: 'Ember',  tag: 'FIRE'     },
+                { id: 'arctic', dot: '#94e2d5', label: 'Arctic', tag: 'ICE'      },
               ] as const).map(t => (
-                <button key={t.id} onClick={() => setTheme(t.id)} title={t.label}
-                  className={`flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all
-                    ${theme === t.id ? 'border-slate-500 bg-slate-700 text-white' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'}`}>
-                  <span className="w-3 h-3 rounded-full" style={{ background: t.dot }} />
-                  {t.label}
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  className={`relative flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition-all overflow-hidden
+                    ${theme === t.id
+                      ? 'border-white/10 bg-[rgba(5,12,28,0.95)]'
+                      : 'border-white/[0.04] bg-[rgba(5,12,28,0.6)] hover:border-white/[0.08]'
+                    }`}
+                  style={theme === t.id ? { boxShadow: `0 0 0 1px ${t.dot}30` } : undefined}
+                >
+                  {theme === t.id && (
+                    <div
+                      className="absolute top-0 left-0 right-0 h-px"
+                      style={{ background: `linear-gradient(to right, transparent, ${t.dot}66, transparent)` }}
+                    />
+                  )}
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: t.dot }} />
+                  <div>
+                    <p className="text-[10px] font-bold text-white leading-none">{t.label}</p>
+                    <p className="text-[8px] font-bold tracking-widest mt-0.5" style={{ color: `${t.dot}80` }}>{t.tag}</p>
+                  </div>
                 </button>
               ))}
             </div>
@@ -547,18 +563,27 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                 {/* Design (mobile only — on desktop it's always visible) */}
                 <div className="lg:hidden space-y-3">
                   <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Design</p>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-2 gap-2">
                     {([
-                      { id: 'neon', dot: '#06b6d4', label: 'Neon' },
-                      { id: 'void', dot: '#8b5cf6', label: 'Void' },
-                      { id: 'ember', dot: '#f97316', label: 'Ember' },
-                      { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
+                      { id: 'neon',   dot: '#06b6d4', label: 'Neon',   tag: 'ELECTRIC' },
+                      { id: 'void',   dot: '#8b5cf6', label: 'Void',   tag: 'DARK'     },
+                      { id: 'ember',  dot: '#f97316', label: 'Ember',  tag: 'FIRE'     },
+                      { id: 'arctic', dot: '#94e2d5', label: 'Arctic', tag: 'ICE'      },
                     ] as const).map(t => (
                       <button key={t.id} onClick={() => setTheme(t.id)}
-                        className={`flex flex-col items-center gap-1 py-2 rounded-xl border text-[10px] font-bold transition-all
-                          ${theme === t.id ? 'border-slate-500 bg-slate-700 text-white' : 'border-slate-800 text-slate-500 hover:border-slate-600'}`}>
-                        <span className="w-3.5 h-3.5 rounded-full" style={{ background: t.dot }} />
-                        {t.label}
+                        className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all overflow-hidden
+                          ${theme === t.id ? 'border-white/10 bg-[rgba(5,12,28,0.95)]' : 'border-white/[0.04] bg-[rgba(5,12,28,0.6)] hover:border-white/[0.08]'}`}
+                        style={theme === t.id ? { boxShadow: `0 0 0 1px ${t.dot}30` } : undefined}
+                      >
+                        {theme === t.id && (
+                          <div className="absolute top-0 left-0 right-0 h-px"
+                            style={{ background: `linear-gradient(to right, transparent, ${t.dot}66, transparent)` }} />
+                        )}
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ background: t.dot }} />
+                        <div>
+                          <p className="text-[11px] font-bold text-white leading-none">{t.label}</p>
+                          <p className="text-[9px] font-bold tracking-widest mt-0.5" style={{ color: `${t.dot}80` }}>{t.tag}</p>
+                        </div>
                       </button>
                     ))}
                   </div>

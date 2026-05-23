@@ -1,44 +1,41 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { Eye, Swords, CloudFog } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 export type Difficulty = 'vision' | 'classic' | 'shadow'
 
 const MODES: {
-  id:       Difficulty
-  name:     string
-  icon:     string
-  tagline:  string
-  color:    string
-  glow:     string
-  desc:     string
+  id:      Difficulty
+  name:    string
+  tag:     string
+  desc:    string
+  Icon:    LucideIcon
+  accent:  string
 }[] = [
   {
-    id:      'vision',
-    name:    'VISION',
-    icon:    '👁️',
-    tagline: 'See every move',
-    color:   'text-emerald-300',
-    glow:    'border-emerald-500/60 bg-emerald-500/10 shadow-[0_0_12px_rgba(52,211,153,0.2)]',
-    desc:    'Legal moves shown as dots',
+    id:     'vision',
+    name:   'Vision',
+    tag:    'GUIDED',
+    desc:   'Legal moves shown as dots',
+    Icon:   Eye,
+    accent: '#34d399',
   },
   {
-    id:      'classic',
-    name:    'CLASSIC',
-    icon:    '⚔️',
-    tagline: 'Know your moves',
-    color:   'text-cyan-300',
-    glow:    'border-cyan-500/60 bg-cyan-500/10 shadow-[0_0_12px_rgba(6,182,212,0.2)]',
-    desc:    'No hints — pure chess',
+    id:     'classic',
+    name:   'Classic',
+    tag:    'STANDARD',
+    desc:   'No hints — pure chess',
+    Icon:   Swords,
+    accent: '#06b6d4',
   },
   {
-    id:      'shadow',
-    name:    'SHADOW',
-    icon:    '🌑',
-    tagline: 'Fog of War',
-    color:   'text-purple-300',
-    glow:    'border-purple-500/60 bg-purple-500/10 shadow-[0_0_12px_rgba(168,85,247,0.25)]',
-    desc:    "Enemy pieces vanish from squares you can't attack",
+    id:     'shadow',
+    name:   'Shadow',
+    tag:    'FOG OF WAR',
+    desc:   "Enemy pieces vanish from squares you can't attack",
+    Icon:   CloudFog,
+    accent: '#a855f7',
   },
 ]
 
@@ -49,42 +46,56 @@ interface Props {
 
 export function DifficultyPanel({ value, onChange }: Props) {
   return (
-    <div className="px-3 py-3 space-y-1.5">
+    <div className="px-3 py-3 space-y-2">
       <p className="text-[9px] font-bold tracking-widest text-slate-600 uppercase px-1 mb-2">
         Difficulty
       </p>
       {MODES.map(m => {
         const active = m.id === value
         return (
-          <motion.button
+          <button
             key={m.id}
             onClick={() => onChange(m.id)}
-            whileTap={{ scale: 0.97 }}
             className={`
-              w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left
-              transition-all duration-200
+              game-card w-full relative rounded-xl p-3 overflow-hidden border text-left transition-all duration-200
               ${active
-                ? m.glow
-                : 'border-slate-800/60 bg-transparent hover:border-slate-700 hover:bg-slate-800/30'
+                ? 'border-white/10 bg-[rgba(5,12,28,0.95)]'
+                : 'border-white/[0.04] bg-[rgba(5,12,28,0.6)] hover:border-white/[0.08]'
               }
             `}
+            style={active ? { boxShadow: `0 0 0 1px ${m.accent}30, 0 4px 20px rgba(0,0,0,0.4)` } : undefined}
           >
-            <span className="text-base leading-none shrink-0">{m.icon}</span>
-            <div className="min-w-0">
-              <p className={`text-xs font-black tracking-wider ${active ? m.color : 'text-slate-400'}`}>
-                {m.name}
-              </p>
-              <p className={`text-[9px] truncate ${active ? 'text-slate-400' : 'text-slate-600'}`}>
-                {m.tagline}
-              </p>
-            </div>
+            {/* Top shimmer on active */}
             {active && (
-              <motion.div
-                layoutId="diff-dot"
-                className="ml-auto w-1.5 h-1.5 rounded-full bg-current shrink-0"
+              <div
+                className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: `linear-gradient(to right, transparent 0%, ${m.accent}66 50%, transparent 100%)` }}
               />
             )}
-          </motion.button>
+
+            <div className="flex items-start gap-2.5">
+              {/* Icon */}
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                style={{ background: `${m.accent}18` }}
+              >
+                <m.Icon className="w-3.5 h-3.5" style={{ color: m.accent }} />
+              </div>
+
+              <div className="min-w-0">
+                <p className="font-bold text-white text-xs leading-none mb-0.5">{m.name}</p>
+                <p
+                  className="text-[8px] font-bold tracking-widest uppercase mb-1.5"
+                  style={{ color: `${m.accent}90` }}
+                >
+                  {m.tag}
+                </p>
+                <p className="text-[10px] leading-snug" style={{ color: 'rgba(100,116,139,0.6)' }}>
+                  {m.desc}
+                </p>
+              </div>
+            </div>
+          </button>
         )
       })}
     </div>
