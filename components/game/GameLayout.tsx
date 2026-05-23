@@ -22,7 +22,7 @@ import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/chess.types'
-import { Volume2, VolumeX, LayoutDashboard, LogOut, Clock, Bot, X, AlignJustify, MessageCircle, Gamepad2 } from 'lucide-react'
+import { Radio, Volume2, VolumeX, LayoutDashboard, LogOut, Clock, Bot, X, AlignJustify, MessageCircle, Gamepad2 } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
 import { GameResultModal } from './GameResultModal'
@@ -272,16 +272,17 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   )
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#040c18] text-white overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-[#070d1a] text-white overflow-hidden">
 
       {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
-      <header className="game-header hidden lg:flex items-center justify-between px-6 py-3 shrink-0">
-        <Link href="/" className="flex items-center gap-3 group">
+      <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
+        <div className="flex items-center gap-3">
           <PawnIcon size={18} />
-          <span className="font-black text-sm tracking-widest text-white/70 group-hover:text-white/95 transition-colors uppercase" style={{ letterSpacing: '0.17em' }}>
-            Let&apos;s Play Some Chess
-          </span>
-        </Link>
+          <div>
+            <h1 className="font-black text-sm tracking-widest neon-text uppercase">LET&apos;S PLAY SOME CHESS</h1>
+            <p className="text-slate-600 text-[10px] tracking-wider">Your move. Make it legendary.</p>
+          </div>
+        </div>
         <ModeSelector activeMode={gameMode} onChange={handleModeChange} />
         <div className="flex items-center gap-3">
           <button
@@ -290,24 +291,36 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           >
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
+          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE ARENA
+            <Radio className="w-3.5 h-3.5" />
+          </div>
         </div>
       </header>
 
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
-      <header className="game-header lg:hidden flex items-center gap-2 px-3 py-2 shrink-0">
-        <Link href="/" className="shrink-0">
-          <PawnIcon size={16} />
-        </Link>
+      <header className="lg:hidden flex items-center gap-2 px-3 py-2 border-b border-slate-800/50 shrink-0">
+        <PawnIcon size={16} />
+        <span className="font-black text-[10px] tracking-widest neon-text uppercase shrink-0 hidden xs:block">
+          LET&apos;S PLAY SOME CHESS
+        </span>
         {/* Scrollable mode selector */}
         <div className="flex-1 overflow-x-auto scrollbar-none">
           <ModeSelector activeMode={gameMode} onChange={handleModeChange} />
         </div>
-        <button
-          onClick={() => { const m = !muted; setMuted(m); chessAudio.setMuted(m) }}
-          className="text-slate-500 hover:text-slate-300 transition-colors p-1 shrink-0"
-        >
-          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => { const m = !muted; setMuted(m); chessAudio.setMuted(m) }}
+            className="text-slate-500 hover:text-slate-300 transition-colors p-1"
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE
+          </div>
+        </div>
       </header>
 
       {/* ── MAIN CONTENT ─────────────────────────────────────── */}
@@ -466,7 +479,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
           >
-            <div className="bg-[#050d1e] border-t border-slate-700/40 rounded-t-xl overflow-hidden" style={{ maxHeight: '45vh' }}>
+            <div className="bg-[#0d1829] border-t border-slate-700/40 rounded-t-xl overflow-hidden" style={{ maxHeight: '45vh' }}>
               <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/50 shrink-0">
                 <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                   {mobileSheet === 'moves' ? 'Move Log' : mobileSheet === 'chat' ? 'Chat' : 'Play Settings'}
@@ -518,7 +531,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           >
             <div className="absolute inset-0 bg-black/60" onClick={() => setTweaksOpen(false)} />
             <motion.div
-              className="relative bg-[#050d1e] w-full lg:max-w-sm lg:rounded-2xl rounded-t-2xl border border-slate-700/50 overflow-y-auto max-h-[90vh]"
+              className="relative bg-[#0d1829] w-full lg:max-w-sm lg:rounded-2xl rounded-t-2xl border border-slate-700/50 overflow-y-auto max-h-[90vh]"
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
