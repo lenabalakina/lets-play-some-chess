@@ -1,13 +1,22 @@
 'use client'
 
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { Chess } from 'chess.js'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { Download } from 'lucide-react'
 import { Board3D } from './Board3D'
 import { ChessPiece3D } from './ChessPiece3D'
 import { CameraRig } from './CameraRig'
+import { exportSceneAsGlb } from '@/lib/exportGlb'
 import type { BoardTheme, Color, PieceType, Square } from '@/features/chess/types/chess.types'
+
+function SceneExporter({ sceneRef }: { sceneRef: React.MutableRefObject<THREE.Scene | null> }) {
+  const { scene } = useThree()
+  useEffect(() => { sceneRef.current = scene }, [scene, sceneRef])
+  return null
+}
 
 interface ParsedPiece {
   square:  Square
@@ -68,8 +77,16 @@ export function ChessBoard3D({
   fen, selectedSquare, legalMoves, lastMove,
   theme, showCoords, playerColor, isMyTurn, isGameOver, onSquareClick,
 }: Props) {
-  const pieces     = parseFen(fen)
+  const pieces      = parseFen(fen)
   const checkSquare = getCheckSquare(fen)
+  const [exporting, setExporting] = useState(false)
+  const sceneRef    = useRef<THREE.Scene | null>(null)
+
+  async function handleExport() {
+    if (!sceneRef.current) return
+    setExporting(true)
+    try { await exportSceneAsGlb(sceneRef.current) } finally { setExporting(false) }
+  }
 
   return (
     <div
@@ -85,6 +102,8 @@ export function ChessBoard3D({
         onCreated={({ gl }) => { gl.setClearColor('#070d1a') }}
       >
         <Suspense fallback={null}>
+          <SceneExporter sceneRef={sceneRef} />
+
           {/* Camera */}
           <CameraRig playerColor={playerColor} />
 
@@ -140,6 +159,20 @@ export function ChessBoard3D({
           </EffectComposer>
         </Suspense>
       </Canvas>
+
+      {/* Export GLB button */}
+      <button
+        onClick={handleExport}
+        disabled={exporting}
+        title="Export piece shapes as GLB (opens in Rhino 7+)"
+        className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md
+          bg-slate-900/70 border border-slate-700 text-slate-400 text-[10px] font-semibold
+          hover:text-cyan-300 hover:border-cyan-700 transition-colors backdrop-blur-sm
+          disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <Download className="w-3 h-3" />
+        {exporting ? 'Exporting…' : 'Export Board'}
+      </button>
 
       {/* Game over overlay */}
       {isGameOver && (
