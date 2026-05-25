@@ -29,23 +29,31 @@ function now() {
 }
 
 interface Props {
-  whiteUsername: string
-  blackUsername: string
-  turn: 'w' | 'b'
+  whiteUsername:   string
+  blackUsername:   string
+  turn:            'w' | 'b'
+  injectMessage?:  { text: string; author: 'white' | 'black'; username: string } | null
+  onPlayerSend?:   (text: string) => void
 }
 
-export function ChatPanel({ whiteUsername, blackUsername, turn }: Props) {
-  const [messages,     setMessages]     = useState<ChatMessage[]>([{
-    id: 0, author: 'white', username: whiteUsername, text: 'Good luck! 🤝', time: now(),
-  }])
+export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, onPlayerSend }: Props) {
+  const [messages,     setMessages]     = useState<ChatMessage[]>([])
   const [input,        setInput]        = useState('')
   const [showStickers, setShowStickers] = useState(false)
   const [buzzing,      setBuzzing]      = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
+  const prevInject = useRef<typeof injectMessage>(null)
 
   const author   = turn === 'w' ? 'white' : 'black'
   const username = turn === 'w' ? whiteUsername : blackUsername
+
+  // Inject external message (e.g. AI response)
+  useEffect(() => {
+    if (!injectMessage || injectMessage === prevInject.current) return
+    prevInject.current = injectMessage
+    setMessages(p => [...p, { id: _id++, ...injectMessage, time: now() }])
+  }, [injectMessage])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -54,6 +62,7 @@ export function ChatPanel({ whiteUsername, blackUsername, turn }: Props) {
   function send(text: string, extra?: Partial<ChatMessage>) {
     if (!text.trim()) return
     setMessages(p => [...p, { id: _id++, author, username, text: text.trim(), time: now(), ...extra }])
+    onPlayerSend?.(text.trim())
     setInput('')
     setShowStickers(false)
     inputRef.current?.focus()

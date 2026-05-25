@@ -19,6 +19,7 @@ import type { Difficulty } from './DifficultyPanel'
 import { useChessGame } from '@/features/chess/hooks/useChessGame'
 import { useStockfish } from '@/features/ai/useStockfish'
 import type { AiLevel } from '@/features/ai/useStockfish'
+import { useAiChat } from '@/hooks/useAiChat'
 import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
@@ -99,8 +100,9 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [promoDialog,  setPromoDialog]  = useState(false)
   const [activeTab,    setActiveTab]    = useState<'moves' | 'chat'>('chat')
   const [mobileSheet,  setMobileSheet]  = useState<'moves' | 'chat' | 'play' | null>(null)
-  const [difficulty,   setDifficulty]   = useState<Difficulty>('vision')
-  const [aiLevel,      setAiLevel]      = useState<AiLevel>(initialAiLevel)
+  const [difficulty,    setDifficulty]   = useState<Difficulty>('vision')
+  const [aiLevel,       setAiLevel]      = useState<AiLevel>(initialAiLevel)
+  const [lastPlayerMsg, setLastPlayerMsg] = useState<string | null>(null)
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const { ref: boardAreaRef, size: boardSize } = useBoardSize()
 
@@ -159,6 +161,22 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
       chessAudio.move()
     },
   })
+
+  const aiChatMsg = useAiChat({
+    aiEnabled,
+    aiLevel,
+    moveHistory:   state.moveHistory,
+    isGameOver,
+    winner:        state.winner,
+    myColor:       playerColor,
+    playerMessage: lastPlayerMsg,
+  })
+
+  const aiChatInject = aiChatMsg && aiEnabled ? {
+    text:     aiChatMsg.text,
+    author:   (playerColor === 'w' ? 'black' : 'white') as 'white' | 'black',
+    username: opponent.username,
+  } : null
 
   const handleSquareClick = useCallback((square: string) => {
     if (isGameOver) return
@@ -434,7 +452,13 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           <div className="flex-1 overflow-hidden min-h-0">
             {activeTab === 'moves'
               ? <MoveLog moves={state.moveHistory} />
-              : <ChatPanel whiteUsername={me.username} blackUsername={opponent.username} turn={state.turn} />
+              : <ChatPanel
+                  whiteUsername={me.username}
+                  blackUsername={opponent.username}
+                  turn={state.turn}
+                  injectMessage={aiChatInject}
+                  onPlayerSend={aiEnabled ? (t) => setLastPlayerMsg(t) : undefined}
+                />
             }
           </div>
 
@@ -524,6 +548,8 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                     whiteUsername={me.username}
                     blackUsername={opponent.username}
                     turn={state.turn}
+                    injectMessage={aiChatInject}
+                    onPlayerSend={aiEnabled ? (t) => setLastPlayerMsg(t) : undefined}
                   />
                 )}
                 {mobileSheet === 'play' && (
