@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,7 +23,7 @@ import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { BoardTheme, Color, TimeControl } from '@/features/chess/types/chess.types'
-import { Radio, Volume2, VolumeX, LayoutDashboard, LogOut, Clock, Bot, X, AlignJustify, MessageCircle, Gamepad2, Box } from 'lucide-react'
+import { Radio, Volume2, VolumeX, LayoutDashboard, LogOut, Clock, Bot, X, AlignJustify, MessageCircle, Gamepad2 } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
 import { GameResultModal } from './GameResultModal'
@@ -89,8 +89,10 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [gameMode,    setGameMode]    = useState<GameMode>('rapid')
   const [aiEnabled,   setAiEnabled]   = useState(initialAi)
   const [coords,      setCoords]      = useState(true)
-  const [view3D,      setView3D]      = useState(initialView3D)
-  const is3D = force3D || view3D
+  const [view3D,      setView3D]      = useState(initialView3D || force3D)
+  const is3D = view3D
+
+  useEffect(() => { if (force3D) setView3D(true) }, [force3D])
   const [muted,       setMuted]       = useState(false)
   const [tweaksOpen,   setTweaksOpen]   = useState(false)
   const [resigned,     setResigned]     = useState(false)
@@ -473,44 +475,16 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
               ))}
             </div>
 
-            {/* 3D Board — featured */}
-            <button
-              onClick={() => setView3D(v => !v)}
-              className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all duration-300 overflow-hidden group
-                ${is3D
-                  ? 'border-fuchsia-500/50 bg-fuchsia-950/40'
-                  : 'border-white/[0.06] bg-[rgba(5,12,28,0.6)] hover:border-fuchsia-500/30'
-                }`}
-              style={is3D ? { boxShadow: '0 0 18px rgba(217,70,239,0.25)' } : undefined}
-            >
-              {/* top shimmer when active */}
-              {is3D && (
-                <div className="absolute top-0 left-0 right-0 h-px"
-                  style={{ background: 'linear-gradient(to right, transparent, rgba(217,70,239,0.7), transparent)' }} />
-              )}
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors
-                ${is3D ? 'bg-fuchsia-500/20' : 'bg-white/[0.04] group-hover:bg-fuchsia-500/10'}`}>
-                <Box className={`w-4 h-4 transition-colors ${is3D ? 'text-fuchsia-400' : 'text-slate-500 group-hover:text-fuchsia-400'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className={`text-[11px] font-black leading-none transition-colors ${is3D ? 'text-fuchsia-300' : 'text-slate-400 group-hover:text-white'}`}>
-                    3D BOARD
-                  </p>
-                  {is3D && (
-                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider bg-fuchsia-500/30 text-fuchsia-300">ON</span>
-                  )}
-                </div>
-                <p className="text-[9px] mt-0.5 text-slate-600 leading-none">
-                  {is3D ? 'Playing in 3D' : 'See chess in 3D'}
-                </p>
-              </div>
-              <div className={`relative w-9 h-5 rounded-full shrink-0 transition-colors ${is3D ? 'bg-fuchsia-500' : 'bg-slate-700'}`}>
+            {/* 3D Board */}
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-[11px]">3D Board</span>
+              <button role="switch" aria-checked={is3D} onClick={() => setView3D(v => !v)}
+                className={`relative w-9 h-5 rounded-full transition-colors ${is3D ? 'bg-fuchsia-500' : 'bg-slate-700'}`}>
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${is3D ? 'translate-x-4' : 'translate-x-0'}`} />
-              </div>
-            </button>
+              </button>
+            </div>
 
-            {/* Coordinates — simple */}
+            {/* Coordinates */}
             <div className="flex items-center justify-between">
               <span className="text-slate-400 text-[11px]">Coordinates</span>
               <button role="switch" aria-checked={coords} onClick={() => setCoords(v => !v)}
@@ -626,41 +600,14 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                       </button>
                     ))}
                   </div>
-                  {/* 3D Board — featured */}
-                  <button
-                    onClick={() => setView3D(v => !v)}
-                    className={`relative w-full flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition-all duration-300 overflow-hidden
-                      ${is3D
-                        ? 'border-fuchsia-500/50 bg-fuchsia-950/40'
-                        : 'border-white/[0.06] bg-[rgba(5,12,28,0.6)] hover:border-fuchsia-500/30'
-                      }`}
-                    style={is3D ? { boxShadow: '0 0 18px rgba(217,70,239,0.25)' } : undefined}
-                  >
-                    {is3D && (
-                      <div className="absolute top-0 left-0 right-0 h-px"
-                        style={{ background: 'linear-gradient(to right, transparent, rgba(217,70,239,0.7), transparent)' }} />
-                    )}
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors
-                      ${is3D ? 'bg-fuchsia-500/20' : 'bg-white/[0.04]'}`}>
-                      <Box className={`w-5 h-5 transition-colors ${is3D ? 'text-fuchsia-400' : 'text-slate-500'}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`text-sm font-black leading-none transition-colors ${is3D ? 'text-fuchsia-300' : 'text-slate-300'}`}>
-                          3D Board
-                        </p>
-                        {is3D && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider bg-fuchsia-500/30 text-fuchsia-300">ON</span>
-                        )}
-                      </div>
-                      <p className="text-xs mt-0.5 text-slate-600">
-                        {is3D ? 'Playing in 3D mode' : 'See chess in a new dimension'}
-                      </p>
-                    </div>
-                    <div className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${is3D ? 'bg-fuchsia-500' : 'bg-slate-700'}`}>
+                  {/* 3D Board */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 text-sm">3D Board</span>
+                    <button role="switch" aria-checked={is3D} onClick={() => setView3D(v => !v)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${is3D ? 'bg-fuchsia-500' : 'bg-slate-700'}`}>
                       <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${is3D ? 'translate-x-5' : 'translate-x-0'}`} />
-                    </div>
-                  </button>
+                    </button>
+                  </div>
 
                   {/* Coordinates */}
                   <div className="flex items-center justify-between">
