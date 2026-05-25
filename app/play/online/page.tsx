@@ -190,7 +190,7 @@ export default function OnlineLobbyPage() {
 
           {/* Pass & Play fallback */}
           <Link
-            href="/play/local"
+            href="/play/3d"
             className="flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-200"
             style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(100,116,139,0.5)' }}
           >

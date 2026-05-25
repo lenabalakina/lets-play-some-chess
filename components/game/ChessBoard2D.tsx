@@ -20,6 +20,7 @@ interface Props {
   isMyTurn:       boolean
   isGameOver:     boolean
   onSquareClick:  (sq: Square) => void
+  hintSquare?:    string | null
 }
 
 function getInCheckSquare(fen: string): Square | null {
@@ -42,6 +43,7 @@ function getInCheckSquare(fen: string): Square | null {
 export function ChessBoard2D({
   fen, selectedSquare, legalMoves, lastMove,
   theme, showCoords, playerColor, isMyTurn, isGameOver, onSquareClick,
+  hintSquare,
 }: Props) {
   const chess = new Chess(fen)
   const board = chess.board()
@@ -96,6 +98,7 @@ export function ChessBoard2D({
             const { sq, cell } = getCellFromCoords(fileIdx, rankIdx)
             const isLegal    = legalMoves.includes(sq)
             const isSelected = sq === selectedSquare
+            const isHint     = hintSquare === sq
             const isWhitePiece = cell?.color === 'w'
 
             return (
@@ -119,6 +122,14 @@ export function ChessBoard2D({
                   <span className="absolute bottom-0.5 right-0.5 text-[9px] font-medium opacity-50 text-white leading-none z-20 pointer-events-none select-none">
                     {file}
                   </span>
+                )}
+
+                {/* Hint pulse */}
+                {isHint && (
+                  <div
+                    className="absolute inset-0 rounded-sm pointer-events-none z-10 animate-pulse"
+                    style={{ background: 'rgba(250,204,21,0.35)', boxShadow: 'inset 0 0 12px rgba(250,204,21,0.6)' }}
+                  />
                 )}
 
                 {/* Legal move dot */}

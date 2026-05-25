@@ -131,7 +131,7 @@ export default function TryoutPage() {
         transition={{ duration: 0.5 }}
         className="relative z-20 flex items-center justify-between px-8 py-5 border-b border-slate-800/50"
       >
-        <div className="flex items-center gap-2">
+        <Link href="/" aria-label="Go to homepage" className="flex items-center gap-2 cursor-pointer group">
           {/* Logo pawn — slow spin */}
           <motion.span
             className="text-cyan-400 inline-block leading-none select-none"
@@ -142,11 +142,11 @@ export default function TryoutPage() {
           >
             ♟︎
           </motion.span>
-          <span className="font-bold tracking-wide"
+          <span className="font-bold tracking-wide group-hover:opacity-80 transition-opacity"
             style={{ textShadow: '0 0 20px rgba(6,182,212,0.8)' }}>
             LET&apos;S PLAY SOME CHESS
           </span>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-slate-400 hover:text-white text-sm transition-colors px-4 py-2 cursor-pointer">
@@ -313,7 +313,7 @@ export default function TryoutPage() {
 
             <motion.div whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.97 }}>
               <Link
-                href="/play/local"
+                href="/play/3d"
                 className="flex items-center gap-3 px-8 py-4 rounded-xl font-black tracking-wider text-lg
                   border border-slate-700/50 text-slate-500 cursor-pointer
                   hover:border-slate-600 hover:text-slate-300 transition-all"

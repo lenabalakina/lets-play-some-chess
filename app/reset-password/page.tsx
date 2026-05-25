@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
@@ -63,10 +64,10 @@ function ResetPasswordContent() {
     <div className="min-h-screen bg-[#070d1a] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
+          <Link href="/" aria-label="Go to homepage" className="inline-flex items-center gap-2 mb-2 cursor-pointer group">
             <PawnIcon size={36} />
-            <h1 className="text-xl font-bold tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</h1>
-          </div>
+            <h1 className="text-xl font-bold tracking-wide neon-text group-hover:opacity-80 transition-opacity">LET&apos;S PLAY SOME CHESS</h1>
+          </Link>
           <p className="text-slate-500 text-sm">Set a new password</p>
         </div>
 

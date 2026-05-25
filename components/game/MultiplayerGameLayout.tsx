@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { Chess } from 'chess.js'
 import { ChessBoard2D } from './ChessBoard2D'
@@ -79,6 +80,7 @@ export function MultiplayerGameLayout({
   const [view3D,         setView3D]         = useState(false)
   const [muted,          setMuted]          = useState(false)
   const [tweaksOpen,     setTweaksOpen]     = useState(false)
+  const [leaveConfirm,   setLeaveConfirm]   = useState(false)
   const [activeTab,      setActiveTab]      = useState<'chat' | 'moves'>('chat')
   const [mobileSheet,    setMobileSheet]    = useState<'moves' | 'chat' | null>(null)
   const [opponentOnline, setOpponentOnline] = useState(true)
@@ -324,10 +326,14 @@ export function MultiplayerGameLayout({
 
       {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
       <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)}
+          aria-label="Go to homepage"
+          className="flex items-center gap-3 cursor-pointer group"
+        >
           <PawnIcon size={18} />
-          <h1 className="font-bold text-base tracking-wide neon-text">LET&apos;S PLAY SOME CHESS</h1>
-        </div>
+          <h1 className="font-bold text-base tracking-wide neon-text group-hover:opacity-80 transition-opacity">LET&apos;S PLAY SOME CHESS</h1>
+        </button>
         <ModeSelector activeMode="rapid" onChange={() => {}} />
         <div className="flex items-center gap-3">
           <button
@@ -351,10 +357,14 @@ export function MultiplayerGameLayout({
 
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
       <header className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-slate-800/50 shrink-0">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)}
+          aria-label="Go to homepage"
+          className="flex items-center gap-2 cursor-pointer group"
+        >
           <PawnIcon size={16} />
-          <h1 className="font-black text-[10px] tracking-widest neon-text uppercase">LET&apos;S PLAY SOME CHESS</h1>
-        </div>
+          <h1 className="font-black text-[10px] tracking-widest neon-text uppercase group-hover:opacity-80 transition-opacity">LET&apos;S PLAY SOME CHESS</h1>
+        </button>
         <div className="flex items-center gap-2">
           <div className={`flex items-center gap-1 text-[10px] font-medium ${opponentOnline ? 'text-emerald-400' : 'text-slate-500'}`}>
             {opponentOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
@@ -696,6 +706,36 @@ export function MultiplayerGameLayout({
         color={me.color}
         onSelect={handlePromoSelect}
       />
+
+      {/* ── Leave confirmation ───────────────────────────────────────────────── */}
+      {leaveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={() => setLeaveConfirm(false)}
+        >
+          <div
+            className="bg-[#0d1829] border border-slate-700 rounded-2xl p-6 w-80 flex flex-col gap-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-white font-bold text-base tracking-wide">Leave current game?</h2>
+            <p className="text-slate-400 text-sm">Your game will be counted as a loss if you leave now.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setLeaveConfirm(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600/80 border border-red-500/60 hover:bg-red-600 transition-all cursor-pointer"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Game result modal ─────────────────────────────────────────────────── */}
       <GameResultModal

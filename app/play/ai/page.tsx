@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { GameLayout } from '@/components/game/GameLayout'
 import { PawnIcon } from '@/components/ui/PawnIcon'
+import { Home, CalendarDays, Globe } from 'lucide-react'
 import type { AiLevel } from '@/features/ai/useStockfish'
 
 interface Level {
@@ -53,6 +54,14 @@ const LEVELS: Level[] = [
 export default function AIGamePage() {
   const [chosen, setChosen] = useState<AiLevel | null>(null)
 
+  useEffect(() => {
+    if (!chosen) return
+    window.history.pushState({ chosen }, '')
+    const onPop = () => setChosen(null)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [chosen])
+
   if (chosen) {
     const level = LEVELS.find(l => l.id === chosen)!
     return (
@@ -68,23 +77,51 @@ export default function AIGamePage() {
   return (
     <div className="min-h-screen flex flex-col text-white">
       {/* Header */}
-      <header className="game-header flex items-center justify-between px-6 md:px-10 h-14 shrink-0">
-        <Link href="/" className="flex items-center gap-2.5 group">
+      <header className="game-header flex items-center justify-between px-4 md:px-6 h-14 shrink-0 gap-3">
+        <Link href="/" className="flex items-center gap-2 group shrink-0">
           <PawnIcon size={16} />
           <span
-            className="hidden sm:block font-bold text-white/70 group-hover:text-white/95 transition-colors duration-200"
+            className="hidden md:block font-bold text-white/70 group-hover:text-white/95 transition-colors duration-200"
             style={{ fontSize: '10px', letterSpacing: '0.17em', textTransform: 'uppercase' }}
           >
             Let&apos;s Play Some Chess
           </span>
         </Link>
-        <Link
-          href="/"
-          className="font-semibold text-slate-500 hover:text-slate-300 transition-colors duration-200"
-          style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' }}
-        >
-          ← Back
-        </Link>
+
+        <div className="flex-1 text-center hidden sm:block">
+          <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">AI Training</p>
+          <p className="text-[10px] text-slate-600 mt-0.5">Powered by Stockfish</p>
+        </div>
+
+        <nav className="flex items-center gap-1.5 shrink-0">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold tracking-wide
+              bg-slate-800/60 border border-slate-700/60 text-slate-300
+              hover:border-slate-500 hover:text-white transition-all"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Home</span>
+          </Link>
+          <Link
+            href="/puzzles"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold tracking-wide
+              bg-emerald-500/10 border border-emerald-500/30 text-emerald-400
+              hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all"
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Puzzles</span>
+          </Link>
+          <Link
+            href="/play/online"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold tracking-wide
+              bg-cyan-500/10 border border-cyan-500/30 text-cyan-400
+              hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Play Online</span>
+          </Link>
+        </nav>
       </header>
 
       {/* Content */}

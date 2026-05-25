@@ -20,9 +20,9 @@ const GAME_MODES: GameMode[] = [
   { icon: Globe,        title: 'Online Match', tag: 'LIVE',        desc: 'Real-time play against anyone.',    accent: '#06b6d4', href: '/play/online' },
   { icon: Trophy,       title: 'Ranked Arena', tag: 'COMPETITIVE', desc: 'Rated games. Climb the ladder.',    accent: '#f59e0b', href: '/play/online' },
   { icon: Bot,          title: 'AI Training',  tag: 'STOCKFISH',   desc: '8 levels — beginner to master.',   accent: '#a855f7', href: '/play/ai' },
-  { icon: CalendarDays, title: 'Daily Puzzle', tag: 'DAILY',       desc: 'One puzzle. New every 24 hours.',  accent: '#10b981', href: '/' },
+  { icon: CalendarDays, title: 'Daily Puzzle', tag: 'DAILY',       desc: 'One puzzle. New every 24 hours.',  accent: '#10b981', href: '/puzzles' },
   { icon: Users,        title: 'Private Room', tag: 'INVITE',      desc: 'Your room, your code, your rules.', accent: '#0ea5e9', href: '/play/online' },
-  { icon: Swords,       title: '3D Themes',    tag: 'VISUAL',      desc: 'Neon · Void · Ember · Arctic.',    accent: '#f43f5e', href: '/play/local' },
+  { icon: Swords,       title: '3D Themes',    tag: 'VISUAL',      desc: 'Neon · Void · Ember · Arctic.',    accent: '#f43f5e', href: '/play/3d' },
 ]
 
 const PLATFORM_FEATURES = ['Stockfish Engine', 'Ranked Matchmaking', '8 AI Levels', 'Daily Puzzles', 'Free Forever']
@@ -111,7 +111,7 @@ export function ScrollAnimatedHero() {
                 <Bot className="w-3.5 h-3.5 shrink-0" /> VS AI
               </Link>
               <Link
-                href="/play/local"
+                href="/play/3d"
                 className="btn-game-primary flex items-center justify-center gap-2 px-4 py-[13px] rounded-xl font-bold text-slate-500 hover:text-slate-300 transition-colors duration-200"
                 style={{
                   fontSize: '12px',

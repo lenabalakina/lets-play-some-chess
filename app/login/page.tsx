@@ -77,7 +77,7 @@ export default function LoginPage() {
               Play vs AI — no account needed
             </Link>
             <Link
-              href="/play/local"
+              href="/play/3d"
               className="w-full py-2.5 px-4 rounded-xl font-semibold text-center transition-colors duration-200 hover:text-slate-400"
               style={{ fontSize: '12px', color: 'rgba(100,116,139,0.5)' }}
             >

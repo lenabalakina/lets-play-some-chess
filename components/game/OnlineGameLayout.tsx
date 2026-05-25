@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Chess } from 'chess.js'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChessBoard2D } from './ChessBoard2D'
@@ -29,6 +30,7 @@ function formatTime(ms: number) {
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const { room, makeMove, resign, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const router = useRouter()
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoves,     setLegalMoves]     = useState<string[]>([])
@@ -36,6 +38,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const [theme]                             = useState<BoardTheme>('neon')
   const [copied,         setCopied]         = useState(false)
   const [mobileTab,      setMobileTab]      = useState<'moves' | 'info'>('moves')
+  const [leaveConfirm,   setLeaveConfirm]   = useState(false)
   const { ref: boardAreaRef, size: boardSize } = useBoardSize()
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const prevMoveCountRef = useRef(0)
@@ -132,13 +135,17 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
       {/* ── DESKTOP HEADER (lg+) ──────────────────────────────── */}
       <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-slate-800/50 shrink-0">
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)}
+          aria-label="Go to homepage"
+          className="flex items-center gap-3 cursor-pointer group"
+        >
           <PawnIcon size={18} />
           <div>
-            <h1 className="font-black text-sm tracking-widest neon-text uppercase">Let&apos;s Play Some Chess</h1>
+            <h1 className="font-black text-sm tracking-widest neon-text uppercase group-hover:opacity-80 transition-opacity">Let&apos;s Play Some Chess</h1>
             <p className="text-slate-600 text-[10px] tracking-wider">Online · Room {code}</p>
           </div>
-        </div>
+        </button>
         <div className="flex items-center gap-3">
           {room.connected
             ? <Wifi className="w-3.5 h-3.5 text-emerald-400" />
@@ -159,13 +166,17 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
       <header className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-slate-800/50 shrink-0">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)}
+          aria-label="Go to homepage"
+          className="flex items-center gap-2 cursor-pointer group"
+        >
           <PawnIcon size={16} />
           <div>
-            <h1 className="font-black text-[10px] tracking-widest neon-text uppercase">CHESS</h1>
+            <h1 className="font-black text-[10px] tracking-widest neon-text uppercase group-hover:opacity-80 transition-opacity">CHESS</h1>
             <p className="text-slate-600 text-[9px]">Room {code}</p>
           </div>
-        </div>
+        </button>
         <div className="flex items-center gap-2">
           {room.connected
             ? <Wifi className="w-3.5 h-3.5 text-emerald-400" />
@@ -383,6 +394,36 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
         color={myColor}
         onSelect={handlePromoSelect}
       />
+
+      {/* ── Leave confirmation ───────────────────────────────────────────────── */}
+      {leaveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={() => setLeaveConfirm(false)}
+        >
+          <div
+            className="bg-[#0d1829] border border-slate-700 rounded-2xl p-6 w-80 flex flex-col gap-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-white font-bold text-base tracking-wide">Leave current game?</h2>
+            <p className="text-slate-400 text-sm">Your game will be counted as a loss if you leave now.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setLeaveConfirm(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600/80 border border-red-500/60 hover:bg-red-600 transition-all cursor-pointer"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -24,9 +24,9 @@ const MODES = [
   { icon: Globe,        title: 'Online',  tag: 'LIVE',        accent: '#06b6d4', href: '/play/online' },
   { icon: Trophy,       title: 'Ranked',  tag: 'ELO',         accent: '#f59e0b', href: '/play/online' },
   { icon: Bot,          title: 'AI',      tag: 'STOCKFISH',   accent: '#a855f7', href: '/play/ai'     },
-  { icon: CalendarDays, title: 'Puzzle',  tag: 'DAILY',       accent: '#10b981', href: '/'            },
+  { icon: CalendarDays, title: 'Puzzle',  tag: 'DAILY',       accent: '#10b981', href: '/puzzles'      },
   { icon: Users,        title: 'Private', tag: 'INVITE',      accent: '#0ea5e9', href: '/play/online' },
-  { icon: Layers,       title: '3D',      tag: 'THEMES',      accent: '#f43f5e', href: '/play/local'  },
+  { icon: Layers,       title: '3D',      tag: 'THEMES',      accent: '#f43f5e', href: '/play/3d'  },
 ]
 
 function Avatar({ username, size = 'md' }: { username: string; size?: 'md' | 'sm' }) {

@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 
 export type AiLevel = 'easy' | 'intermediate' | 'hard'
 
-const LEVEL_MAP: Record<AiLevel, { skill: number; depth: number; moveTime: number }> = {
-  easy:         { skill: 2,  depth: 2,  moveTime: 150  },
-  intermediate: { skill: 10, depth: 6,  moveTime: 500  },
-  hard:         { skill: 20, depth: 14, moveTime: 1500 },
+const LEVEL_MAP: Record<AiLevel, { elo: number | null; skill: number; depth: number; moveTime: number; delay: number }> = {
+  easy:         { elo: 800,  skill: 5,  depth: 3,  moveTime: 800,  delay: 600  },
+  intermediate: { elo: 1200, skill: 8,  depth: 5,  moveTime: 1000, delay: 800  },
+  hard:         { elo: null, skill: 20, depth: 15, moveTime: 1500, delay: 400  },
 }
 
 interface UseStockfishOptions {
@@ -25,6 +25,7 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
   const pendingRef = useRef(false)
   const onMoveRef  = useRef(onMove)
   const [thinking, setThinking] = useState(false)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => { onMoveRef.current = onMove }, [onMove])
 
@@ -39,6 +40,7 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
         const line = typeof e.data === 'string' ? e.data : String(e.data)
         if (line === 'readyok') {
           readyRef.current = true
+          setReady(true)
         }
         if (line.startsWith('bestmove')) {
           pendingRef.current = false
@@ -66,6 +68,7 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
       readyRef.current   = false
       pendingRef.current = false
       setThinking(false)
+      setReady(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled])
@@ -79,14 +82,28 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
 
     const cfg = LEVEL_MAP[level]
     pendingRef.current = true
-    setThinking(true)
 
-    const w = workerRef.current
-    w.postMessage(`setoption name Skill Level value ${cfg.skill}`)
-    w.postMessage(`position fen ${fen}`)
-    w.postMessage(`go depth ${cfg.depth} movetime ${cfg.moveTime}`)
+    const timer = setTimeout(() => {
+      if (!workerRef.current || !pendingRef.current) return
+      setThinking(true)
+      const w = workerRef.current
+      if (cfg.elo !== null) {
+        w.postMessage('setoption name UCI_LimitStrength value true')
+        w.postMessage(`setoption name UCI_Elo value ${cfg.elo}`)
+      } else {
+        w.postMessage('setoption name UCI_LimitStrength value false')
+      }
+      w.postMessage(`setoption name Skill Level value ${cfg.skill}`)
+      w.postMessage(`position fen ${fen}`)
+      w.postMessage(`go depth ${cfg.depth} movetime ${cfg.moveTime}`)
+    }, cfg.delay)
+
+    return () => {
+      clearTimeout(timer)
+      pendingRef.current = false
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, turn, fen, level, myColor])
+  }, [enabled, turn, fen, level, myColor, ready])
 
   return { thinking }
 }
