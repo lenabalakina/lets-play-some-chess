@@ -8,6 +8,12 @@ export interface RoomMove {
   fen: string
 }
 
+export interface ChatMessage {
+  color: 'w' | 'b'
+  text:  string
+  ts:    number
+}
+
 export interface Room {
   code:    string
   fen:     string
@@ -17,6 +23,7 @@ export interface Room {
   status:  'waiting' | 'playing' | 'finished'
   winner:  'w' | 'b' | 'draw' | null
   moves:   RoomMove[]
+  messages: ChatMessage[]
   createdAt:       number
   lastActivityAt:  number
   subscribers: Map<string, ReadableStreamDefaultController<Uint8Array>>
@@ -44,7 +51,8 @@ export function createRoom(playerId: string): Room {
     black:  null,
     status: 'waiting',
     winner: null,
-    moves:  [],
+    moves:    [],
+    messages: [],
     createdAt:      Date.now(),
     lastActivityAt: Date.now(),
     subscribers:    new Map(),
@@ -110,6 +118,21 @@ export function applyMove(
   } catch {
     return { ok: false, error: 'Illegal move' }
   }
+}
+
+export function sendChat(
+  code: string, playerId: string, text: string
+): { ok: true } | { ok: false; error: string } {
+  const room = rooms.get(code)
+  if (!room) return { ok: false, error: 'Room not found' }
+  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  if (!color) return { ok: false, error: 'Not a player in this room' }
+  const trimmed = text.trim().slice(0, 200)
+  if (!trimmed) return { ok: false, error: 'Empty message' }
+  const msg: ChatMessage = { color, text: trimmed, ts: Date.now() }
+  room.messages.push(msg)
+  broadcast(code, { type: 'chat', ...msg })
+  return { ok: true }
 }
 
 export function resignRoom(code: string, playerId: string): { ok: true } | { ok: false; error: string } {

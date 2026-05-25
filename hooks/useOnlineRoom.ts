@@ -7,12 +7,19 @@ export interface RoomMove {
   from: string; to: string; promotion?: string; san: string; fen: string
 }
 
+export interface ChatMessage {
+  color: 'w' | 'b'
+  text:  string
+  ts:    number
+}
+
 export interface OnlineRoomState {
   fen:       string
   turn:      'w' | 'b'
   status:    'waiting' | 'playing' | 'finished'
   winner:    'w' | 'b' | 'draw' | null
   moves:     RoomMove[]
+  messages:  ChatMessage[]
   connected: boolean
   lastMove:  { from: string; to: string } | null
 }
@@ -24,6 +31,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     status:    'waiting',
     winner:    null,
     moves:     [],
+    messages:  [],
     connected: false,
     lastMove:  null,
   })
@@ -47,6 +55,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
             status:   rm.status,
             winner:   rm.winner,
             moves:    rm.moves ?? [],
+            messages: rm.messages ?? [],
             lastMove: rm.moves?.length
               ? { from: rm.moves[rm.moves.length - 1].from, to: rm.moves[rm.moves.length - 1].to }
               : null,
@@ -63,6 +72,8 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
           }))
         } else if (msg.type === 'resign') {
           setRoom(r => ({ ...r, status: 'finished', winner: msg.winner }))
+        } else if (msg.type === 'chat') {
+          setRoom(r => ({ ...r, messages: [...r.messages, { color: msg.color, text: msg.text, ts: msg.ts }] }))
         }
       } catch {}
     }
@@ -88,7 +99,15 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     })
   }, [code, playerId])
 
+  const sendChat = useCallback(async (text: string) => {
+    await fetch(`/api/room/${code}/chat`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ playerId, text }),
+    })
+  }, [code, playerId])
+
   const isMyTurn = room.status === 'playing' && room.turn === myColor
 
-  return { room, makeMove, resign, isMyTurn }
+  return { room, makeMove, resign, sendChat, isMyTurn }
 }
