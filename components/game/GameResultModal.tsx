@@ -40,31 +40,40 @@ const REASON_LABEL: Record<EndReason, string> = {
   stalemate:         'by stalemate',
 }
 
+const WIN_MESSAGES = [
+  'ABSOLUTELY LEGENDARY! 🔥',
+  'YOU ARE UNSTOPPABLE! ⚡',
+  'CHESS MASTER IN THE HOUSE! 👑',
+  'THAT WAS BEAUTIFUL! ✨',
+  'PURE GENIUS! 🧠',
+  'THE CROWD GOES WILD! 🎉',
+]
+
 async function fireConfetti() {
   const confetti = (await import('canvas-confetti')).default
-  const colors = ['#06b6d4', '#8b5cf6', '#22d3ee', '#a78bfa', '#ffffff']
+  const colors = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e', '#ffffff', '#fbbf24']
 
-  confetti({
-    particleCount: 120,
-    spread: 80,
-    origin: { y: 0.55 },
-    colors,
-    scalar: 1.1,
-  })
+  // First big burst from center
+  confetti({ particleCount: 200, spread: 100, origin: { y: 0.5 }, colors, scalar: 1.3, zIndex: 9999 })
+
+  // Two side cannons
+  setTimeout(() => confetti({ particleCount: 100, spread: 70, origin: { x: 0.1, y: 0.6 }, colors, angle: 60, zIndex: 9999 }), 200)
+  setTimeout(() => confetti({ particleCount: 100, spread: 70, origin: { x: 0.9, y: 0.6 }, colors, angle: 120, zIndex: 9999 }), 200)
+
+  // Star shapes burst
   setTimeout(() => confetti({
-    particleCount: 60,
-    spread: 60,
-    origin: { x: 0.2, y: 0.6 },
-    colors,
-    angle: 60,
-  }), 200)
-  setTimeout(() => confetti({
-    particleCount: 60,
-    spread: 60,
-    origin: { x: 0.8, y: 0.6 },
-    colors,
-    angle: 120,
-  }), 350)
+    particleCount: 80, spread: 90, origin: { y: 0.4 }, zIndex: 9999,
+    shapes: ['star'], colors, scalar: 1.6,
+  }), 500)
+
+  // Glitter rain from top
+  setTimeout(() => confetti({ particleCount: 120, spread: 150, origin: { y: 0 }, colors, gravity: 0.6, scalar: 0.8, zIndex: 9999 }), 800)
+
+  // Final big top burst
+  setTimeout(() => {
+    confetti({ particleCount: 150, spread: 120, origin: { x: 0.3, y: 0.3 }, colors, zIndex: 9999 })
+    confetti({ particleCount: 150, spread: 120, origin: { x: 0.7, y: 0.3 }, colors, zIndex: 9999 })
+  }, 1200)
 }
 
 export function GameResultModal({
@@ -73,6 +82,7 @@ export function GameResultModal({
 }: Props) {
   const [newElo, setNewElo] = useState<number | null>(null)
   const firedRef = useRef(false)
+  const [winMsg] = useState(() => WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)])
 
   const myResultColor: GameResultColor = myColor === 'w' ? 'white' : 'black'
   const iWon   = result === myResultColor
@@ -140,26 +150,79 @@ export function GameResultModal({
               style={{ boxShadow: `0 0 80px ${glowColor}, 0 25px 60px rgba(0,0,0,0.5)` }}
             >
               {/* Top colour strip */}
-              <div className={`h-1.5 w-full ${iWon ? 'bg-gradient-to-r from-emerald-500 to-cyan-400' : isDraw ? 'bg-gradient-to-r from-slate-500 to-slate-400' : 'bg-gradient-to-r from-red-600 to-rose-500'}`} />
+              <div className={`h-1.5 w-full ${iWon ? 'bg-gradient-to-r from-yellow-400 via-emerald-400 to-cyan-400' : isDraw ? 'bg-gradient-to-r from-slate-500 to-slate-400' : 'bg-gradient-to-r from-red-600 to-rose-500'}`} />
 
               <div className="p-6 sm:p-8">
-                {/* Emoji + title */}
-                <motion.div
-                  initial={{ opacity: 0, y: -16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-center mb-5"
-                >
-                  <div className="text-5xl mb-3 select-none">{emoji}</div>
-                  <h2 className={`text-4xl font-black tracking-tight ${titleColor}`}
-                    style={iWon ? { textShadow: '0 0 30px rgba(52,211,153,0.7)' } : undefined}>
-                    {titleText}
-                  </h2>
-                  <div className="flex items-center justify-center gap-1.5 text-slate-400 text-sm mt-2">
-                    <ReasonIcon className="w-3.5 h-3.5" />
-                    {REASON_LABEL[reason]}
-                  </div>
-                </motion.div>
+                {/* Win celebration header */}
+                {iWon ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-center mb-5 relative"
+                  >
+                    {/* Floating sparkles */}
+                    {['✨','⭐','🌟','💫','✨','⭐'].map((s, i) => (
+                      <motion.span
+                        key={i}
+                        className="absolute text-lg select-none pointer-events-none"
+                        style={{ left: `${10 + i * 16}%`, top: i % 2 === 0 ? '-8px' : '4px' }}
+                        animate={{ y: [0, -12, 0], opacity: [0.6, 1, 0.6], rotate: [0, 20, -20, 0] }}
+                        transition={{ duration: 1.5 + i * 0.2, repeat: Infinity, delay: i * 0.15 }}
+                      >
+                        {s}
+                      </motion.span>
+                    ))}
+
+                    {/* Trophy + bounce */}
+                    <motion.div
+                      className="text-6xl mb-2 select-none"
+                      animate={{ scale: [1, 1.2, 1], rotate: [-5, 5, -5, 0] }}
+                      transition={{ duration: 0.6, delay: 0.3, repeat: 3, repeatDelay: 2 }}
+                    >
+                      🏆
+                    </motion.div>
+
+                    <motion.h2
+                      className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-emerald-300 to-cyan-400"
+                      style={{ textShadow: 'none' }}
+                      animate={{ scale: [1, 1.04, 1] }}
+                      transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 1 }}
+                    >
+                      VICTORY!
+                    </motion.h2>
+
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                      className="text-[11px] font-black tracking-widest mt-1 text-yellow-400 uppercase"
+                    >
+                      {winMsg}
+                    </motion.p>
+
+                    <div className="flex items-center justify-center gap-1.5 text-slate-400 text-sm mt-2">
+                      <ReasonIcon className="w-3.5 h-3.5" />
+                      {REASON_LABEL[reason]}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: -16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-center mb-5"
+                  >
+                    <div className="text-5xl mb-3 select-none">{emoji}</div>
+                    <h2 className={`text-4xl font-black tracking-tight ${titleColor}`}>
+                      {titleText}
+                    </h2>
+                    <div className="flex items-center justify-center gap-1.5 text-slate-400 text-sm mt-2">
+                      <ReasonIcon className="w-3.5 h-3.5" />
+                      {REASON_LABEL[reason]}
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Players */}
                 <motion.div
@@ -184,7 +247,7 @@ export function GameResultModal({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="rounded-xl p-4 mb-5 text-center border border-slate-800/60 bg-slate-900/50"
+                  className={`rounded-xl p-4 mb-5 text-center border bg-slate-900/50 ${iWon ? 'border-emerald-500/30' : 'border-slate-800/60'}`}
                 >
                   <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mb-2">ELO Rating</p>
                   <div className="flex items-center justify-center gap-3">
