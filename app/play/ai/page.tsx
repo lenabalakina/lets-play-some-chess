@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { GameLayout } from '@/components/game/GameLayout'
 import { PawnIcon } from '@/components/ui/PawnIcon'
@@ -53,14 +53,6 @@ const LEVELS: Level[] = [
 
 export default function AIGamePage() {
   const [chosen, setChosen] = useState<AiLevel | null>(null)
-
-  useEffect(() => {
-    if (!chosen) return
-    window.history.pushState({ chosen }, '')
-    const onPop = () => setChosen(null)
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [chosen])
 
   if (chosen) {
     const level = LEVELS.find(l => l.id === chosen)!
