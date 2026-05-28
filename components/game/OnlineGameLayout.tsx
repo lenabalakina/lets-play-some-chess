@@ -47,6 +47,12 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const [desktopTab,     setDesktopTab]     = useState<'moves' | 'chat'>('chat')
   const [leaveConfirm,   setLeaveConfirm]   = useState(false)
   const [view3D,         setView3D]         = useState(false)
+
+  function toggle3D() {
+    setView3D(v => !v)
+    setSelectedSquare(null)
+    setLegalMoves([])
+  }
   const [chatInput,      setChatInput]      = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
   const { ref: boardAreaRef, size: boardSize } = useBoardSize()
@@ -352,7 +358,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                       lastMove={room.lastMove as { from: Square; to: Square } | null}
                       theme={theme}
                       showCoords={true}
-                      playerColor="w"
+                      playerColor={myColor}
                       isMyTurn={isMyTurn}
                       isGameOver={isGameOver}
                       onSquareClick={handleSquareClick}
@@ -474,7 +480,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                   </div>
                   <div className="flex items-center justify-between px-1">
                     <span className="text-slate-400 text-xs">3D Board</span>
-                    <button role="switch" aria-checked={view3D} onClick={() => setView3D(v => !v)}
+                    <button role="switch" aria-checked={view3D} onClick={toggle3D}
                       className={`relative w-9 h-5 rounded-full transition-colors ${view3D ? 'bg-fuchsia-500' : 'bg-slate-700'}`}>
                       <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${view3D ? 'translate-x-4' : 'translate-x-0'}`} />
                     </button>
@@ -555,7 +561,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase">Board</p>
             <div className="flex items-center justify-between">
               <span className="text-slate-400 text-[11px]">3D Board</span>
-              <button role="switch" aria-checked={view3D} onClick={() => setView3D(v => !v)}
+              <button role="switch" aria-checked={view3D} onClick={toggle3D}
                 className={`relative w-9 h-5 rounded-full transition-colors ${view3D ? 'bg-fuchsia-500' : 'bg-slate-700'}`}>
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${view3D ? 'translate-x-4' : 'translate-x-0'}`} />
               </button>
