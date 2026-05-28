@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Globe, Bot, Users, CalendarDays } from 'lucide-react'
+import { Globe, Bot, Users, Trophy, Puzzle } from 'lucide-react'
 
 const HeroBoard3D = dynamic(() => import('./HeroBoard3D').then(m => ({ default: m.HeroBoard3D })), { ssr: false })
 
@@ -118,7 +118,7 @@ export function ScrollAnimatedHero({ stats, topPlayers }: Props) {
             style={{ background: 'linear-gradient(145deg, rgba(168,85,247,0.08) 0%, rgba(5,12,28,0.9) 100%)', border: '1px solid rgba(168,85,247,0.15)' }}>
             <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               style={{ background: 'linear-gradient(to right, transparent, rgba(168,85,247,0.7), transparent)' }} />
-            <div className="text-5xl mb-4 select-none">♟</div>
+            <div className="mb-4"><Bot className="w-9 h-9" style={{ color: 'rgba(168,85,247,0.8)' }} /></div>
             <h3 className="font-black text-white text-base mb-1">VS Stockfish</h3>
             <p className="text-[9px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(168,85,247,0.7)' }}>AI ENGINE</p>
             <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>Train against the world's strongest chess engine. 3 difficulty levels.</p>
@@ -128,7 +128,7 @@ export function ScrollAnimatedHero({ stats, topPlayers }: Props) {
             style={{ background: 'linear-gradient(145deg, rgba(14,165,233,0.08) 0%, rgba(5,12,28,0.9) 100%)', border: '1px solid rgba(14,165,233,0.15)' }}>
             <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               style={{ background: 'linear-gradient(to right, transparent, rgba(14,165,233,0.7), transparent)' }} />
-            <div className="text-5xl mb-4 select-none">♙♟</div>
+            <div className="mb-4"><Users className="w-9 h-9" style={{ color: 'rgba(14,165,233,0.8)' }} /></div>
             <h3 className="font-black text-white text-base mb-1">Local Game</h3>
             <p className="text-[9px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(14,165,233,0.7)' }}>PASS & PLAY</p>
             <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>Two players, one screen. Sit down and play. No account needed.</p>
@@ -138,7 +138,7 @@ export function ScrollAnimatedHero({ stats, topPlayers }: Props) {
             style={{ background: 'linear-gradient(145deg, rgba(16,185,129,0.08) 0%, rgba(5,12,28,0.9) 100%)', border: '1px solid rgba(16,185,129,0.15)' }}>
             <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               style={{ background: 'linear-gradient(to right, transparent, rgba(16,185,129,0.7), transparent)' }} />
-            <div className="text-5xl mb-4 select-none">🧩</div>
+            <div className="mb-4"><Puzzle className="w-9 h-9" style={{ color: 'rgba(16,185,129,0.8)' }} /></div>
             <h3 className="font-black text-white text-base mb-1">Daily Puzzle</h3>
             <p className="text-[9px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(16,185,129,0.7)' }}>EVERY DAY</p>
             <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>One tactical puzzle, refreshed daily. From Lichess's massive database.</p>
@@ -148,7 +148,7 @@ export function ScrollAnimatedHero({ stats, topPlayers }: Props) {
             style={{ background: 'linear-gradient(145deg, rgba(245,158,11,0.08) 0%, rgba(5,12,28,0.9) 100%)', border: '1px solid rgba(245,158,11,0.15)' }}>
             <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               style={{ background: 'linear-gradient(to right, transparent, rgba(245,158,11,0.7), transparent)' }} />
-            <div className="text-5xl mb-4 select-none">🏆</div>
+            <div className="mb-4"><Trophy className="w-9 h-9" style={{ color: 'rgba(245,158,11,0.8)' }} /></div>
             <h3 className="font-black text-white text-base mb-1">Leaderboard</h3>
             <p className="text-[9px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(245,158,11,0.7)' }}>RANKED ELO</p>
             <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>See who sits at the top. Play AI games to earn your rating.</p>
