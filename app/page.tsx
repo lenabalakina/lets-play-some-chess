@@ -1,8 +1,38 @@
 import Link from 'next/link'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { ScrollAnimatedHero } from '@/components/ScrollAnimatedHero'
+import { createClient } from '@/lib/supabase/server'
 
-export default function LandingPage() {
+async function getLiveStats() {
+  try {
+    const supabase = await createClient()
+    const [{ count: playerCount }, { count: gameCount }] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact', head: true }),
+      supabase.from('games').select('*', { count: 'exact', head: true }),
+    ])
+    return { players: playerCount ?? 0, games: gameCount ?? 0 }
+  } catch {
+    return { players: 0, games: 0 }
+  }
+}
+
+async function getTopPlayers() {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('users')
+      .select('username, elo_rating, wins')
+      .order('elo_rating', { ascending: false })
+      .limit(3)
+    return data ?? []
+  } catch {
+    return []
+  }
+}
+
+export default async function LandingPage() {
+  const [stats, topPlayers] = await Promise.all([getLiveStats(), getTopPlayers()])
+
   return (
     <div
       className="relative min-h-screen text-white flex flex-col overflow-x-hidden"
@@ -66,7 +96,7 @@ export default function LandingPage() {
       </header>
 
       <main className="relative z-10 flex-1">
-        <ScrollAnimatedHero />
+        <ScrollAnimatedHero stats={stats} topPlayers={topPlayers} />
       </main>
 
       <footer className="relative z-10 py-6 border-t border-white/[0.04] text-center">
