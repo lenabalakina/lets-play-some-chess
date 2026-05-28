@@ -455,7 +455,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                     )}
                     {room.messages.map((msg, i) => (
                       <div key={i} className={`flex ${msg.color === myColor ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`px-2.5 py-1.5 rounded-xl text-xs max-w-[75%] break-words leading-snug
+                        <div className={`px-2.5 py-1.5 rounded-xl text-sm max-w-[75%] break-words leading-snug
                           ${msg.color === myColor
                             ? 'bg-cyan-500/25 text-white'
                             : 'bg-slate-700/80 text-slate-100'
@@ -472,7 +472,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                       onChange={e => setChatInput(e.target.value)}
                       placeholder="Message…"
                       maxLength={200}
-                      className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-2.5 py-1 text-[10px] text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50"
+                      className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50"
                     />
                     <button type="submit" disabled={!chatInput.trim()}
                       className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 disabled:opacity-30 transition-all">
@@ -541,7 +541,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                     <span className="text-[10px] text-slate-500 font-semibold px-1">
                       {msg.color === myColor ? 'You' : 'Opponent'}
                     </span>
-                    <div className={`px-3 py-2 rounded-xl text-sm max-w-[80%] break-words leading-snug
+                    <div className={`px-3 py-2 rounded-xl text-base max-w-[80%] break-words leading-snug
                       ${msg.color === myColor
                         ? 'bg-cyan-500/25 text-white rounded-tr-sm'
                         : 'bg-slate-700/80 text-slate-100 rounded-tl-sm'
@@ -572,7 +572,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                   }}
                   placeholder="Say something…"
                   maxLength={200}
-                  className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                  className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-base text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                 />
                 <button type="submit" disabled={!chatInput.trim()}
                   className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all">

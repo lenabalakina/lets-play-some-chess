@@ -7,6 +7,7 @@ let ctx: AudioContext | null = null
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null
   if (!ctx) ctx = new AudioContext()
+  if (ctx.state === 'suspended') ctx.resume()
   return ctx
 }
 
