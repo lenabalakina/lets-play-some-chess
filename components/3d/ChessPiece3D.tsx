@@ -25,10 +25,8 @@ function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
   return [3.5 - file, 0, rank - 3.5]
 }
 
-const WHITE_BASE     = new THREE.Color('#e8f0ff')   // bright silver-white
-const BLACK_BASE     = new THREE.Color('#5a4a7a')   // medium purple-grey (still shiny)
-const WHITE_EMISSIVE = new THREE.Color('#06b6d4')   // cyan glow
-const BLACK_EMISSIVE = new THREE.Color('#c084fc')   // bright purple glow
+const WHITE_EMISSIVE = new THREE.Color('#06b6d4')   // cyan
+const BLACK_EMISSIVE = new THREE.Color('#a855f7')   // purple
 const CHECK_COLOR    = new THREE.Color('#ef4444')   // red
 
 export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playerColor, onClick }: Props) {
@@ -37,11 +35,11 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   // Create material imperatively — avoids the JSX ref-override bug where
   // spreading material.props clobbered MaterialProvider's ref, leaving meshes uncolored
   const mat = useMemo(() => new THREE.MeshStandardMaterial({
-    color:             color === 'w' ? WHITE_BASE : BLACK_BASE,
+    color:             new THREE.Color('#ffffff'),
     emissive:          color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE,
-    emissiveIntensity: color === 'w' ? 0.40 : 0.50,
-    roughness:         0.20,
-    metalness:         0.55,
+    emissiveIntensity: color === 'w' ? 0.55 : 0.90,
+    roughness:         0.30,
+    metalness:         0.15,
   }), [color])
 
   // Apply material to every child mesh after each render
