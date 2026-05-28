@@ -5,7 +5,7 @@ export default function LocalPlayPage() {
     <GameLayout
       me={{ username: 'YOU', elo: 1200 }}
       opponent={{ username: 'OPPONENT', elo: 1200 }}
-      initialView3D={true}
+      initialView3D={false}
     />
   )
 }

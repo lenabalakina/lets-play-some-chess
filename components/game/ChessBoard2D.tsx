@@ -104,6 +104,9 @@ export function ChessBoard2D({
             return (
               <div
                 key={sq}
+                data-square={sq}
+                data-legal={isLegal ? 'true' : 'false'}
+                data-piece={cell ? (cell.color === 'w' ? cell.type.toUpperCase() : cell.type) : undefined}
                 onClick={() => !isGameOver && onSquareClick(sq)}
                 className="relative"
                 style={{
