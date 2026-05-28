@@ -25,8 +25,8 @@ function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
   return [3.5 - file, 0, rank - 3.5]
 }
 
-const WHITE_BASE     = new THREE.Color('#d0eeff')   // bright icy white
-const BLACK_BASE     = new THREE.Color('#1a0a2e')   // deep dark purple
+const WHITE_BASE     = new THREE.Color('#e8f0ff')   // bright silver-white
+const BLACK_BASE     = new THREE.Color('#5a4a7a')   // medium purple-grey (still shiny)
 const WHITE_EMISSIVE = new THREE.Color('#06b6d4')   // cyan glow
 const BLACK_EMISSIVE = new THREE.Color('#c084fc')   // bright purple glow
 const CHECK_COLOR    = new THREE.Color('#ef4444')   // red
@@ -39,9 +39,9 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   const mat = useMemo(() => new THREE.MeshStandardMaterial({
     color:             color === 'w' ? WHITE_BASE : BLACK_BASE,
     emissive:          color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE,
-    emissiveIntensity: color === 'w' ? 0.45 : 0.55,
-    roughness:         color === 'w' ? 0.25 : 0.40,
-    metalness:         color === 'w' ? 0.30 : 0.10,
+    emissiveIntensity: color === 'w' ? 0.40 : 0.50,
+    roughness:         0.20,
+    metalness:         0.55,
   }), [color])
 
   // Apply material to every child mesh after each render
