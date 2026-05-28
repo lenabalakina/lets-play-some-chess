@@ -4,7 +4,6 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { Chess } from 'chess.js'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { Download } from 'lucide-react'
 import { Board3D } from './Board3D'
 import { ChessPiece3D } from './ChessPiece3D'
@@ -148,15 +147,6 @@ export function ChessBoard3D({
             />
           ))}
 
-          {/* Post-processing */}
-          <EffectComposer>
-            <Bloom
-              luminanceThreshold={0.6}
-              luminanceSmoothing={0.4}
-              intensity={0.7}
-              mipmapBlur
-            />
-          </EffectComposer>
         </Suspense>
       </Canvas>
 

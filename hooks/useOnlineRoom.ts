@@ -14,30 +14,35 @@ export interface ChatMessage {
 }
 
 export interface OnlineRoomState {
-  fen:          string
-  turn:         'w' | 'b'
-  status:       'waiting' | 'playing' | 'finished'
-  winner:       'w' | 'b' | 'draw' | null
-  moves:        RoomMove[]
-  messages:     ChatMessage[]
-  connected:    boolean
-  lastMove:     { from: string; to: string } | null
-  drawOfferedBy: 'w' | 'b' | null
+  fen:            string
+  turn:           'w' | 'b'
+  status:         'waiting' | 'playing' | 'finished'
+  winner:         'w' | 'b' | 'draw' | null
+  moves:          RoomMove[]
+  messages:       ChatMessage[]
+  connected:      boolean
+  lastMove:       { from: string; to: string } | null
+  drawOfferedBy:  'w' | 'b' | null
+  opponentTyping:  boolean
+  opponentOnline:  boolean
 }
 
 export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const [retryKey,    setRetryKey]    = useState(0)
   const retryCountRef = useRef(0)
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [room, setRoom] = useState<OnlineRoomState>({
-    fen:          'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    turn:         'w',
-    status:       'waiting',
-    winner:       null,
-    moves:        [],
-    messages:     [],
-    connected:    false,
-    lastMove:     null,
-    drawOfferedBy: null,
+    fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    turn:           'w',
+    status:         'waiting',
+    winner:         null,
+    moves:          [],
+    messages:       [],
+    connected:      false,
+    lastMove:       null,
+    drawOfferedBy:  null,
+    opponentTyping: false,
+    opponentOnline: false,
   })
 
   // SSE connection with auto-reconnect (exponential backoff, max 5 retries)
@@ -87,6 +92,16 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
           setRoom(r => ({ ...r, status: 'finished', winner: 'draw', drawOfferedBy: null }))
         } else if (msg.type === 'draw_declined') {
           setRoom(r => ({ ...r, drawOfferedBy: null }))
+        } else if (msg.type === 'presence') {
+          const isOpponent = msg.color !== myColor
+          if (isOpponent) setRoom(r => ({ ...r, opponentOnline: msg.online }))
+        } else if (msg.type === 'typing') {
+          setRoom(r => ({ ...r, opponentTyping: true }))
+          if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+          typingTimerRef.current = setTimeout(
+            () => setRoom(r => ({ ...r, opponentTyping: false })),
+            3000,
+          )
         }
       } catch {}
     }
@@ -126,6 +141,14 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     })
   }, [code, playerId])
 
+  const sendTyping = useCallback(() => {
+    fetch(`/api/room/${code}/typing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId }),
+    }).catch(() => {})
+  }, [code, playerId])
+
   const sendChat = useCallback(async (text: string) => {
     await fetch(`/api/room/${code}/chat`, {
       method:  'POST',
@@ -152,5 +175,5 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
 
   const isMyTurn = room.status === 'playing' && room.turn === myColor
 
-  return { room, makeMove, resign, sendChat, offerDraw, respondToDraw, isMyTurn }
+  return { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn }
 }

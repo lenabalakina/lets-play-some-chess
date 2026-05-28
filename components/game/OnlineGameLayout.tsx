@@ -35,7 +35,8 @@ function formatTime(ms: number) {
 }
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
-  const { room, makeMove, resign, sendChat, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
@@ -146,7 +147,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
   function statusText() {
     if (!room.connected)             return '⏳ Connecting…'
-    if (room.status === 'waiting')   return '⏳ Waiting for opponent…'
+    if (room.status === 'waiting')   return room.opponentOnline ? '🟢 Opponent connected!' : '⏳ Waiting for opponent…'
     if (isGameOver) {
       if (room.winner === 'draw')    return 'Draw!'
       if (room.winner === myColor)   return '🏆 You win!'
@@ -245,7 +246,9 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
               : 'border-purple-500/20 bg-slate-800/50 text-slate-400'
             }`}>
               <span className="text-xl">{opponentColor === 'w' ? '♔' : '♚'}</span>
-              <span className="font-bold text-sm">{opponentColor === 'w' ? 'White' : 'Black'}</span>
+              <span className="font-bold text-sm flex-1">{opponentColor === 'w' ? 'White' : 'Black'}</span>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${room.opponentOnline ? 'bg-emerald-400' : 'bg-slate-600'}`}
+                title={room.opponentOnline ? 'Online' : 'Offline'} />
             </div>
           </div>
 
@@ -443,10 +446,10 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                     )}
                     {room.messages.map((msg, i) => (
                       <div key={i} className={`flex ${msg.color === myColor ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`px-2.5 py-1 rounded-xl text-[10px] max-w-[75%] break-words
+                        <div className={`px-2.5 py-1.5 rounded-xl text-xs max-w-[75%] break-words leading-snug
                           ${msg.color === myColor
-                            ? 'bg-cyan-500/20 text-cyan-100'
-                            : 'bg-slate-700/60 text-slate-200'
+                            ? 'bg-cyan-500/25 text-white'
+                            : 'bg-slate-700/80 text-slate-100'
                           }`}>
                           {msg.text}
                         </div>
@@ -526,27 +529,41 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                 )}
                 {room.messages.map((msg, i) => (
                   <div key={i} className={`flex flex-col gap-0.5 ${msg.color === myColor ? 'items-end' : 'items-start'}`}>
-                    <span className="text-[9px] text-slate-600 font-bold tracking-wider px-1">
+                    <span className="text-[10px] text-slate-500 font-semibold px-1">
                       {msg.color === myColor ? 'You' : 'Opponent'}
                     </span>
-                    <div className={`px-3 py-1.5 rounded-xl text-[11px] max-w-[80%] break-words
+                    <div className={`px-3 py-2 rounded-xl text-sm max-w-[80%] break-words leading-snug
                       ${msg.color === myColor
-                        ? 'bg-cyan-500/20 text-cyan-100 rounded-tr-sm'
-                        : 'bg-slate-700/60 text-slate-200 rounded-tl-sm'
+                        ? 'bg-cyan-500/25 text-white rounded-tr-sm'
+                        : 'bg-slate-700/80 text-slate-100 rounded-tl-sm'
                       }`}>
                       {msg.text}
                     </div>
                   </div>
                 ))}
+                {room.opponentTyping && (
+                  <div className="flex items-center gap-1.5 px-1">
+                    <span className="flex gap-0.5 items-end h-3">
+                      <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </span>
+                    <span className="text-[10px] text-slate-500">Typing…</span>
+                  </div>
+                )}
                 <div ref={chatEndRef} />
               </div>
               <form onSubmit={handleSendChat} className="flex gap-2 p-3 border-t border-slate-800/50 shrink-0">
                 <input
                   value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
+                  onChange={e => {
+                    setChatInput(e.target.value)
+                    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current)
+                    typingDebounceRef.current = setTimeout(sendTyping, 300)
+                  }}
                   placeholder="Say something…"
                   maxLength={200}
-                  className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-[11px] text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50"
+                  className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                 />
                 <button type="submit" disabled={!chatInput.trim()}
                   className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all">

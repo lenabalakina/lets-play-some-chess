@@ -203,12 +203,46 @@ export function safeRoom(room: Room) {
   return rest
 }
 
-export function subscribe(code: string, playerId: string, ctrl: ReadableStreamDefaultController<Uint8Array>) {
-  rooms.get(code)?.subscribers.set(playerId, ctrl)
+export function broadcastPresence(code: string, playerId: string, online: boolean) {
+  const room = rooms.get(code)
+  if (!room) return
+  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  if (!color) return
+  broadcast(code, { type: 'presence', color, online })
 }
 
-export function unsubscribe(code: string, playerId: string) {
-  rooms.get(code)?.subscribers.delete(playerId)
+export function broadcastTyping(code: string, playerId: string) {
+  const room = rooms.get(code)
+  if (!room) return
+  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  if (!color) return
+  const chunk = enc.encode(`data: ${JSON.stringify({ type: 'typing', color })}\n\n`)
+  for (const [id, ctrl] of room.subscribers.entries()) {
+    if (id === playerId) continue // don't send back to typer
+    try { ctrl.enqueue(chunk) } catch {}
+  }
+}
+
+export function subscribe(
+  code: string, playerId: string,
+  ctrl: ReadableStreamDefaultController<Uint8Array>,
+  connId: string,
+): void {
+  const room = rooms.get(code)
+  if (!room) return
+  // Store connId alongside controller so stale aborts don't evict newer connections
+  ;(ctrl as unknown as { _connId: string })._connId = connId
+  room.subscribers.set(playerId, ctrl)
+}
+
+export function unsubscribe(code: string, playerId: string, connId: string) {
+  const room = rooms.get(code)
+  if (!room) return
+  const existing = room.subscribers.get(playerId)
+  // Only remove if this is still the same connection (guard against reload race)
+  if (existing && (existing as unknown as { _connId: string })._connId === connId) {
+    room.subscribers.delete(playerId)
+  }
 }
 
 function broadcast(code: string, data: object) {

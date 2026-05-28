@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server'
-import { rooms, subscribe, unsubscribe, safeRoom } from '@/lib/rooms'
+import { rooms, subscribe, unsubscribe, safeRoom, broadcastPresence } from '@/lib/rooms'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
   const upperCode = code.toUpperCase()
   const playerId  = req.nextUrl.searchParams.get('playerId') ?? 'anon'
+  const connId    = crypto.randomUUID() // unique per SSE connection, guards reload race
 
   const room = rooms.get(upperCode)
   const enc  = new TextEncoder()
@@ -12,7 +13,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       // Subscribe first so no broadcasts are missed between reading state and subscribing
-      subscribe(upperCode, playerId, controller)
+      subscribe(upperCode, playerId, controller, connId)
+
+      // Tell the other player this player is now online
+      broadcastPresence(upperCode, playerId, true)
 
       // Send initial state after subscribing (safe to re-read room now)
       const currentRoom = rooms.get(upperCode)
@@ -33,11 +37,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
 
       req.signal.addEventListener('abort', () => {
         clearInterval(heartbeat)
-        unsubscribe(upperCode, playerId)
+        unsubscribe(upperCode, playerId, connId)
+        broadcastPresence(upperCode, playerId, false)
       })
     },
     cancel() {
-      unsubscribe(upperCode, playerId)
+      unsubscribe(upperCode, playerId, connId)
     },
   })
 
