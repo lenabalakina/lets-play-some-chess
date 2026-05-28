@@ -72,12 +72,21 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     setChatInput('')
   }
 
+  const prevMsgCountRef = useRef(0)
   useEffect(() => {
     if (room.moves.length > prevMoveCountRef.current) {
       chessAudio.move()
       prevMoveCountRef.current = room.moves.length
     }
   }, [room.moves.length])
+
+  useEffect(() => {
+    if (room.messages.length > prevMsgCountRef.current) {
+      const last = room.messages[room.messages.length - 1]
+      if (last?.color !== myColor) chessAudio.chatMessage()
+      prevMsgCountRef.current = room.messages.length
+    }
+  }, [room.messages.length, myColor])
 
   function copyCode() {
     navigator.clipboard.writeText(code)

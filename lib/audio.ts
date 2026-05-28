@@ -110,4 +110,10 @@ export const chessAudio = {
     const freqs = [523, 659, 784, 1047]
     freqs.forEach((f, i) => osc(c!, 'triangle', f, i * 0.07, i * 0.07 + 0.2, 0.18))
   },
+
+  chatMessage() {
+    const c = getCtx(); if (!c || muted) return
+    osc(c, 'sine', 880, 0,    0.06, 0.12)
+    osc(c, 'sine', 1100, 0.06, 0.14, 0.08)
+  },
 }
