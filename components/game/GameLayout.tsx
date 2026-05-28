@@ -97,6 +97,9 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [muted,       setMuted]       = useState(false)
   const [tweaksOpen,   setTweaksOpen]   = useState(false)
   const [resigned,     setResigned]     = useState(false)
+  const [drawn,        setDrawn]        = useState(false)
+  const [drawOffered,  setDrawOffered]  = useState(false)
+  const [drawDeclined, setDrawDeclined] = useState(false)
   const [promoDialog,  setPromoDialog]  = useState(false)
   const [activeTab,    setActiveTab]    = useState<'moves' | 'chat'>('chat')
   const [mobileSheet,  setMobileSheet]  = useState<'moves' | 'chat' | 'play' | null>(null)
@@ -124,12 +127,46 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     resetGame()
     resetTimer(TIME_CONTROL_MS[timeControl], TIME_CONTROL_MS[timeControl])
     setResigned(false)
+    setDrawn(false)
+    setDrawOffered(false)
+    setDrawDeclined(false)
     chessAudio.gameStart()
   }
 
   function handleResign() {
     setResigned(true)
     chessAudio.gameLose()
+  }
+
+  function handleDraw() {
+    if (isGameOver || drawOffered) return
+    setDrawOffered(true)
+
+    if (aiEnabled) {
+      // AI decides: easy is generous, hard is ruthless
+      const chances: Record<typeof aiLevel, number> = { easy: 0.65, intermediate: 0.2, hard: 0.04 }
+      const delay = 800 + Math.random() * 900
+      setTimeout(() => {
+        const accepts = Math.random() < chances[aiLevel]
+        setDrawOffered(false)
+        if (accepts) {
+          setDrawn(true)
+          chessAudio.move()
+        } else {
+          setDrawDeclined(true)
+          setTimeout(() => setDrawDeclined(false), 2500)
+        }
+      }, delay)
+    }
+    // Local (no AI): banner stays up until other player accepts/declines
+  }
+
+  function handleDrawResponse(accept: boolean) {
+    setDrawOffered(false)
+    if (accept) {
+      setDrawn(true)
+      chessAudio.move()
+    }
   }
 
   function handleModeChange(mode: GameMode) {
@@ -139,9 +176,12 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     resetGame()
     resetTimer(TIME_CONTROL_MS[tc], TIME_CONTROL_MS[tc])
     setResigned(false)
+    setDrawn(false)
+    setDrawOffered(false)
+    setDrawDeclined(false)
   }
 
-  const isGameOver = state.isGameOver || resigned
+  const isGameOver = state.isGameOver || resigned || drawn
   const myInfo     = { ...me,       color: playerColor }
   const oppInfo    = { ...opponent, color: (playerColor === 'w' ? 'b' : 'w') as Color }
 
@@ -392,6 +432,34 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 py-1 ${statusColor}`}>
               {statusText}
             </div>
+
+            {/* Draw offer banner */}
+            {drawOffered && aiEnabled && (
+              <div className="shrink-0 mb-1 px-4 py-1.5 rounded-xl bg-slate-800/80 border border-slate-600/40 text-slate-400 text-[10px] tracking-widest">
+                Draw offered — waiting for opponent…
+              </div>
+            )}
+            {drawOffered && !aiEnabled && (
+              <div className="shrink-0 mb-1 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <span className="text-amber-300 text-[10px] font-bold tracking-wider">
+                  {playerColor === 'w' ? 'Black' : 'White'} — accept draw?
+                </span>
+                <button onClick={() => handleDrawResponse(true)}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30 transition-all">
+                  Accept
+                </button>
+                <button onClick={() => handleDrawResponse(false)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-700/60 border border-slate-600 text-slate-300 text-[10px] font-bold hover:border-slate-400 transition-all">
+                  Decline
+                </button>
+              </div>
+            )}
+            {drawDeclined && (
+              <div className="shrink-0 mb-1 px-4 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] tracking-wider">
+                Draw declined
+              </div>
+            )}
+
             {/* ref measures this box; boardSize = min(width, height, 640) */}
             <div
               ref={boardAreaRef}
@@ -570,10 +638,10 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
       <footer className="border-t border-slate-800/50 shrink-0">
         <GameControls
           onResign={handleResign}
-          onDraw={() => {}}
+          onDraw={handleDraw}
           onSettings={() => setTweaksOpen(v => !v)}
           onNewGame={handleNewGame}
-          disabled={isGameOver}
+          disabled={isGameOver || drawOffered}
         />
       </footer>
 
@@ -729,9 +797,9 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
       {/* Game result modal */}
       <GameResultModal
         open={isGameOver && !promoDialog}
-        result={resigned ? (playerColor === 'w' ? 'black' : 'white') as 'black' | 'white' : state.winner === 'w' ? 'white' : state.winner === 'b' ? 'black' : state.winner ?? null}
+        result={resigned ? (playerColor === 'w' ? 'black' : 'white') as 'black' | 'white' : drawn ? 'draw' : state.winner === 'w' ? 'white' : state.winner === 'b' ? 'black' : state.winner ?? null}
         myColor={playerColor}
-        reason={resigned ? 'resign' : state.winner === 'draw' ? 'draw' : 'checkmate'}
+        reason={resigned ? 'resign' : (drawn || state.winner === 'draw') ? 'draw' : 'checkmate'}
         myUsername={me.username}
         oppUsername={opponent.username}
         myElo={me.elo}

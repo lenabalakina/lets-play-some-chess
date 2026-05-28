@@ -35,7 +35,7 @@ function formatTime(ms: number) {
 }
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
-  const { room, makeMove, resign, sendChat, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const { room, makeMove, resign, sendChat, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const router = useRouter()
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
@@ -258,13 +258,37 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             )}
 
             {!isGameOver && room.status === 'playing' && (
-              <button
-                onClick={resign}
-                className="w-full py-2 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
-                  hover:text-red-400 text-xs font-semibold transition-all"
-              >
-                Resign
-              </button>
+              <div className="flex flex-col gap-2">
+                {!room.drawOfferedBy && (
+                  <button onClick={offerDraw}
+                    className="w-full py-2 rounded-lg border border-slate-600/50 text-slate-400 hover:border-slate-400
+                      hover:text-slate-200 text-xs font-semibold transition-all">
+                    ½ Offer Draw
+                  </button>
+                )}
+                {room.drawOfferedBy && room.drawOfferedBy !== myColor && (
+                  <div className="flex gap-1.5">
+                    <button onClick={() => respondToDraw(true)}
+                      className="flex-1 py-2 rounded-lg border border-emerald-600/50 text-emerald-400 hover:bg-emerald-500/10 text-xs font-bold transition-all">
+                      Accept Draw
+                    </button>
+                    <button onClick={() => respondToDraw(false)}
+                      className="flex-1 py-2 rounded-lg border border-slate-600/50 text-slate-400 hover:border-slate-400 text-xs font-semibold transition-all">
+                      Decline
+                    </button>
+                  </div>
+                )}
+                {room.drawOfferedBy === myColor && (
+                  <p className="text-slate-500 text-[10px] text-center">Draw offered…</p>
+                )}
+                <button
+                  onClick={resign}
+                  className="w-full py-2 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
+                    hover:text-red-400 text-xs font-semibold transition-all"
+                >
+                  Resign
+                </button>
+              </div>
             )}
           </div>
         </aside>
@@ -350,6 +374,21 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             </div>
           </div>
 
+          {/* Draw offer notification — mobile */}
+          {room.drawOfferedBy && room.drawOfferedBy !== myColor && !isGameOver && (
+            <div className="lg:hidden mx-2 mb-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 shrink-0">
+              <span className="text-amber-300 text-[10px] font-bold flex-1">Opponent offered a draw</span>
+              <button onClick={() => respondToDraw(true)}
+                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                Accept
+              </button>
+              <button onClick={() => respondToDraw(false)}
+                className="px-2.5 py-1 rounded-lg bg-slate-700 border border-slate-600 text-slate-300 text-[10px] font-bold">
+                Decline
+              </button>
+            </div>
+          )}
+
           {/* Mobile: my color strip */}
           <div className="lg:hidden px-2 pb-1 shrink-0">
             <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl">
@@ -360,13 +399,19 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                 </span>
               </div>
               {!isGameOver && room.status === 'playing' && (
-                <button
-                  onClick={resign}
-                  className="px-3 py-1 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
-                    text-xs font-semibold transition-all"
-                >
-                  Resign
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {!room.drawOfferedBy && (
+                    <button onClick={offerDraw}
+                      className="px-2.5 py-1 rounded-lg border border-slate-600/50 text-slate-400 text-xs font-semibold transition-all">
+                      ½
+                    </button>
+                  )}
+                  <button onClick={resign}
+                    className="px-3 py-1 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
+                      text-xs font-semibold transition-all">
+                    Resign
+                  </button>
+                </div>
               )}
             </div>
           </div>

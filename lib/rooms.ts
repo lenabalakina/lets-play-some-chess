@@ -24,6 +24,7 @@ export interface Room {
   winner:  'w' | 'b' | 'draw' | null
   moves:   RoomMove[]
   messages: ChatMessage[]
+  drawOfferedBy: 'w' | 'b' | null
   createdAt:       number
   lastActivityAt:  number
   subscribers: Map<string, ReadableStreamDefaultController<Uint8Array>>
@@ -53,6 +54,7 @@ export function createRoom(playerId: string): Room {
     winner: null,
     moves:    [],
     messages: [],
+    drawOfferedBy: null,
     createdAt:      Date.now(),
     lastActivityAt: Date.now(),
     subscribers:    new Map(),
@@ -132,6 +134,34 @@ export function sendChat(
   const msg: ChatMessage = { color, text: trimmed, ts: Date.now() }
   room.messages.push(msg)
   broadcast(code, { type: 'chat', ...msg })
+  return { ok: true }
+}
+
+export function offerDraw(code: string, playerId: string): { ok: true } | { ok: false; error: string } {
+  const room = rooms.get(code)
+  if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
+  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  if (!color) return { ok: false, error: 'Not a player' }
+  if (room.drawOfferedBy) return { ok: false, error: 'Draw already offered' }
+  room.drawOfferedBy = color
+  broadcast(code, { type: 'draw_offer', by: color })
+  return { ok: true }
+}
+
+export function respondDraw(code: string, playerId: string, accept: boolean): { ok: true } | { ok: false; error: string } {
+  const room = rooms.get(code)
+  if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
+  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  if (!color) return { ok: false, error: 'Not a player' }
+  if (!room.drawOfferedBy || room.drawOfferedBy === color) return { ok: false, error: 'No draw offer to respond to' }
+  room.drawOfferedBy = null
+  if (accept) {
+    room.status = 'finished'
+    room.winner = 'draw'
+    broadcast(code, { type: 'draw_accepted' })
+  } else {
+    broadcast(code, { type: 'draw_declined' })
+  }
   return { ok: true }
 }
 

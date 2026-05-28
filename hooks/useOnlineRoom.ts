@@ -14,26 +14,28 @@ export interface ChatMessage {
 }
 
 export interface OnlineRoomState {
-  fen:       string
-  turn:      'w' | 'b'
-  status:    'waiting' | 'playing' | 'finished'
-  winner:    'w' | 'b' | 'draw' | null
-  moves:     RoomMove[]
-  messages:  ChatMessage[]
-  connected: boolean
-  lastMove:  { from: string; to: string } | null
+  fen:          string
+  turn:         'w' | 'b'
+  status:       'waiting' | 'playing' | 'finished'
+  winner:       'w' | 'b' | 'draw' | null
+  moves:        RoomMove[]
+  messages:     ChatMessage[]
+  connected:    boolean
+  lastMove:     { from: string; to: string } | null
+  drawOfferedBy: 'w' | 'b' | null
 }
 
 export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const [room, setRoom] = useState<OnlineRoomState>({
-    fen:       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    turn:      'w',
-    status:    'waiting',
-    winner:    null,
-    moves:     [],
-    messages:  [],
-    connected: false,
-    lastMove:  null,
+    fen:          'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    turn:         'w',
+    status:       'waiting',
+    winner:       null,
+    moves:        [],
+    messages:     [],
+    connected:    false,
+    lastMove:     null,
+    drawOfferedBy: null,
   })
 
   // SSE connection
@@ -74,6 +76,12 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
           setRoom(r => ({ ...r, status: 'finished', winner: msg.winner }))
         } else if (msg.type === 'chat') {
           setRoom(r => ({ ...r, messages: [...r.messages, { color: msg.color, text: msg.text, ts: msg.ts }] }))
+        } else if (msg.type === 'draw_offer') {
+          setRoom(r => ({ ...r, drawOfferedBy: msg.by }))
+        } else if (msg.type === 'draw_accepted') {
+          setRoom(r => ({ ...r, status: 'finished', winner: 'draw', drawOfferedBy: null }))
+        } else if (msg.type === 'draw_declined') {
+          setRoom(r => ({ ...r, drawOfferedBy: null }))
         }
       } catch {}
     }
@@ -107,7 +115,23 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     })
   }, [code, playerId])
 
+  const offerDraw = useCallback(async () => {
+    await fetch(`/api/room/${code}/draw`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ playerId, action: 'offer' }),
+    })
+  }, [code, playerId])
+
+  const respondToDraw = useCallback(async (accept: boolean) => {
+    await fetch(`/api/room/${code}/draw`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ playerId, action: accept ? 'accept' : 'decline' }),
+    })
+  }, [code, playerId])
+
   const isMyTurn = room.status === 'playing' && room.turn === myColor
 
-  return { room, makeMove, resign, sendChat, isMyTurn }
+  return { room, makeMove, resign, sendChat, offerDraw, respondToDraw, isMyTurn }
 }
