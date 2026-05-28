@@ -104,12 +104,18 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     return () => es.close()
   }, [code, playerId, retryKey])
 
-  const makeMove = useCallback(async (from: string, to: string, promotion?: string) => {
-    await fetch(`/api/room/${code}/move`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ playerId, from, to, promotion }),
-    })
+  const makeMove = useCallback(async (from: string, to: string, promotion?: string): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/room/${code}/move`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ playerId, from, to, promotion }),
+      })
+      const data = await res.json()
+      return data
+    } catch {
+      return { ok: false, error: 'Network error' }
+    }
   }, [code, playerId])
 
   const resign = useCallback(async () => {

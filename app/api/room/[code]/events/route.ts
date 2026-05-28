@@ -11,14 +11,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      // Send initial state immediately
-      if (room) {
-        controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'init', room: safeRoom(room) })}\n\n`))
+      // Subscribe first so no broadcasts are missed between reading state and subscribing
+      subscribe(upperCode, playerId, controller)
+
+      // Send initial state after subscribing (safe to re-read room now)
+      const currentRoom = rooms.get(upperCode)
+      if (currentRoom) {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'init', room: safeRoom(currentRoom) })}\n\n`))
       } else {
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'error', error: 'Room not found' })}\n\n`))
       }
-
-      subscribe(upperCode, playerId, controller)
 
       // Keep-alive heartbeat every 20 s
       const heartbeat = setInterval(() => {
