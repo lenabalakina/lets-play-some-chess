@@ -72,20 +72,25 @@ export default async function LandingPage() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
           <Link
             href="/login"
-            className="font-bold text-slate-600 hover:text-slate-300 transition-colors duration-200"
+            className="px-3.5 py-2 font-bold text-slate-600 hover:text-slate-200 transition-colors duration-200"
             style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase' }}
           >
             Sign In
           </Link>
           <Link
             href="/register"
-            className="font-bold text-slate-400 hover:text-white transition-colors duration-200"
-            style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase' }}
+            className="btn-game-primary px-5 py-2.5 rounded-lg font-black text-slate-950 bg-cyan-400 hover:bg-cyan-300"
+            style={{
+              fontSize: '11px',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              boxShadow: '0 0 20px rgba(6,182,212,0.3), 0 2px 8px rgba(0,0,0,0.4)',
+            }}
           >
-            Register
+            Get Started
           </Link>
         </div>
       </header>
