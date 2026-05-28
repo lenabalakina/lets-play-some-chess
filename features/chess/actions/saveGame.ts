@@ -16,6 +16,13 @@ interface SaveGameParams {
 }
 
 const AI_DIFFICULTY: Record<string, number> = { easy: 5, intermediate: 8, hard: 20 }
+const AI_ELO:        Record<string, number> = { easy: 800, intermediate: 1400, hard: 2200 }
+
+function calcNewElo(myElo: number, oppElo: number, score: 0 | 0.5 | 1, gamesPlayed: number): number {
+  const K        = gamesPlayed < 30 ? 32 : gamesPlayed < 100 ? 24 : 16
+  const expected = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400))
+  return Math.max(100, Math.round(myElo + K * (score - expected)))
+}
 
 export async function saveGame(params: SaveGameParams) {
   try {
@@ -26,7 +33,6 @@ export async function saveGame(params: SaveGameParams) {
     const lastFen = params.moveHistory.at(-1)?.fen
       ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
-    // Save game record
     await supabase.from('games').insert({
       player_white:  user.id,
       player_black:  null,
@@ -42,10 +48,9 @@ export async function saveGame(params: SaveGameParams) {
       board_theme:   params.theme,
     })
 
-    // Update user stats (read-then-write is fine for a small app)
     const { data: profile } = await supabase
       .from('users')
-      .select('wins, losses, draws, games_played')
+      .select('wins, losses, draws, games_played, elo_rating')
       .eq('id', user.id)
       .single()
 
@@ -54,11 +59,20 @@ export async function saveGame(params: SaveGameParams) {
     const isWin  = params.result === 'white'
     const isDraw = params.result === 'draw'
 
+    // Only recalculate ELO for AI games — local pass-and-play has no real opponent
+    let newElo = profile.elo_rating
+    if (params.isAiGame) {
+      const aiElo = AI_ELO[params.aiLevel ?? 'easy']
+      const score: 0 | 0.5 | 1 = isWin ? 1 : isDraw ? 0.5 : 0
+      newElo = calcNewElo(profile.elo_rating, aiElo, score, profile.games_played)
+    }
+
     await supabase.from('users').update({
       games_played: profile.games_played + 1,
       wins:         isWin  ? profile.wins  + 1 : profile.wins,
       losses:       !isWin && !isDraw ? profile.losses + 1 : profile.losses,
       draws:        isDraw ? profile.draws + 1 : profile.draws,
+      elo_rating:   newElo,
     }).eq('id', user.id)
   } catch {
     // Fire-and-forget — never crash the game over a stat save
