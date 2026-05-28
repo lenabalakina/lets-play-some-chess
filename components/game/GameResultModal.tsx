@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Clock, Flag, Handshake, TrendingUp, TrendingDown, Minus, RotateCcw, LayoutDashboard, Zap, Trophy } from 'lucide-react'
 import type { GameResultColor, Color } from '@/features/chess/types/chess.types'
 import { createClient } from '@/lib/supabase/client'
@@ -99,6 +99,7 @@ export function GameResultModal({
   const [newElo, setNewElo] = useState<number | null>(null)
   const firedRef = useRef(false)
   const [winMsg] = useState(() => WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)])
+  const prefersReducedMotion = useReducedMotion()
 
   const myResultColor: GameResultColor = myColor === 'w' ? 'white' : 'black'
   const iWon   = result === myResultColor
@@ -118,11 +119,11 @@ export function GameResultModal({
   }, [open, userId])
 
   useEffect(() => {
-    if (open && iWon && !firedRef.current) {
+    if (open && iWon && !firedRef.current && !prefersReducedMotion) {
       firedRef.current = true
       setTimeout(fireConfetti, 300)
     }
-  }, [open, iWon])
+  }, [open, iWon, prefersReducedMotion])
 
   if (!result) return null
 
@@ -142,8 +143,8 @@ export function GameResultModal({
             style={{ background: iWon ? 'rgba(10,1,30,0.88)' : 'rgba(0,0,0,0.82)' }}
           />
 
-          {/* Floating background sparkles behind modal (win only) */}
-          {iWon && SPARKLES.map((s, i) => (
+          {/* Floating background sparkles behind modal (win only, skip if reduced motion) */}
+          {iWon && !prefersReducedMotion && SPARKLES.map((s, i) => (
             <motion.span
               key={i}
               className="fixed z-50 select-none pointer-events-none text-2xl"
@@ -204,8 +205,8 @@ export function GameResultModal({
                   /* ── MAGICAL WIN HEADER ── */
                   <div className="text-center mb-6 relative">
 
-                    {/* Orbiting stars around crown */}
-                    {[0,1,2,3,4,5].map(i => (
+                    {/* Orbiting stars around crown (skip if reduced motion) */}
+                    {!prefersReducedMotion && [0,1,2,3,4,5].map(i => (
                       <motion.span
                         key={i}
                         className="absolute text-base select-none pointer-events-none"

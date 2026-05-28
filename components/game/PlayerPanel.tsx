@@ -22,7 +22,7 @@ interface Props {
 
 const MODES = [
   { icon: Globe,        title: 'Online',  tag: 'LIVE',        accent: '#06b6d4', href: '/play/online' },
-  { icon: Trophy,       title: 'Ranked',  tag: 'ELO',         accent: '#f59e0b', href: '/play/online' },
+  { icon: Trophy,       title: 'Ranked',  tag: 'ELO',         accent: '#f59e0b', href: '/leaderboard' },
   { icon: Bot,          title: 'AI',      tag: 'STOCKFISH',   accent: '#a855f7', href: '/play/ai'     },
   { icon: CalendarDays, title: 'Puzzle',  tag: 'DAILY',       accent: '#10b981', href: '/puzzles'      },
   { icon: Users,        title: 'Private', tag: 'INVITE',      accent: '#0ea5e9', href: '/play/online' },
@@ -71,13 +71,13 @@ export function PlayerPanel({ player, opponent, whiteMs, blackMs, turn, isGameOv
         </div>
         <TimerBlock ms={oppMs} isActive={oppActive} color={opponent.color} />
         {oppActive && (
-          <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent rounded animate-pulse" />
+          <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent rounded motion-safe:animate-pulse" />
         )}
       </div>
 
       {/* Game modes — 2×3 compact cards */}
       <div className="flex-1 flex flex-col justify-center py-3 min-h-0">
-        <p className="text-[8px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Game Modes</p>
+        <p className="text-[10px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Game Modes</p>
         <div className="grid grid-cols-2 gap-1.5">
           {MODES.map(m => (
             <Link
@@ -97,7 +97,7 @@ export function PlayerPanel({ player, opponent, whiteMs, blackMs, turn, isGameOv
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-bold text-white leading-none truncate">{m.title}</p>
-                <p className="text-[7px] font-bold tracking-widest mt-0.5 truncate" style={{ color: `${m.accent}80` }}>{m.tag}</p>
+                <p className="text-[10px] font-bold tracking-widest mt-0.5 truncate" style={{ color: `${m.accent}80` }}>{m.tag}</p>
               </div>
             </Link>
           ))}
@@ -109,7 +109,7 @@ export function PlayerPanel({ player, opponent, whiteMs, blackMs, turn, isGameOv
         <TimerBlock ms={myMs} isActive={myActive} color={player.color} />
         {myActive && (
           <div className="space-y-1">
-            <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent rounded animate-pulse" />
+            <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent rounded motion-safe:animate-pulse" />
             <p className="text-cyan-400 text-xs font-semibold tracking-widest uppercase text-center">Your Move</p>
           </div>
         )}
