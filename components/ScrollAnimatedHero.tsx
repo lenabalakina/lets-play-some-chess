@@ -84,41 +84,21 @@ export function ScrollAnimatedHero({ stats, topPlayers }: Props) {
           </div>
 
           {/* Primary CTA */}
-          <div className="lp-fade-4 flex flex-col gap-3 w-full max-w-[340px]">
+          <div className="lp-fade-4 w-full max-w-[340px]">
             <Link
               href="/play/online"
-              className="lp-glow group relative flex items-center justify-center gap-2.5 w-full px-8 py-[15px] rounded-xl font-black text-slate-950 overflow-hidden"
+              className="lp-glow group relative flex items-center justify-center gap-2.5 w-full px-8 py-[15px] rounded-xl font-black text-white overflow-hidden"
               style={{
                 fontSize: '13px', letterSpacing: '0.12em', textTransform: 'uppercase',
-                background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-                boxShadow: '0 0 30px rgba(6,182,212,0.35), 0 0 60px rgba(6,182,212,0.12), 0 4px 16px rgba(0,0,0,0.5)',
+                background: '#06b6d4',
+                boxShadow: '0 0 30px rgba(6,182,212,0.4), 0 4px 16px rgba(0,0,0,0.5)',
               }}
             >
-              <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%)' }} />
+              <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: 'rgba(255,255,255,0.08)' }} />
               <Globe className="w-4 h-4 shrink-0 relative z-10" />
               <span className="relative z-10">Play Online Now</span>
-              <span className="relative z-10 ml-1 px-1.5 py-0.5 rounded text-[9px] font-black tracking-widest"
-                style={{ background: 'rgba(0,0,0,0.25)', color: 'rgba(255,255,255,0.9)' }}>
-                FREE
-              </span>
             </Link>
-
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { href: '/play/ai',    Icon: Bot,          label: 'VS AI'   },
-                { href: '/play/local', Icon: Users,        label: 'Local'   },
-                { href: '/puzzles',    Icon: CalendarDays, label: 'Puzzles' },
-              ].map(({ href, Icon, label }) => (
-                <Link key={href} href={href}
-                  className="group flex items-center justify-center gap-1.5 px-3 py-[11px] rounded-xl font-bold text-slate-400 hover:text-white transition-all duration-200"
-                  style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(100,116,139,0.15)' }}
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  {label}
-                </Link>
-              ))}
-            </div>
           </div>
         </div>
 
