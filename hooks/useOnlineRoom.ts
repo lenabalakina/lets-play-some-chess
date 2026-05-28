@@ -26,6 +26,8 @@ export interface OnlineRoomState {
 }
 
 export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
+  const [retryKey,    setRetryKey]    = useState(0)
+  const retryCountRef = useRef(0)
   const [room, setRoom] = useState<OnlineRoomState>({
     fen:          'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     turn:         'w',
@@ -38,12 +40,15 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     drawOfferedBy: null,
   })
 
-  // SSE connection
+  // SSE connection with auto-reconnect (exponential backoff, max 5 retries)
   useEffect(() => {
     if (!code || !playerId) return
     const es = new EventSource(`/api/room/${code}/events?playerId=${playerId}`)
 
-    es.onopen = () => setRoom(r => ({ ...r, connected: true }))
+    es.onopen = () => {
+      setRoom(r => ({ ...r, connected: true }))
+      retryCountRef.current = 0
+    }
 
     es.onmessage = (e) => {
       try {
@@ -86,10 +91,18 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       } catch {}
     }
 
-    es.onerror = () => setRoom(r => ({ ...r, connected: false }))
+    es.onerror = () => {
+      setRoom(r => ({ ...r, connected: false }))
+      es.close()
+      if (retryCountRef.current < 5) {
+        const delay = Math.min(1000 * 2 ** retryCountRef.current, 30_000)
+        retryCountRef.current++
+        setTimeout(() => setRetryKey(k => k + 1), delay)
+      }
+    }
 
     return () => es.close()
-  }, [code, playerId])
+  }, [code, playerId, retryKey])
 
   const makeMove = useCallback(async (from: string, to: string, promotion?: string) => {
     await fetch(`/api/room/${code}/move`, {

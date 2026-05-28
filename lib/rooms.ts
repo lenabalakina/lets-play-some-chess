@@ -31,8 +31,24 @@ export interface Room {
 }
 
 // Persist across Next.js hot-reloads in dev
-const g = global as typeof globalThis & { _chess_rooms?: Map<string, Room> }
+const g = global as typeof globalThis & {
+  _chess_rooms?: Map<string, Room>
+  _chess_rl?: Map<string, { count: number; resetAt: number }>
+}
 export const rooms: Map<string, Room> = g._chess_rooms ?? (g._chess_rooms = new Map())
+const rl: Map<string, { count: number; resetAt: number }> = g._chess_rl ?? (g._chess_rl = new Map())
+
+function rateLimit(key: string, max: number, windowMs = 60_000): boolean {
+  const now = Date.now()
+  const entry = rl.get(key)
+  if (!entry || now > entry.resetAt) {
+    rl.set(key, { count: 1, resetAt: now + windowMs })
+    return false
+  }
+  if (entry.count >= max) return true
+  entry.count++
+  return false
+}
 
 const enc = new TextEncoder()
 
@@ -87,6 +103,7 @@ export function applyMove(
   code: string, playerId: string,
   from: string, to: string, promotion?: string
 ): { ok: true } | { ok: false; error: string } {
+  if (rateLimit(`move:${playerId}`, 60)) return { ok: false, error: 'Too many moves' }
   const room = rooms.get(code)
   if (!room)                     return { ok: false, error: 'Room not found' }
   if (room.status !== 'playing') return { ok: false, error: 'Game not active' }
@@ -125,6 +142,7 @@ export function applyMove(
 export function sendChat(
   code: string, playerId: string, text: string
 ): { ok: true } | { ok: false; error: string } {
+  if (rateLimit(`chat:${playerId}`, 20)) return { ok: false, error: 'Too many messages' }
   const room = rooms.get(code)
   if (!room) return { ok: false, error: 'Room not found' }
   const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null

@@ -20,6 +20,7 @@ import { useChessGame } from '@/features/chess/hooks/useChessGame'
 import { useStockfish } from '@/features/ai/useStockfish'
 import type { AiLevel } from '@/features/ai/useStockfish'
 import { useAiChat } from '@/hooks/useAiChat'
+import { saveGame } from '@/features/chess/actions/saveGame'
 import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { chessAudio } from '@/lib/audio'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
@@ -130,6 +131,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     setDrawn(false)
     setDrawOffered(false)
     setDrawDeclined(false)
+    savedRef.current = false
     chessAudio.gameStart()
   }
 
@@ -182,6 +184,31 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   }
 
   const isGameOver = state.isGameOver || resigned || drawn
+
+  // Save completed game to Supabase (fire-and-forget, only when user is logged in)
+  const savedRef = useRef(false)
+  useEffect(() => {
+    if (!isGameOver || savedRef.current || !me.id) return
+    savedRef.current = true
+    const result: 'white' | 'black' | 'draw' =
+      resigned ? (playerColor === 'w' ? 'black' : 'white')
+      : drawn   ? 'draw'
+      : state.winner === 'w' ? 'white'
+      : state.winner === 'b' ? 'black'
+      : 'draw'
+    saveGame({
+      result,
+      reason: resigned ? 'resign' : (drawn || state.winner === 'draw') ? 'draw' : 'checkmate',
+      moveHistory:   state.moveHistory,
+      timeControl,
+      whiteTimeLeft: whiteMs,
+      blackTimeLeft: blackMs,
+      isAiGame:      aiEnabled,
+      aiLevel,
+      theme,
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGameOver])
   const myInfo     = { ...me,       color: playerColor }
   const oppInfo    = { ...opponent, color: (playerColor === 'w' ? 'b' : 'w') as Color }
 
