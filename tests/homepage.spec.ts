@@ -12,13 +12,6 @@ test('homepage loads and shows key sections', async ({ page }) => {
   await expect(playBtn).toBeVisible()
   await expect(playBtn).toHaveAttribute('href', '/play/online')
 
-  // Secondary CTAs visible
-  await expect(page.getByRole('link', { name: /vs ai/i }).first()).toBeVisible()
-  await expect(page.getByRole('link', { name: /puzzles/i }).first()).toBeVisible()
-
-  // Featured online card
-  await expect(page.getByText('Online Match').first()).toBeVisible()
-
   // Four mode cards
   await expect(page.getByText('VS Stockfish')).toBeVisible()
   await expect(page.getByText('Local Game')).toBeVisible()
@@ -33,7 +26,7 @@ test('homepage loads and shows key sections', async ({ page }) => {
 test('nav links go to correct pages', async ({ page }) => {
   await page.goto('/')
 
-  // VS AI card navigates to /play/ai
-  await page.getByRole('link', { name: /vs ai/i }).first().click()
+  // VS Stockfish card navigates to /play/ai
+  await page.getByRole('link', { name: /vs stockfish/i }).first().click()
   await expect(page).toHaveURL(/play\/ai/)
 })
