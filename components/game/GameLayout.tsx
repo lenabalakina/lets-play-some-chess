@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -172,11 +172,14 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     playerMessage: lastPlayerMsg,
   })
 
-  const aiChatInject = aiChatMsg && aiEnabled ? {
-    text:     aiChatMsg.text,
-    author:   (playerColor === 'w' ? 'black' : 'white') as 'white' | 'black',
-    username: opponent.username,
-  } : null
+  const aiChatInject = useMemo(() => {
+    if (!aiChatMsg || !aiEnabled) return null
+    return {
+      text:     aiChatMsg.text,
+      author:   (playerColor === 'w' ? 'black' : 'white') as 'white' | 'black',
+      username: opponent.username,
+    }
+  }, [aiChatMsg, aiEnabled, playerColor, opponent.username])
 
   const handleSquareClick = useCallback((square: string) => {
     if (isGameOver) return
