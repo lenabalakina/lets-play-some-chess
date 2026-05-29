@@ -277,82 +277,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       {/* ── MAIN CONTENT ─────────────────────────────────────── */}
       <main className="flex-1 flex overflow-hidden min-h-0">
 
-        {/* Left: color info — desktop only */}
-        <aside className="hidden lg:flex w-48 shrink-0 border-r border-slate-800/40 flex-col p-4 gap-4">
-          <div>
-            <p className="text-slate-600 text-[10px] font-semibold tracking-widest uppercase mb-2">You are playing</p>
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${myColor === 'w'
-              ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
-              : 'border-purple-500/40 bg-purple-500/10 text-purple-300'
-            }`}>
-              <span className="text-xl">{myColor === 'w' ? '♔' : '♚'}</span>
-              <span className="font-bold text-sm">{myColor === 'w' ? 'White' : 'Black'}</span>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-slate-600 text-[10px] font-semibold tracking-widest uppercase mb-2">Opponent</p>
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${opponentColor === 'w'
-              ? 'border-cyan-500/20 bg-slate-800/50 text-slate-400'
-              : 'border-purple-500/20 bg-slate-800/50 text-slate-400'
-            }`}>
-              <span className="text-xl">{opponentColor === 'w' ? '♔' : '♚'}</span>
-              <span className="font-bold text-sm flex-1">{opponentColor === 'w' ? 'White' : 'Black'}</span>
-              <span className={`w-2 h-2 rounded-full shrink-0 ${room.opponentOnline ? 'bg-emerald-400' : 'bg-slate-600'}`}
-                title={room.opponentOnline ? 'Online' : 'Offline'} />
-            </div>
-          </div>
-
-          <div className="mt-auto">
-            {room.status === 'waiting' && (
-              <div className="glass-panel rounded-xl p-3 text-center">
-                <p className="text-[10px] text-slate-500 mb-1">Invite friend with code</p>
-                <p className="font-black text-2xl tracking-widest text-cyan-400 font-mono my-2">{code}</p>
-                <button
-                  onClick={copyCode}
-                  className="mt-2 w-full py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs text-slate-300 transition-colors"
-                >
-                  {copied ? '✓ Copied!' : 'Copy code'}
-                </button>
-              </div>
-            )}
-
-            {!isGameOver && room.status === 'playing' && (
-              <div className="flex flex-col gap-2">
-                {!room.drawOfferedBy && (
-                  <button onClick={offerDraw}
-                    className="w-full py-2 rounded-lg border border-slate-600/50 text-slate-400 hover:border-slate-400
-                      hover:text-slate-200 text-xs font-semibold transition-all">
-                    ½ Offer Draw
-                  </button>
-                )}
-                {room.drawOfferedBy && room.drawOfferedBy !== myColor && (
-                  <div className="flex gap-1.5">
-                    <button onClick={() => respondToDraw(true)}
-                      className="flex-1 py-2 rounded-lg border border-emerald-600/50 text-emerald-400 hover:bg-emerald-500/10 text-xs font-bold transition-all">
-                      Accept Draw
-                    </button>
-                    <button onClick={() => respondToDraw(false)}
-                      className="flex-1 py-2 rounded-lg border border-slate-600/50 text-slate-400 hover:border-slate-400 text-xs font-semibold transition-all">
-                      Decline
-                    </button>
-                  </div>
-                )}
-                {room.drawOfferedBy === myColor && (
-                  <p className="text-slate-500 text-[10px] text-center">Draw offered…</p>
-                )}
-                <button
-                  onClick={() => setResignConfirm(true)}
-                  className="w-full py-2 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
-                    hover:text-red-400 text-xs font-semibold transition-all"
-                >
-                  Resign
-                </button>
-              </div>
-            )}
-          </div>
-        </aside>
-
         {/* Center: board */}
         <section className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
@@ -524,8 +448,9 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                       value={chatInput}
                       onChange={e => {
                         setChatInput(e.target.value)
+                        if (!typingDebounceRef.current) sendTyping()
                         if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current)
-                        typingDebounceRef.current = setTimeout(sendTyping, 300)
+                        typingDebounceRef.current = setTimeout(() => { typingDebounceRef.current = null }, 2000)
                       }}
                       placeholder="Message…"
                       maxLength={200}
@@ -623,8 +548,9 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                   value={chatInput}
                   onChange={e => {
                     setChatInput(e.target.value)
+                    if (!typingDebounceRef.current) sendTyping()
                     if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current)
-                    typingDebounceRef.current = setTimeout(sendTyping, 300)
+                    typingDebounceRef.current = setTimeout(() => { typingDebounceRef.current = null }, 2000)
                   }}
                   placeholder="Say something…"
                   maxLength={200}
@@ -638,9 +564,8 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             </div>
           )}
 
-          {/* 3D + other settings */}
+          {/* Game controls + settings */}
           <div className="border-t border-slate-800/50 shrink-0 px-3 py-3 space-y-2">
-            <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase">Board</p>
             <div className="flex items-center justify-between">
               <span className="text-slate-400 text-[11px]">3D Board</span>
               <button role="switch" aria-checked={view3D} onClick={toggle3D}
@@ -648,6 +573,44 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${view3D ? 'translate-x-4' : 'translate-x-0'}`} />
               </button>
             </div>
+            {room.status === 'waiting' && (
+              <div className="glass-panel rounded-xl p-3 text-center mt-1">
+                <p className="text-[10px] text-slate-500 mb-1">Invite friend with code</p>
+                <p className="font-black text-2xl tracking-widest text-cyan-400 font-mono my-2">{code}</p>
+                <button onClick={copyCode} className="mt-1 w-full py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs text-slate-300 transition-colors">
+                  {copied ? '✓ Copied!' : 'Copy code'}
+                </button>
+              </div>
+            )}
+            {!isGameOver && room.status === 'playing' && (
+              <div className="flex flex-col gap-1.5 mt-1">
+                {!room.drawOfferedBy && (
+                  <button onClick={offerDraw}
+                    className="w-full py-1.5 rounded-lg border border-slate-600/50 text-slate-400 hover:border-slate-400 hover:text-slate-200 text-xs font-semibold transition-all">
+                    ½ Offer Draw
+                  </button>
+                )}
+                {room.drawOfferedBy && room.drawOfferedBy !== myColor && (
+                  <div className="flex gap-1.5">
+                    <button onClick={() => respondToDraw(true)}
+                      className="flex-1 py-1.5 rounded-lg border border-emerald-600/50 text-emerald-400 hover:bg-emerald-500/10 text-xs font-bold transition-all">
+                      Accept Draw
+                    </button>
+                    <button onClick={() => respondToDraw(false)}
+                      className="flex-1 py-1.5 rounded-lg border border-slate-600/50 text-slate-400 text-xs font-semibold transition-all">
+                      Decline
+                    </button>
+                  </div>
+                )}
+                {room.drawOfferedBy === myColor && (
+                  <p className="text-slate-500 text-[10px] text-center">Draw offered…</p>
+                )}
+                <button onClick={() => setResignConfirm(true)}
+                  className="w-full py-1.5 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600 hover:text-red-400 text-xs font-semibold transition-all">
+                  Resign
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 
