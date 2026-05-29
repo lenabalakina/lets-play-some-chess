@@ -17,6 +17,7 @@ function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
 
 interface TileProps {
   square:       Square
+  playerColor:  Color
   isLight:      boolean
   isSelected:   boolean
   isLegal:      boolean
@@ -28,25 +29,23 @@ interface TileProps {
   onClick:      (sq: Square) => void
 }
 
-function Tile({ square, isLight, isSelected, isLegal, isLastFrom, isLastTo, isCheck, theme, transparentBg, onClick }: TileProps) {
-  const tc = THEME_COLORS[theme]
+function Tile({ square, playerColor, isLight, isSelected, isLegal, isLastFrom, isLastTo, isCheck, theme, transparentBg, onClick }: TileProps) {
+  const tc  = THEME_COLORS[theme]
+  const pos = squareTo3D(square, playerColor)
+  const dotPos: [number, number, number] = [pos[0], 0.08, pos[2]]
 
   const hasMarking = isCheck || isSelected || isLastFrom || isLastTo
 
   // In transparent-bg mode: dark tiles with no marking become invisible (alpha=0)
-  // Geometry is kept for click detection in game mode, but harmless in hero.
   if (!isLight && !hasMarking && transparentBg) {
     return (
       <group position={[0, 0, 0]}>
-        <mesh
-          position={squareTo3D(square, 'w')}
-          onClick={(e) => { e.stopPropagation(); onClick(square) }}
-        >
+        <mesh position={pos} onClick={(e) => { e.stopPropagation(); onClick(square) }}>
           <boxGeometry args={[0.98, 0.12, 0.98]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
         {isLegal && (
-          <mesh position={[...squareTo3D(square, 'w').slice(0, 1), 0.08, squareTo3D(square, 'w')[2]] as [number, number, number]}>
+          <mesh position={dotPos}>
             <cylinderGeometry args={[0.18, 0.18, 0.04, 20]} />
             <meshStandardMaterial color={tc.highlight} emissive={tc.highlight} emissiveIntensity={0.8} transparent opacity={0.75} />
           </mesh>
@@ -65,12 +64,7 @@ function Tile({ square, isLight, isSelected, isLegal, isLastFrom, isLastTo, isCh
 
   return (
     <group position={[0, 0, 0]}>
-      {/* Main tile */}
-      <mesh
-        position={squareTo3D(square, 'w')}
-        onClick={(e) => { e.stopPropagation(); onClick(square) }}
-        receiveShadow
-      >
+      <mesh position={pos} onClick={(e) => { e.stopPropagation(); onClick(square) }} receiveShadow>
         <boxGeometry args={[0.98, 0.12, 0.98]} />
         <meshStandardMaterial
           color={tileColor}
@@ -81,9 +75,8 @@ function Tile({ square, isLight, isSelected, isLegal, isLastFrom, isLastTo, isCh
         />
       </mesh>
 
-      {/* Legal move indicator */}
       {isLegal && (
-        <mesh position={[...squareTo3D(square, 'w').slice(0, 1), 0.08, squareTo3D(square, 'w')[2]] as [number, number, number]}>
+        <mesh position={dotPos}>
           <cylinderGeometry args={[0.18, 0.18, 0.04, 20]} />
           <meshStandardMaterial
             color={tc.highlight}
@@ -140,6 +133,7 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
         <Tile
           key={sq}
           square={sq}
+          playerColor={playerColor}
           isLight={isLight}
           isSelected={isSelected}
           isLegal={isLegal}
