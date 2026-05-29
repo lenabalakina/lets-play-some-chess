@@ -508,12 +508,25 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                         </div>
                       </div>
                     ))}
+                    {room.opponentTyping && (
+                      <div className="flex items-start">
+                        <div className="px-2.5 py-2 rounded-xl bg-slate-700/80 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    )}
                     <div ref={chatEndRef} />
                   </div>
                   <form onSubmit={handleSendChat} className="flex gap-1.5 p-2 border-t border-slate-800/50 shrink-0">
                     <input
                       value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
+                      onChange={e => {
+                        setChatInput(e.target.value)
+                        if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current)
+                        typingDebounceRef.current = setTimeout(sendTyping, 300)
+                      }}
                       placeholder="Message…"
                       maxLength={200}
                       className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50"
@@ -595,13 +608,12 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                   </div>
                 ))}
                 {room.opponentTyping && (
-                  <div className="flex items-center gap-1.5 px-1">
-                    <span className="flex gap-0.5 items-end h-3">
-                      <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </span>
-                    <span className="text-[10px] text-slate-500">Typing…</span>
+                  <div className="flex items-start gap-2">
+                    <div className="px-3 py-2.5 rounded-xl bg-slate-700/80 rounded-tl-sm flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
                   </div>
                 )}
                 <div ref={chatEndRef} />
