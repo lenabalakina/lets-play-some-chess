@@ -66,6 +66,12 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [room.messages])
 
+  useEffect(() => {
+    if (room.opponentTyping) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [room.opponentTyping])
+
   function handleSendChat(e: React.FormEvent) {
     e.preventDefault()
     const text = chatInput.trim()
@@ -407,9 +413,12 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             <div className="flex border-b border-slate-800/50 shrink-0">
               {(['moves', 'chat', 'info'] as const).map(tab => (
                 <button key={tab} onClick={() => setMobileTab(tab)}
-                  className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
+                  className={`relative flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
                     ${mobileTab === tab ? 'text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-600 hover:text-slate-400'}`}>
                   {tab}
+                  {tab === 'chat' && room.opponentTyping && mobileTab !== 'chat' && (
+                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  )}
                 </button>
               ))}
             </div>
@@ -499,9 +508,12 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
           <div className="flex border-b border-slate-800/50 shrink-0">
             {(['chat', 'moves'] as const).map(tab => (
               <button key={tab} onClick={() => setDesktopTab(tab)}
-                className={`flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
+                className={`relative flex-1 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors
                   ${desktopTab === tab ? 'text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-600 hover:text-slate-400'}`}>
                 {tab === 'chat' ? 'Chat' : 'Moves'}
+                {tab === 'chat' && room.opponentTyping && desktopTab !== 'chat' && (
+                  <span className="absolute top-1.5 right-3 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                )}
               </button>
             ))}
           </div>
