@@ -12,7 +12,8 @@ function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
   const file = sq.charCodeAt(0) - 97
   const rank = parseInt(sq[1]) - 1
   if (playerColor === 'w') return [file - 3.5, 0, 3.5 - rank]
-  return [3.5 - file, 0, rank - 3.5]
+  // Black: mirror x (a-file on right) but same z direction (rank 8 near camera = bottom of screen)
+  return [3.5 - file, 0, 3.5 - rank]
 }
 
 interface TileProps {

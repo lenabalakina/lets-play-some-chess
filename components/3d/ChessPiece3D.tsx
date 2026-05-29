@@ -22,7 +22,8 @@ function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
   if (playerColor === 'w') {
     return [file - 3.5, 0, 3.5 - rank]
   }
-  return [3.5 - file, 0, rank - 3.5]
+  // Black: mirror x (a-file on right) but same z direction (rank 8 near camera = bottom)
+  return [3.5 - file, 0, 3.5 - rank]
 }
 
 const WHITE_EMISSIVE = new THREE.Color('#06b6d4')   // cyan

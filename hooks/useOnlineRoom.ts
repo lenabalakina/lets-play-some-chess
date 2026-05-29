@@ -29,9 +29,10 @@ export interface OnlineRoomState {
 }
 
 export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
-  const [retryKey,    setRetryKey]    = useState(0)
-  const retryCountRef = useRef(0)
-  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [retryKey,      setRetryKey]      = useState(0)
+  const retryCountRef   = useRef(0)
+  const roomNotFoundRef = useRef(false)
+  const typingTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [room, setRoom] = useState<OnlineRoomState>({
     fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     turn:           'w',
@@ -50,6 +51,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   // SSE connection with auto-reconnect (exponential backoff, max 5 retries)
   useEffect(() => {
     if (!code || !playerId) return
+    roomNotFoundRef.current = false
     const es = new EventSource(`/api/room/${code}/events?playerId=${playerId}`)
 
     es.onopen = () => {
@@ -105,6 +107,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
             3000,
           )
         } else if (msg.type === 'error') {
+          roomNotFoundRef.current = true
           setRoom(r => ({ ...r, roomNotFound: true, connected: false }))
           es.close()
         }
@@ -112,17 +115,14 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     }
 
     es.onerror = () => {
-      setRoom(r => {
-        // Don't retry if room doesn't exist — retrying won't help
-        if (r.roomNotFound) return { ...r, connected: false }
-        if (retryCountRef.current < 5) {
-          const delay = Math.min(1000 * 2 ** retryCountRef.current, 30_000)
-          retryCountRef.current++
-          setTimeout(() => setRetryKey(k => k + 1), delay)
-        }
-        return { ...r, connected: false }
-      })
       es.close()
+      setRoom(r => ({ ...r, connected: false }))
+      // Side effects must be outside the state updater (state updaters must be pure)
+      if (!roomNotFoundRef.current && retryCountRef.current < 5) {
+        const delay = Math.min(1000 * 2 ** retryCountRef.current, 30_000)
+        retryCountRef.current++
+        setTimeout(() => setRetryKey(k => k + 1), delay)
+      }
     }
 
     return () => es.close()

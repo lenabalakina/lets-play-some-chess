@@ -48,6 +48,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const [desktopTab,     setDesktopTab]     = useState<'moves' | 'chat'>('chat')
   const [leaveConfirm,   setLeaveConfirm]   = useState(false)
   const [resignConfirm,  setResignConfirm]  = useState(false)
+  const [moveError,      setMoveError]      = useState<string | null>(null)
   const [view3D,         setView3D]         = useState(false)
 
   function toggle3D() {
@@ -110,9 +111,15 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
         pendingPromoRef.current = { from: selectedSquare, to: sq }
         setPromoDialog(true)
       } else {
-        makeMove(selectedSquare, sq)
+        const from = selectedSquare
         setSelectedSquare(null)
         setLegalMoves([])
+        makeMove(from, sq).then(result => {
+          if (!result.ok) {
+            setMoveError(result.error ?? 'Move failed')
+            setTimeout(() => setMoveError(null), 3000)
+          }
+        })
       }
       return
     }
@@ -137,7 +144,12 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     setPromoDialog(false)
     const p = pendingPromoRef.current
     if (!p) return
-    makeMove(p.from, p.to, piece)
+    makeMove(p.from, p.to, piece).then(result => {
+      if (!result.ok) {
+        setMoveError(result.error ?? 'Move failed')
+        setTimeout(() => setMoveError(null), 3000)
+      }
+    })
     setSelectedSquare(null)
     setLegalMoves([])
     pendingPromoRef.current = null
@@ -359,11 +371,13 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
           {/* Board area */}
           <div className="flex-1 flex flex-col items-center min-h-0 overflow-hidden px-2 py-1 lg:px-4 lg:py-2">
             <div className={`text-[11px] font-semibold tracking-widest uppercase shrink-0 py-1 ${
-              isGameOver
-                ? (room.winner === myColor ? 'text-emerald-400' : room.winner === 'draw' ? 'text-slate-400' : 'text-red-400')
-                : isMyTurn ? 'text-cyan-300' : 'text-slate-500'
+              moveError
+                ? 'text-red-400'
+                : isGameOver
+                  ? (room.winner === myColor ? 'text-emerald-400' : room.winner === 'draw' ? 'text-slate-400' : 'text-red-400')
+                  : isMyTurn ? 'text-cyan-300' : 'text-slate-500'
             }`}>
-              {statusText()}
+              {moveError ?? statusText()}
             </div>
 
             {/* Waiting overlay */}
