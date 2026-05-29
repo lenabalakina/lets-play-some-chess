@@ -18,16 +18,38 @@ interface Props {
 }
 
 export default function OnlineGamePage({ params }: Props) {
-  const { code }      = use(params)
-  const searchParams  = useSearchParams()
-  const colorParam    = searchParams.get('color') as Color | null
-  const myColor: Color = colorParam === 'b' ? 'b' : 'w'
+  const { code }     = use(params)
+  const searchParams = useSearchParams()
+  const colorParam   = searchParams.get('color') as Color | null
 
   const [playerId, setPlayerId] = useState<string | null>(null)
+  const [myColor,  setMyColor]  = useState<Color>(colorParam === 'b' ? 'b' : 'w')
 
   useEffect(() => {
-    setPlayerId(getOrCreatePlayerId())
-  }, [])
+    const id = getOrCreatePlayerId()
+    setPlayerId(id)
+
+    // Save to localStorage so the lobby can show a "Rejoin" button
+    // We'll verify/correct the color from the server below
+    const urlColor: Color = colorParam === 'b' ? 'b' : 'w'
+    localStorage.setItem('chess_last_room', JSON.stringify({ code: code.toUpperCase(), color: urlColor }))
+
+    // Verify which color this playerId actually is in the room
+    // (handles the case where ?color param is missing or wrong)
+    fetch(`/api/room/${code.toUpperCase()}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.room) return
+        if (data.room.white === id) {
+          setMyColor('w')
+          localStorage.setItem('chess_last_room', JSON.stringify({ code: code.toUpperCase(), color: 'w' }))
+        } else if (data.room.black === id) {
+          setMyColor('b')
+          localStorage.setItem('chess_last_room', JSON.stringify({ code: code.toUpperCase(), color: 'b' }))
+        }
+      })
+      .catch(() => {})
+  }, [code, colorParam])
 
   if (!playerId) {
     return (

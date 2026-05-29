@@ -25,6 +25,7 @@ export interface OnlineRoomState {
   drawOfferedBy:  'w' | 'b' | null
   opponentTyping:  boolean
   opponentOnline:  boolean
+  roomNotFound:   boolean
 }
 
 export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
@@ -43,6 +44,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     drawOfferedBy:  null,
     opponentTyping: false,
     opponentOnline: false,
+    roomNotFound:   false,
   })
 
   // SSE connection with auto-reconnect (exponential backoff, max 5 retries)
@@ -102,18 +104,25 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
             () => setRoom(r => ({ ...r, opponentTyping: false })),
             3000,
           )
+        } else if (msg.type === 'error') {
+          setRoom(r => ({ ...r, roomNotFound: true, connected: false }))
+          es.close()
         }
       } catch {}
     }
 
     es.onerror = () => {
-      setRoom(r => ({ ...r, connected: false }))
+      setRoom(r => {
+        // Don't retry if room doesn't exist — retrying won't help
+        if (r.roomNotFound) return { ...r, connected: false }
+        if (retryCountRef.current < 5) {
+          const delay = Math.min(1000 * 2 ** retryCountRef.current, 30_000)
+          retryCountRef.current++
+          setTimeout(() => setRetryKey(k => k + 1), delay)
+        }
+        return { ...r, connected: false }
+      })
       es.close()
-      if (retryCountRef.current < 5) {
-        const delay = Math.min(1000 * 2 ** retryCountRef.current, 30_000)
-        retryCountRef.current++
-        setTimeout(() => setRetryKey(k => k + 1), delay)
-      }
     }
 
     return () => es.close()

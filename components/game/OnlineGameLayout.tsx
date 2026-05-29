@@ -168,6 +168,35 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
   const colors = THEME_COLORS[theme]
 
+  // Room no longer exists on the server (expired or server restarted)
+  if (room.roomNotFound) {
+    return (
+      <div className="min-h-screen bg-[#070d1a] flex flex-col items-center justify-center gap-6 text-white px-6">
+        <div className="text-5xl">♟</div>
+        <div className="text-center">
+          <h1 className="text-xl font-black mb-2">Room no longer exists</h1>
+          <p className="text-slate-400 text-sm max-w-xs">
+            This game session has expired. Create a new room and share the code with your opponent.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={() => { localStorage.removeItem('chess_last_room'); router.push('/play/online') }}
+            className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black transition-colors"
+          >
+            New Game
+          </button>
+          <button
+            onClick={() => router.push('/')}
+            className="w-full py-3 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 font-semibold transition-colors text-sm"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-[100dvh] bg-[#070d1a] text-white overflow-hidden">
 

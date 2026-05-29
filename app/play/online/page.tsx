@@ -20,8 +20,15 @@ export default function OnlineLobbyPage() {
   const [loading,   setLoading]   = useState<'create' | 'join' | null>(null)
   const [error,     setError]     = useState<string | null>(null)
   const [mounted,   setMounted]   = useState(false)
+  const [lastRoom,  setLastRoom]  = useState<{ code: string; color: string } | null>(null)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
+    try {
+      const stored = localStorage.getItem('chess_last_room')
+      if (stored) setLastRoom(JSON.parse(stored))
+    } catch {}
+  }, [])
 
   async function handleCreate() {
     if (!mounted) return
@@ -58,7 +65,7 @@ export default function OnlineLobbyPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      router.push(`/play/online/${code}?color=b`)
+      router.push(`/play/online/${code}?color=${data.color ?? 'b'}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Room not found')
       setLoading(null)
@@ -120,6 +127,31 @@ export default function OnlineLobbyPage() {
 
         {/* Cards */}
         <div className="w-full max-w-sm flex flex-col gap-3">
+
+          {/* Rejoin last game */}
+          {lastRoom && (
+            <button
+              onClick={() => router.push(`/play/online/${lastRoom.code}?color=${lastRoom.color}`)}
+              disabled={!!loading}
+              className="mode-card group relative flex items-center justify-between px-6 py-4 rounded-2xl border text-left disabled:opacity-60"
+              style={{
+                background: 'rgba(168,85,247,0.07)',
+                border: '1px solid rgba(168,85,247,0.25)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
+              }}
+            >
+              <div className="absolute top-0 left-0 right-0 h-px opacity-50 group-hover:opacity-100 transition-opacity"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(168,85,247,0.6), transparent)' }} />
+              <div>
+                <div className="font-black text-white" style={{ fontSize: '14px' }}>Rejoin Game</div>
+                <div style={{ fontSize: '11px', color: 'rgba(168,85,247,0.8)', marginTop: 2, fontFamily: 'monospace', letterSpacing: '0.1em' }}>
+                  Room {lastRoom.code} · {lastRoom.color === 'w' ? 'White' : 'Black'}
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-purple-400 shrink-0 transition-transform group-hover:translate-x-1 duration-200" />
+            </button>
+          )}
 
           {/* Create Room */}
           <button

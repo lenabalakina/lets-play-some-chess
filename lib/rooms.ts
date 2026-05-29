@@ -77,20 +77,25 @@ export function createRoom(playerId: string): Room {
   }
   rooms.set(code, room)
 
-  // Clean up rooms older than 2 hours
+  // Clean up finished/idle rooms older than 6 hours; keep active games longer
   for (const [k, r] of rooms) {
-    if (Date.now() - r.createdAt > 2 * 60 * 60 * 1000) rooms.delete(k)
+    const age = Date.now() - r.lastActivityAt
+    const limit = r.status === 'playing' ? 12 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000
+    if (age > limit) rooms.delete(k)
   }
 
   return room
 }
 
-export function joinRoom(code: string, playerId: string): { room: Room; color: 'b' } | { error: string } {
+export function joinRoom(code: string, playerId: string): { room: Room; color: 'w' | 'b' } | { error: string } {
   const room = rooms.get(code)
-  if (!room)                          return { error: 'Room not found' }
-  if (room.white === playerId)        return { error: 'You are already in this room as White' }
-  if (room.black === playerId)        return { error: 'You are already in this room as Black' }
-  if (room.status !== 'waiting')      return { error: 'Room is already full or finished' }
+  if (!room) return { error: 'Room not found' }
+
+  // Allow existing players to rejoin their game (e.g. after page refresh / navigate away)
+  if (room.white === playerId) return { room, color: 'w' }
+  if (room.black === playerId) return { room, color: 'b' }
+
+  if (room.status !== 'waiting') return { error: 'Room is already full' }
 
   room.black = playerId
   room.status = 'playing'
