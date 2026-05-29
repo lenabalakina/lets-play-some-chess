@@ -47,6 +47,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const [mobileTab,      setMobileTab]      = useState<'moves' | 'chat' | 'info'>('moves')
   const [desktopTab,     setDesktopTab]     = useState<'moves' | 'chat'>('chat')
   const [leaveConfirm,   setLeaveConfirm]   = useState(false)
+  const [resignConfirm,  setResignConfirm]  = useState(false)
   const [view3D,         setView3D]         = useState(false)
 
   function toggle3D() {
@@ -257,7 +258,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             <span className="text-cyan-400">{code}</span>
             {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           </button>
-          <a href="/" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">← Leave</a>
+          <button onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)} className="text-slate-600 hover:text-slate-400 text-xs transition-colors cursor-pointer">← Leave</button>
         </div>
       </header>
 
@@ -329,7 +330,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                   <p className="text-slate-500 text-[10px] text-center">Draw offered…</p>
                 )}
                 <button
-                  onClick={resign}
+                  onClick={() => setResignConfirm(true)}
                   className="w-full py-2 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
                     hover:text-red-400 text-xs font-semibold transition-all"
                 >
@@ -453,7 +454,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                       ½
                     </button>
                   )}
-                  <button onClick={resign}
+                  <button onClick={() => setResignConfirm(true)}
                     className="px-3 py-1 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
                       text-xs font-semibold transition-all">
                     Resign
@@ -631,6 +632,36 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
         color={myColor}
         onSelect={handlePromoSelect}
       />
+
+      {/* ── Resign confirmation ──────────────────────────────────────────────── */}
+      {resignConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={() => setResignConfirm(false)}
+        >
+          <div
+            className="bg-[#0d1829] border border-slate-700 rounded-2xl p-6 w-80 flex flex-col gap-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-white font-bold text-base tracking-wide">Resign this game?</h2>
+            <p className="text-slate-400 text-sm">You will lose the game. This cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setResignConfirm(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setResignConfirm(false); resign() }}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600/80 border border-red-500/60 hover:bg-red-600 transition-all cursor-pointer"
+              >
+                Resign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Leave confirmation ───────────────────────────────────────────────── */}
       {leaveConfirm && (
