@@ -1,33 +1,31 @@
 import { Chess } from 'chess.js'
+import type { ChatMessage, Room, RoomMove } from './roomTypes'
 
-export interface RoomMove {
-  from: string
-  to: string
-  promotion?: string
-  san: string
-  fen: string
+export type { ChatMessage, Room, RoomMove } from './roomTypes'
+
+function isPersistenceEnabled(): boolean {
+  return !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    && !!process.env.NEXT_PUBLIC_SUPABASE_URL
+    && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project')
+    && !process.env.SUPABASE_SERVICE_ROLE_KEY.includes('your-')
 }
 
-export interface ChatMessage {
-  color: 'w' | 'b'
-  text:  string
-  ts:    number
+async function loadFromDb(code: string): Promise<Omit<Room, 'subscribers'> | null> {
+  if (!isPersistenceEnabled()) return null
+  const { loadRoomFromDb } = await import('./roomPersistence')
+  return loadRoomFromDb(code)
 }
 
-export interface Room {
-  code:    string
-  fen:     string
-  turn:    'w' | 'b'
-  white:   string | null  // playerId
-  black:   string | null  // playerId
-  status:  'waiting' | 'playing' | 'finished'
-  winner:  'w' | 'b' | 'draw' | null
-  moves:   RoomMove[]
-  messages: ChatMessage[]
-  drawOfferedBy: 'w' | 'b' | null
-  createdAt:       number
-  lastActivityAt:  number
-  subscribers: Map<string, ReadableStreamDefaultController<Uint8Array>>
+async function saveToDb(room: Room): Promise<void> {
+  if (!isPersistenceEnabled()) return
+  const { saveRoomToDb } = await import('./roomPersistence')
+  await saveRoomToDb(room)
+}
+
+async function codeExistsInDb(code: string): Promise<boolean> {
+  if (!isPersistenceEnabled()) return false
+  const { roomCodeExistsInDb } = await import('./roomPersistence')
+  return roomCodeExistsInDb(code)
 }
 
 // Persist across Next.js hot-reloads in dev
@@ -56,9 +54,42 @@ function randomCode(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
-export function createRoom(playerId: string): Room {
+async function codeInUse(code: string): Promise<boolean> {
+  if (rooms.has(code)) return true
+  if (isPersistenceEnabled()) return codeExistsInDb(code)
+  return false
+}
+
+/** Load room from memory cache or database. Preserves existing subscribers if cached. */
+export async function resolveRoom(code: string): Promise<Room | undefined> {
+  const upper = code.toUpperCase()
+  const cached = rooms.get(upper)
+  if (cached) return cached
+
+  const row = await loadFromDb(upper)
+  if (!row) return undefined
+
+  const room: Room = { ...row, subscribers: new Map() }
+  rooms.set(upper, room)
+  return room
+}
+
+async function commitRoom(room: Room): Promise<void> {
+  rooms.set(room.code, room)
+  await saveToDb(room)
+}
+
+function purgeStaleRooms(): void {
+  for (const [k, r] of rooms) {
+    const age = Date.now() - r.lastActivityAt
+    const limit = r.status === 'playing' ? 12 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000
+    if (age > limit) rooms.delete(k)
+  }
+}
+
+export async function createRoom(playerId: string): Promise<Room> {
   let code: string
-  do { code = randomCode() } while (rooms.has(code))
+  do { code = randomCode() } while (await codeInUse(code))
 
   const room: Room = {
     code,
@@ -75,47 +106,49 @@ export function createRoom(playerId: string): Room {
     lastActivityAt: Date.now(),
     subscribers:    new Map(),
   }
-  rooms.set(code, room)
 
-  // Clean up finished/idle rooms older than 6 hours; keep active games longer
-  for (const [k, r] of rooms) {
-    const age = Date.now() - r.lastActivityAt
-    const limit = r.status === 'playing' ? 12 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000
-    if (age > limit) rooms.delete(k)
-  }
-
+  await commitRoom(room)
+  purgeStaleRooms()
   return room
 }
 
-export function joinRoom(code: string, playerId: string): { room: Room; color: 'w' | 'b' } | { error: string } {
-  const room = rooms.get(code)
+export async function joinRoom(
+  code: string, playerId: string,
+): Promise<{ room: Room; color: 'w' | 'b' } | { error: string }> {
+  const room = await resolveRoom(code)
   if (!room) return { error: 'Room not found' }
 
-  // Allow existing players to rejoin their game (e.g. after page refresh / navigate away)
   if (room.white === playerId) return { room, color: 'w' }
   if (room.black === playerId) return { room, color: 'b' }
 
   if (room.status !== 'waiting') return { error: 'Room is already full' }
+  if (room.black !== null) return { error: 'Room is already full' }
 
   room.black = playerId
   room.status = 'playing'
   room.lastActivityAt = Date.now()
+  await commitRoom(room)
   broadcast(code, { type: 'start', room: safeRoom(room) })
   return { room, color: 'b' }
 }
 
-export function applyMove(
+export async function applyMove(
   code: string, playerId: string,
-  from: string, to: string, promotion?: string
-): { ok: true } | { ok: false; error: string } {
+  from: string, to: string, promotion?: string,
+): Promise<{
+  ok: true
+  move: RoomMove
+  room: { fen: string; turn: 'w' | 'b'; status: Room['status']; winner: Room['winner'] }
+} | { ok: false; error: string }> {
   if (rateLimit(`move:${playerId}`, 60)) return { ok: false, error: 'Too many moves' }
-  const room = rooms.get(code)
+
+  const room = await resolveRoom(code)
   if (!room)                     return { ok: false, error: 'Room not found' }
   if (room.status !== 'playing') return { ok: false, error: 'Game not active' }
 
   const myColor = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
-  if (!myColor)                  return { ok: false, error: 'Not a player in this room' }
-  if (room.turn !== myColor)     return { ok: false, error: 'Not your turn' }
+  if (!myColor)              return { ok: false, error: 'Not a player in this room' }
+  if (room.turn !== myColor) return { ok: false, error: 'Not your turn' }
 
   const chess = new Chess(room.fen)
   try {
@@ -124,7 +157,8 @@ export function applyMove(
 
     room.fen  = chess.fen()
     room.turn = chess.turn() as 'w' | 'b'
-    room.moves.push({ from, to, promotion, san: result.san, fen: room.fen })
+    const moveRecord: RoomMove = { from, to, promotion, san: result.san, fen: room.fen }
+    room.moves.push(moveRecord)
     room.lastActivityAt = Date.now()
 
     if (chess.isGameOver()) {
@@ -133,50 +167,71 @@ export function applyMove(
       else                     room.winner = 'draw'
     }
 
+    await commitRoom(room)
     broadcast(code, {
       type: 'move', from, to, promotion,
       san: result.san, fen: room.fen,
       turn: room.turn, status: room.status, winner: room.winner,
     })
-    return { ok: true }
+    return {
+      ok: true,
+      move: moveRecord,
+      room: { fen: room.fen, turn: room.turn, status: room.status, winner: room.winner },
+    }
   } catch {
     return { ok: false, error: 'Illegal move' }
   }
 }
 
-export function sendChat(
-  code: string, playerId: string, text: string
-): { ok: true } | { ok: false; error: string } {
+export async function sendChat(
+  code: string, playerId: string, text: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   if (rateLimit(`chat:${playerId}`, 20)) return { ok: false, error: 'Too many messages' }
-  const room = rooms.get(code)
+
+  const room = await resolveRoom(code)
   if (!room) return { ok: false, error: 'Room not found' }
+
   const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
   if (!color) return { ok: false, error: 'Not a player in this room' }
+
   const trimmed = text.trim().slice(0, 200)
   if (!trimmed) return { ok: false, error: 'Empty message' }
+
   const msg: ChatMessage = { color, text: trimmed, ts: Date.now() }
   room.messages.push(msg)
+  room.lastActivityAt = Date.now()
+  await commitRoom(room)
   broadcast(code, { type: 'chat', ...msg })
   return { ok: true }
 }
 
-export function offerDraw(code: string, playerId: string): { ok: true } | { ok: false; error: string } {
-  const room = rooms.get(code)
+export async function offerDraw(code: string, playerId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const room = await resolveRoom(code)
   if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
+
   const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
   if (!color) return { ok: false, error: 'Not a player' }
   if (room.drawOfferedBy) return { ok: false, error: 'Draw already offered' }
+
   room.drawOfferedBy = color
+  room.lastActivityAt = Date.now()
+  await commitRoom(room)
   broadcast(code, { type: 'draw_offer', by: color })
   return { ok: true }
 }
 
-export function respondDraw(code: string, playerId: string, accept: boolean): { ok: true } | { ok: false; error: string } {
-  const room = rooms.get(code)
+export async function respondDraw(
+  code: string, playerId: string, accept: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const room = await resolveRoom(code)
   if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
+
   const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
   if (!color) return { ok: false, error: 'Not a player' }
-  if (!room.drawOfferedBy || room.drawOfferedBy === color) return { ok: false, error: 'No draw offer to respond to' }
+  if (!room.drawOfferedBy || room.drawOfferedBy === color) {
+    return { ok: false, error: 'No draw offer to respond to' }
+  }
+
   room.drawOfferedBy = null
   if (accept) {
     room.status = 'finished'
@@ -185,11 +240,13 @@ export function respondDraw(code: string, playerId: string, accept: boolean): { 
   } else {
     broadcast(code, { type: 'draw_declined' })
   }
+  room.lastActivityAt = Date.now()
+  await commitRoom(room)
   return { ok: true }
 }
 
-export function resignRoom(code: string, playerId: string): { ok: true } | { ok: false; error: string } {
-  const room = rooms.get(code)
+export async function resignRoom(code: string, playerId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const room = await resolveRoom(code)
   if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
 
   const isWhite = room.white === playerId
@@ -198,6 +255,8 @@ export function resignRoom(code: string, playerId: string): { ok: true } | { ok:
 
   room.status = 'finished'
   room.winner = isWhite ? 'b' : 'w'
+  room.lastActivityAt = Date.now()
+  await commitRoom(room)
   broadcast(code, { type: 'resign', winner: room.winner })
   return { ok: true }
 }
@@ -209,7 +268,7 @@ export function safeRoom(room: Room) {
 }
 
 export function broadcastPresence(code: string, playerId: string, online: boolean) {
-  const room = rooms.get(code)
+  const room = rooms.get(code.toUpperCase())
   if (!room) return
   const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
   if (!color) return
@@ -217,41 +276,39 @@ export function broadcastPresence(code: string, playerId: string, online: boolea
 }
 
 export function broadcastTyping(code: string, playerId: string) {
-  const room = rooms.get(code)
+  const room = rooms.get(code.toUpperCase())
   if (!room) return
   const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
   if (!color) return
   const chunk = enc.encode(`data: ${JSON.stringify({ type: 'typing', color })}\n\n`)
   for (const [id, ctrl] of room.subscribers.entries()) {
-    if (id === playerId) continue // don't send back to typer
+    if (id === playerId) continue
     try { ctrl.enqueue(chunk) } catch {}
   }
 }
 
-export function subscribe(
+export async function subscribe(
   code: string, playerId: string,
   ctrl: ReadableStreamDefaultController<Uint8Array>,
   connId: string,
-): void {
-  const room = rooms.get(code)
+): Promise<void> {
+  const room = await resolveRoom(code)
   if (!room) return
-  // Store connId alongside controller so stale aborts don't evict newer connections
   ;(ctrl as unknown as { _connId: string })._connId = connId
   room.subscribers.set(playerId, ctrl)
 }
 
 export function unsubscribe(code: string, playerId: string, connId: string) {
-  const room = rooms.get(code)
+  const room = rooms.get(code.toUpperCase())
   if (!room) return
   const existing = room.subscribers.get(playerId)
-  // Only remove if this is still the same connection (guard against reload race)
   if (existing && (existing as unknown as { _connId: string })._connId === connId) {
     room.subscribers.delete(playerId)
   }
 }
 
 function broadcast(code: string, data: object) {
-  const room = rooms.get(code)
+  const room = rooms.get(code.toUpperCase())
   if (!room) return
   const chunk = enc.encode(`data: ${JSON.stringify(data)}\n\n`)
   for (const ctrl of room.subscribers.values()) {

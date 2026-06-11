@@ -100,7 +100,9 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [resigned,     setResigned]     = useState(false)
   const [drawn,        setDrawn]        = useState(false)
   const [drawOffered,  setDrawOffered]  = useState(false)
+  const [drawOfferedBy, setDrawOfferedBy] = useState<Color | null>(null)
   const [drawDeclined, setDrawDeclined] = useState(false)
+  const [resigningSide, setResigningSide] = useState<Color | null>(null)
   const [promoDialog,  setPromoDialog]  = useState(false)
   const [activeTab,    setActiveTab]    = useState<'moves' | 'chat'>('chat')
   const [mobileSheet,  setMobileSheet]  = useState<'moves' | 'chat' | 'play' | null>(null)
@@ -110,12 +112,15 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const { ref: boardAreaRef, size: boardSize } = useBoardSize()
 
-  const { state, selectSquare, makeMove, resetGame } = useChessGame(playerColor)
+  const { state, selectSquare, makeMove, resetGame, forceGameOver } = useChessGame(
+    playerColor,
+    aiEnabled ? 'fixed' : 'turn',
+  )
 
   const handleTimeout = useCallback((color: Color) => {
     chessAudio.gameLose()
-    console.log(`${color} timed out`)
-  }, [])
+    forceGameOver(color === 'w' ? 'b' : 'w')
+  }, [forceGameOver])
 
   const { whiteMs, blackMs, reset: resetTimer } = useTimer({
     initialWhiteMs: TIME_CONTROL_MS[timeControl],
@@ -130,19 +135,24 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     setResigned(false)
     setDrawn(false)
     setDrawOffered(false)
+    setDrawOfferedBy(null)
     setDrawDeclined(false)
+    setResigningSide(null)
     savedRef.current = false
     chessAudio.gameStart()
   }
 
   function handleResign() {
     setResigned(true)
+    setResigningSide(state.turn)
+    forceGameOver(state.turn === 'w' ? 'b' : 'w')
     chessAudio.gameLose()
   }
 
   function handleDraw() {
     if (isGameOver || drawOffered) return
     setDrawOffered(true)
+    setDrawOfferedBy(state.turn)
 
     if (aiEnabled) {
       // AI decides: easy is generous, hard is ruthless
@@ -165,6 +175,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
 
   function handleDrawResponse(accept: boolean) {
     setDrawOffered(false)
+    setDrawOfferedBy(null)
     if (accept) {
       setDrawn(true)
       chessAudio.move()
@@ -180,7 +191,9 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     setResigned(false)
     setDrawn(false)
     setDrawOffered(false)
+    setDrawOfferedBy(null)
     setDrawDeclined(false)
+    setResigningSide(null)
   }
 
   const isGameOver = state.isGameOver || resigned || drawn
@@ -188,7 +201,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   // Save completed game to Supabase (fire-and-forget, only when user is logged in)
   const savedRef = useRef(false)
   useEffect(() => {
-    if (!isGameOver || savedRef.current || !me.id) return
+    if (!isGameOver || savedRef.current || !me.id || !aiEnabled) return
     savedRef.current = true
     const result: 'white' | 'black' | 'draw' =
       resigned ? (playerColor === 'w' ? 'black' : 'white')
@@ -327,7 +340,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     onSquareClick:  handleSquareClick,
   }
   const board2DProps = { ...sharedBoardProps, playerColor: aiEnabled ? playerColor : state.turn }
-  const board3DProps = { ...sharedBoardProps, playerColor: 'w' as const }
+  const board3DProps = { ...sharedBoardProps, playerColor: aiEnabled ? playerColor : state.turn }
 
   const statusText = isGameOver
     ? (resigned
@@ -469,7 +482,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             {drawOffered && !aiEnabled && (
               <div className="shrink-0 mb-1 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <span className="text-amber-300 text-[10px] font-bold tracking-wider">
-                  {playerColor === 'w' ? 'Black' : 'White'} — accept draw?
+                  {drawOfferedBy === 'w' ? 'Black' : 'White'} — accept draw?
                 </span>
                 <button onClick={() => handleDrawResponse(true)}
                   className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30 transition-all">
@@ -817,15 +830,20 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
       {/* Promotion dialog */}
       <PromotionDialog
         open={promoDialog}
-        color={playerColor}
+        color={aiEnabled ? playerColor : state.turn}
         onSelect={handlePromoSelect}
       />
 
       {/* Game result modal */}
       <GameResultModal
         open={isGameOver && !promoDialog}
-        result={resigned ? (playerColor === 'w' ? 'black' : 'white') as 'black' | 'white' : drawn ? 'draw' : state.winner === 'w' ? 'white' : state.winner === 'b' ? 'black' : state.winner ?? null}
-        myColor={playerColor}
+        result={resigned
+          ? ((resigningSide ?? state.turn) === 'w' ? 'black' : 'white') as 'black' | 'white'
+          : drawn ? 'draw'
+          : state.winner === 'w' ? 'white'
+          : state.winner === 'b' ? 'black'
+          : state.winner ?? null}
+        myColor={aiEnabled ? playerColor : (resigningSide ?? state.turn)}
         reason={resigned ? 'resign' : (drawn || state.winner === 'draw') ? 'draw' : 'checkmate'}
         myUsername={me.username}
         oppUsername={opponent.username}

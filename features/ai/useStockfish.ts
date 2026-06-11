@@ -100,7 +100,6 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
 
     return () => {
       clearTimeout(timer)
-      pendingRef.current = false
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, turn, fen, level, myColor, ready])

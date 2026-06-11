@@ -3,6 +3,7 @@
 import { useCallback, useReducer } from 'react'
 import { Chess } from 'chess.js'
 import type { Color, GameState, MoveRecord, Square } from '../types/chess.types'
+import { canPlayerSelectPiece } from '../boardCoordinates'
 
 type Action =
   | { type: 'SELECT'; square: Square }
@@ -54,7 +55,9 @@ function buildInitialState(chess: Chess): GameState {
   }
 }
 
-export function useChessGame(playerColor: Color = 'w') {
+export type ColorLock = 'fixed' | 'turn'
+
+export function useChessGame(playerColor: Color = 'w', colorLock: ColorLock = 'fixed') {
   const chessRef = { current: new Chess() }
   // We keep chess instance in a ref-like pattern via closure; reducer handles immutable state.
   // For phase 1 (local play), we instantiate once. Multiplayer will hydrate from FEN.
@@ -66,19 +69,19 @@ export function useChessGame(playerColor: Color = 'w') {
         case 'SELECT': {
           if (state.isGameOver) return state
           const { square } = action
-          // Deselect if same square clicked
+          const activeColor = colorLock === 'turn' ? state.turn : playerColor
+          if (state.turn !== activeColor) {
+            return { ...state, selectedSquare: null, legalMoves: [] }
+          }
           if (state.selectedSquare === square) {
             return { ...state, selectedSquare: null, legalMoves: [] }
           }
-          // If a piece is selected and we click a legal move target — move
-          if (state.selectedSquare && state.legalMoves.includes(square)) {
-            return state // handled by MOVE action
+          if (!canPlayerSelectPiece(state.fen, square, activeColor, state.turn === activeColor)) {
+            return { ...state, selectedSquare: null, legalMoves: [] }
           }
-          // Select new piece — compute legal moves from this square
           const tempChess = new Chess(state.fen)
           const moves = tempChess.moves({ square: square as Parameters<typeof tempChess.moves>[0]['square'], verbose: true })
           const targets = moves.map(m => m.to)
-          if (targets.length === 0) return { ...state, selectedSquare: null, legalMoves: [] }
           return { ...state, selectedSquare: square, legalMoves: targets }
         }
 
@@ -120,7 +123,7 @@ export function useChessGame(playerColor: Color = 'w') {
               san: '', from: action.from, to: action.to,
               fen: action.fen,
               moveNumber: Math.ceil(state.moveHistory.length / 2) + 1,
-              color: (action.from ? (state.turn === 'w' ? 'b' : 'w') : 'w') as Color,
+              color: (state.turn === 'w' ? 'w' : 'b') as Color,
             }
             return buildState(tempChess, state, {
               moveHistory: [...state.moveHistory, newMove],
@@ -216,7 +219,7 @@ export function useChessGame(playerColor: Color = 'w') {
     dispatch({ type: 'FORCE_GAME_OVER', winner })
   }, [])
 
-  const isMyTurn = state.turn === playerColor
+  const isMyTurn = colorLock === 'turn' ? !state.isGameOver : state.turn === playerColor
 
   return { state, selectSquare, makeMove, applyOpponentMove, resetGame, hydrate, forceGameOver, isMyTurn }
 }

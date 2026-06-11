@@ -7,6 +7,20 @@ test('local game board renders', async ({ page }) => {
   await expect(page.locator('[data-square]')).toHaveCount(64)
 })
 
+test('local game: black can move after white', async ({ page }) => {
+  await page.goto('/play/local')
+  await page.locator('[data-square]').first().waitFor({ timeout: 10_000 })
+
+  await page.locator('[data-square="e2"]').click()
+  await page.locator('[data-square="e4"]').click()
+  await expect(page.locator('[data-square="e4"]')).toHaveAttribute('data-piece', /P/, { timeout: 3_000 })
+
+  // Black's turn — e7 pawn should move to e5
+  await page.locator('[data-square="e7"]').click()
+  await page.locator('[data-square="e5"]').click()
+  await expect(page.locator('[data-square="e5"]')).toHaveAttribute('data-piece', /p/, { timeout: 3_000 })
+})
+
 test('local game: white pawn moves e2 to e4', async ({ page }) => {
   await page.goto('/play/local')
   await page.locator('[data-square]').first().waitFor({ timeout: 10_000 })

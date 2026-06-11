@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "playwright test",
+    "test:unit": "node --experimental-strip-types --test tests/unit/*.test.ts",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "audit": "node scripts/audit.mjs"

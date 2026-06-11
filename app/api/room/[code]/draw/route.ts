@@ -7,10 +7,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const roomCode = code.toUpperCase()
 
   if (action === 'offer') {
-    return Response.json(offerDraw(roomCode, playerId))
+    return Response.json(await offerDraw(roomCode, playerId))
   }
   if (action === 'accept' || action === 'decline') {
-    return Response.json(respondDraw(roomCode, playerId, action === 'accept'))
+    return Response.json(await respondDraw(roomCode, playerId, action === 'accept'))
   }
   return Response.json({ ok: false, error: 'Invalid action' }, { status: 400 })
 }

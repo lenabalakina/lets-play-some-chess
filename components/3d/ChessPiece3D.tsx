@@ -4,6 +4,7 @@ import { useRef, useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PIECE_COMPONENTS } from './PieceShapes'
+import { chessSquareToWorld3D } from '@/features/chess/boardCoordinates'
 import type { Color, PieceType, Square } from '@/features/chess/types/chess.types'
 
 interface Props {
@@ -14,16 +15,6 @@ interface Props {
   isInCheck:   boolean
   playerColor: Color
   onClick:     (sq: Square) => void
-}
-
-function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
-  const file = sq.charCodeAt(0) - 97   // a=0 … h=7
-  const rank = parseInt(sq[1]) - 1     // 1=0 … 8=7
-  if (playerColor === 'w') {
-    return [file - 3.5, 0, 3.5 - rank]
-  }
-  // Black: mirror x (a-file on right) but same z direction (rank 8 near camera = bottom)
-  return [3.5 - file, 0, 3.5 - rank]
 }
 
 const WHITE_EMISSIVE = new THREE.Color('#06b6d4')   // cyan
@@ -54,7 +45,7 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   })
 
   // Target 3D position
-  const target  = squareTo3D(square, playerColor)
+  const target  = chessSquareToWorld3D(square, playerColor)
   const current = useRef<[number, number, number]>([...target])
   const moving  = useRef(false)
 

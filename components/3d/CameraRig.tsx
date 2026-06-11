@@ -18,6 +18,7 @@ export function CameraRig({ playerColor }: Props) {
   return (
     <>
       <PerspectiveCamera
+        key={`cam-${playerColor}`}
         ref={cameraRef}
         makeDefault
         position={[0, 10, z]}
@@ -26,6 +27,7 @@ export function CameraRig({ playerColor }: Props) {
         far={100}
       />
       <OrbitControls
+        key={playerColor}
         enablePan={false}
         enableZoom
         minDistance={7}

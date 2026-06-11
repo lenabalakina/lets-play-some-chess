@@ -6,7 +6,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const { playerId } = await req.json()
   if (!playerId) return NextResponse.json({ error: 'playerId required' }, { status: 400 })
 
-  const result = resignRoom(code.toUpperCase(), playerId)
+  const result = await resignRoom(code.toUpperCase(), playerId)
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
   return NextResponse.json({ ok: true })
 }

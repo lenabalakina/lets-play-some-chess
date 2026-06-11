@@ -5,7 +5,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const { code } = await params
   const { playerId, text } = await req.json()
   if (!playerId || !text) return NextResponse.json({ error: 'playerId and text required' }, { status: 400 })
-  const result = sendChat(code.toUpperCase(), playerId, text)
+  const result = await sendChat(code.toUpperCase(), playerId, text)
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
   return NextResponse.json({ ok: true })
 }

@@ -6,7 +6,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const { playerId, from, to, promotion } = await req.json()
   if (!playerId || !from || !to) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
-  const result = applyMove(code.toUpperCase(), playerId, from, to, promotion)
+  const result = await applyMove(code.toUpperCase(), playerId, from, to, promotion)
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, move: result.move, room: result.room })
 }
