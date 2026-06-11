@@ -14,7 +14,8 @@
     "test:unit": "node --experimental-strip-types --test tests/unit/*.test.ts",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
-    "audit": "node scripts/audit.mjs"
+    "audit": "node scripts/audit.mjs",
+    "setup:rooms": "node scripts/setup-private-rooms.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
