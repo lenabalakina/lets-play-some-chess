@@ -20,9 +20,9 @@ interface Props {
 
 export function PromotionDialog({ open, color, onSelect }: Props) {
   const isWhite = color === 'w'
-  const glowColor = isWhite ? 'rgba(6,182,212,0.4)' : 'rgba(192,132,252,0.45)'
+  const glowColor = isWhite ? 'rgba(6,182,212,0.4)' : 'rgba(168,85,247,0.4)'
   const textColor = isWhite ? 'text-cyan-300'  : 'text-purple-300'
-  const borderColor = isWhite ? 'border-cyan-500/50' : 'border-purple-400/50'
+  const borderColor = isWhite ? 'border-cyan-500/50' : 'border-purple-500/50'
 
   const unicodeWhite: Record<PromoPiece, string> = { q: '♕', r: '♖', b: '♗', n: '♘' }
   const unicodeBlack: Record<PromoPiece, string> = { q: '♛', r: '♜', b: '♝', n: '♞' }

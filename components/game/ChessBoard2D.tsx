@@ -3,7 +3,7 @@
 import { Chess } from 'chess.js'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { BoardTheme, Color, PieceType, Square } from '@/features/chess/types/chess.types'
-import { THEME_COLORS, BOARD_NEON_GLOW } from '@/features/chess/types/chess.types'
+import { THEME_COLORS } from '@/features/chess/types/chess.types'
 import { ChessPieceSVG } from './ChessPieceSVG'
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -79,20 +79,16 @@ export function ChessBoard2D({
     return { sq, cell, file, rank }
   }
 
-  const boardGlow = BOARD_NEON_GLOW[theme]
-
   return (
-    <div
-      className="relative select-none w-full h-full rounded-[2px] chess-board-neon"
-      style={{
-        boxShadow: [
-          '0 0 0 1px rgba(6,182,212,0.22)',
-          `0 0 40px ${boardGlow}`,
-          `0 0 80px ${boardGlow.replace(/[\d.]+\)$/, '0.14)')}`,
-          '0 16px 48px rgba(0,0,0,0.55)',
-        ].join(', '),
-      }}
-    >
+    // w-full h-full — fills whatever container the parent gives it
+    <div className="relative select-none w-full h-full">
+      {/* Board border glow */}
+      <div
+        className="absolute inset-0 rounded-sm pointer-events-none z-10"
+        style={{ boxShadow: `0 0 40px rgba(6,182,212,0.15), inset 0 0 20px rgba(0,0,0,0.5)` }}
+      />
+
+      {/* Board grid — fills the container, 8×8 equal cells */}
       <div
         className="relative w-full h-full grid"
         style={{ gridTemplateColumns: 'repeat(8, 1fr)', gridTemplateRows: 'repeat(8, 1fr)' }}
@@ -142,8 +138,8 @@ export function ChessBoard2D({
                 {/* Legal move dot */}
                 {isLegal && !cell && (
                   <div
-                    className="legal-move-dot absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[26%] h-[26%] rounded-full pointer-events-none z-10"
-                    style={{ background: THEME_COLORS[theme].move, boxShadow: `0 0 10px ${THEME_COLORS[theme].highlight}` }}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28%] h-[28%] rounded-full pointer-events-none z-10"
+                    style={{ background: THEME_COLORS[theme].move, boxShadow: `0 0 8px ${THEME_COLORS[theme].highlight}` }}
                   />
                 )}
                 {/* Legal move ring (capture) */}
@@ -166,9 +162,9 @@ export function ChessBoard2D({
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.75, opacity: 0 }}
                       transition={{ duration: 0.1 }}
-                      className={`absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10 ${isSelected ? 'piece-selected' : ''}`}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10"
                     >
-                      <div className="w-[84%] h-[84%]">
+                      <div className="w-[82%] h-[82%]">
                         <ChessPieceSVG
                           type={cell.type as PieceType}
                           isWhite={isWhitePiece}
@@ -187,9 +183,9 @@ export function ChessBoard2D({
 
       {/* Game over overlay */}
       {isGameOver && (
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-20">
-          <div className="glass-panel-v2 rounded-xl px-8 py-4 text-center">
-            <p className="text-white font-black text-lg tracking-wide">Game Over</p>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center rounded-sm z-20">
+          <div className="glass-panel rounded-xl px-8 py-4 text-center">
+            <p className="text-white font-bold text-lg">Game Over</p>
           </div>
         </div>
       )}

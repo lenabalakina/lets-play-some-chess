@@ -452,7 +452,7 @@ export function MultiplayerGameLayout({
           <div className="lg:hidden px-2 pt-2 pb-1 shrink-0">
             <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
                   {opponent.username.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -515,7 +515,7 @@ export function MultiplayerGameLayout({
           <div className="lg:hidden px-2 pb-1 pt-1 shrink-0">
             <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
                   {me.username.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -562,7 +562,7 @@ export function MultiplayerGameLayout({
               <div className="grid grid-cols-4 gap-1">
                 {([
                   { id: 'neon',   dot: '#06b6d4', label: 'Neon'   },
-                  { id: 'void',   dot: '#d8b4fe', label: 'Void'   },
+                  { id: 'void',   dot: '#8b5cf6', label: 'Void'   },
                   { id: 'ember',  dot: '#f97316', label: 'Ember'  },
                   { id: 'arctic', dot: '#94e2d5', label: 'Arctic' },
                 ] as const).map(t => (

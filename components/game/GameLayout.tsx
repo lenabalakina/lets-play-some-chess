@@ -65,7 +65,7 @@ function MobilePlayerStrip({
   return (
     <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl">
       <div className="flex items-center gap-2 min-w-0">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center font-bold text-white text-xs shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
           {username.slice(0, 2).toUpperCase()}
         </div>
         <div className="min-w-0">
@@ -109,7 +109,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const [difficulty,    setDifficulty]   = useState<Difficulty>('vision')
   const [aiLevel,       setAiLevel]      = useState<AiLevel>(initialAiLevel)
   const [lastPlayerMsg, setLastPlayerMsg] = useState<{ id: number; text: string } | null>(null)
-  const [chatSessionId, setChatSessionId] = useState(() => String(Date.now()))
+  const playerMsgIdRef = useRef(0)
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const { ref: boardAreaRef, size: boardSize } = useBoardSize()
 
@@ -140,8 +140,6 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     setDrawDeclined(false)
     setResigningSide(null)
     savedRef.current = false
-    setLastPlayerMsg(null)
-    setChatSessionId(String(Date.now()))
     chessAudio.gameStart()
   }
 
@@ -574,9 +572,10 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                   blackUsername={opponent.username}
                   myColor={playerColor}
                   injectMessage={aiChatInject}
-                  onPlayerSend={aiEnabled ? (t) => setLastPlayerMsg({ id: Date.now(), text: t }) : undefined}
-                  storageKey={aiEnabled ? `chess-ai-chat-${aiLevel}` : undefined}
-                  sessionId={aiEnabled ? chatSessionId : undefined}
+                  onPlayerSend={aiEnabled ? (t) => {
+                    playerMsgIdRef.current += 1
+                    setLastPlayerMsg({ id: playerMsgIdRef.current, text: t })
+                  } : undefined}
                 />
             }
           </div>
@@ -589,7 +588,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
             <div className="grid grid-cols-2 gap-1.5">
               {([
                 { id: 'neon',   dot: '#06b6d4', label: 'Neon',   tag: 'ELECTRIC' },
-                { id: 'void',   dot: '#d8b4fe', label: 'Void',   tag: 'DARK'     },
+                { id: 'void',   dot: '#8b5cf6', label: 'Void',   tag: 'DARK'     },
                 { id: 'ember',  dot: '#f97316', label: 'Ember',  tag: 'FIRE'     },
                 { id: 'arctic', dot: '#94e2d5', label: 'Arctic', tag: 'ICE'      },
               ] as const).map(t => (
@@ -668,9 +667,10 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                     blackUsername={opponent.username}
                     myColor={playerColor}
                     injectMessage={aiChatInject}
-                    onPlayerSend={aiEnabled ? (t) => setLastPlayerMsg({ id: Date.now(), text: t }) : undefined}
-                    storageKey={aiEnabled ? `chess-ai-chat-${aiLevel}` : undefined}
-                    sessionId={aiEnabled ? chatSessionId : undefined}
+                    onPlayerSend={aiEnabled ? (t) => {
+                    playerMsgIdRef.current += 1
+                    setLastPlayerMsg({ id: playerMsgIdRef.current, text: t })
+                  } : undefined}
                   />
                 )}
                 {mobileSheet === 'play' && (
@@ -726,7 +726,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                   <div className="grid grid-cols-2 gap-2">
                     {([
                       { id: 'neon',   dot: '#06b6d4', label: 'Neon',   tag: 'ELECTRIC' },
-                      { id: 'void',   dot: '#d8b4fe', label: 'Void',   tag: 'DARK'     },
+                      { id: 'void',   dot: '#8b5cf6', label: 'Void',   tag: 'DARK'     },
                       { id: 'ember',  dot: '#f97316', label: 'Ember',  tag: 'FIRE'     },
                       { id: 'arctic', dot: '#94e2d5', label: 'Arctic', tag: 'ICE'      },
                     ] as const).map(t => (
