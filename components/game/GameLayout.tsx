@@ -230,7 +230,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const myActive  = !isGameOver && state.turn === playerColor
   const oppActive = !isGameOver && state.turn === oppInfo.color
 
-  const { thinking: aiThinking } = useStockfish({
+  const { thinking: aiThinking, loadError: aiLoadError } = useStockfish({
     enabled:  aiEnabled && !isGameOver,
     level:    aiLevel,
     fen:      state.fen,
@@ -255,9 +255,10 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
   const aiChatInject = useMemo(() => {
     if (!aiChatMsg || !aiEnabled) return null
     return {
-      text:     aiChatMsg.text,
-      author:   (playerColor === 'w' ? 'black' : 'white') as 'white' | 'black',
-      username: opponent.username,
+      text:       aiChatMsg.text,
+      author:     (playerColor === 'w' ? 'black' : 'white') as 'white' | 'black',
+      username:   opponent.username,
+      messageId:  aiChatMsg.timestamp,
     }
   }, [aiChatMsg, aiEnabled, playerColor, opponent.username])
 
@@ -348,6 +349,8 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
         : state.winner === 'draw'
           ? 'Draw!'
           : `${state.winner === 'w' ? 'White' : 'Black'} wins!`)
+    : aiLoadError && aiEnabled
+      ? '⚠️ AI engine failed to load — refresh the page'
     : aiEnabled && aiThinking
       ? '🤖 AI is thinking…'
       : aiEnabled
@@ -566,7 +569,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
               : <ChatPanel
                   whiteUsername={me.username}
                   blackUsername={opponent.username}
-                  turn={state.turn}
+                  myColor={playerColor}
                   injectMessage={aiChatInject}
                   onPlayerSend={aiEnabled ? (t) => setLastPlayerMsg(t) : undefined}
                 />
@@ -658,7 +661,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
                   <ChatPanel
                     whiteUsername={me.username}
                     blackUsername={opponent.username}
-                    turn={state.turn}
+                    myColor={playerColor}
                     injectMessage={aiChatInject}
                     onPlayerSend={aiEnabled ? (t) => setLastPlayerMsg(t) : undefined}
                   />

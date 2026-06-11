@@ -127,9 +127,9 @@ export function useAiChat({
 
   // Respond to player messages
   useEffect(() => {
-    if (!aiEnabled || !playerMessage || playerMessage === prevPlayerMsg.current) return
-    prevPlayerMsg.current = playerMessage
+    if (!aiEnabled || !playerMessage) return
     const t = setTimeout(() => {
+      prevPlayerMsg.current = playerMessage
       setAiMessage({ text: pick(p.respond), timestamp: Date.now() })
     }, 700 + Math.random() * 900)
     return () => clearTimeout(t)

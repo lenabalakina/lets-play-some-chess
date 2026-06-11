@@ -11,6 +11,7 @@ import { PromotionDialog } from './PromotionDialog'
 import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
+import { toast } from 'sonner'
 import { chessAudio } from '@/lib/audio'
 import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/types/chess.types'
 import { THEME_COLORS } from '@/features/chess/types/chess.types'
@@ -73,12 +74,13 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     }
   }, [room.opponentTyping])
 
-  function handleSendChat(e: React.FormEvent) {
+  async function handleSendChat(e: React.FormEvent) {
     e.preventDefault()
     const text = chatInput.trim()
     if (!text) return
-    sendChat(text)
     setChatInput('')
+    const result = await sendChat(text)
+    if (!result.ok) toast.error(result.error ?? 'Could not send message')
   }
 
   const prevMsgCountRef = useRef(0)

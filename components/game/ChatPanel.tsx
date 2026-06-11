@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Smile, Zap, X } from 'lucide-react'
+import type { Color } from '@/features/chess/types/chess.types'
 
 interface ChatMessage {
   id:        number
@@ -28,32 +29,66 @@ function now() {
   return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
-interface Props {
-  whiteUsername:   string
-  blackUsername:   string
-  turn:            'w' | 'b'
-  injectMessage?:  { text: string; author: 'white' | 'black'; username: string } | null
-  onPlayerSend?:   (text: string) => void
+export interface ChatInjectMessage {
+  text:       string
+  author:     'white' | 'black'
+  username:   string
+  messageId?: number
 }
 
-export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, onPlayerSend }: Props) {
+export interface ChatIncomingMessage {
+  id:       number
+  author:   'white' | 'black'
+  username: string
+  text:     string
+}
+
+interface Props {
+  whiteUsername:    string
+  blackUsername:    string
+  /** Who is using this chat panel (not whose turn it is). */
+  myColor:          Color
+  injectMessage?:   ChatInjectMessage | null
+  incomingMessages?: ChatIncomingMessage[]
+  onPlayerSend?:    (text: string) => void
+}
+
+export function ChatPanel({
+  whiteUsername, blackUsername, myColor,
+  injectMessage, incomingMessages, onPlayerSend,
+}: Props) {
   const [messages,     setMessages]     = useState<ChatMessage[]>([])
   const [input,        setInput]        = useState('')
   const [showStickers, setShowStickers] = useState(false)
   const [buzzing,      setBuzzing]      = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
-  const prevInject = useRef<typeof injectMessage>(null)
+  const prevInjectId = useRef<number | null>(null)
+  const seenIncoming = useRef<Set<number>>(new Set())
 
-  const author   = turn === 'w' ? 'white' : 'black'
-  const username = turn === 'w' ? whiteUsername : blackUsername
+  const myAuthor   = myColor === 'w' ? 'white' : 'black'
+  const myUsername = myColor === 'w' ? whiteUsername : blackUsername
 
   // Inject external message (e.g. AI response)
   useEffect(() => {
-    if (!injectMessage || injectMessage === prevInject.current) return
-    prevInject.current = injectMessage
-    setMessages(p => [...p, { id: _id++, ...injectMessage, time: now() }])
+    if (!injectMessage) return
+    const id = injectMessage.messageId ?? Date.now()
+    if (id === prevInjectId.current) return
+    prevInjectId.current = id
+    setMessages(p => [...p, { id: _id++, author: injectMessage.author, username: injectMessage.username, text: injectMessage.text, time: now() }])
   }, [injectMessage])
+
+  // Sync multiplayer / relayed messages
+  useEffect(() => {
+    if (!incomingMessages?.length) return
+    const fresh = incomingMessages.filter(m => !seenIncoming.current.has(m.id))
+    if (!fresh.length) return
+    for (const m of fresh) seenIncoming.current.add(m.id)
+    setMessages(p => [
+      ...p,
+      ...fresh.map(m => ({ id: _id++, author: m.author, username: m.username, text: m.text, time: now() })),
+    ])
+  }, [incomingMessages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -61,7 +96,7 @@ export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, o
 
   function send(text: string, extra?: Partial<ChatMessage>) {
     if (!text.trim()) return
-    setMessages(p => [...p, { id: _id++, author, username, text: text.trim(), time: now(), ...extra }])
+    setMessages(p => [...p, { id: _id++, author: myAuthor, username: myUsername, text: text.trim(), time: now(), ...extra }])
     onPlayerSend?.(text.trim())
     setInput('')
     setShowStickers(false)
@@ -80,10 +115,9 @@ export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, o
       transition={{ duration: 0.5 }}
       className="flex flex-col h-full"
     >
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 scrollbar-thin min-h-0">
         {messages.map(msg => {
-          const isMe = msg.author === 'white'
+          const isMe = msg.author === myAuthor
 
           if (msg.isBuzz) return (
             <motion.div key={msg.id}
@@ -123,7 +157,6 @@ export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, o
         <div ref={bottomRef} />
       </div>
 
-      {/* Sticker picker — slides up when open */}
       <AnimatePresence>
         {showStickers && (
           <motion.div
@@ -156,7 +189,6 @@ export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, o
         )}
       </AnimatePresence>
 
-      {/* Quick phrases */}
       <div className="px-2 py-1.5 border-t border-slate-800/40 flex gap-1 flex-wrap">
         {QUICK_PHRASES.map(p => (
           <button key={p} onClick={() => send(p)}
@@ -167,7 +199,6 @@ export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, o
         ))}
       </div>
 
-      {/* Input */}
       <div className="px-2 pb-2 pt-1 border-t border-slate-800/40 flex gap-1.5">
         <button onClick={() => setShowStickers(v => !v)}
           className={`p-1.5 rounded-lg transition-colors ${showStickers ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}>
@@ -176,7 +207,7 @@ export function ChatPanel({ whiteUsername, blackUsername, turn, injectMessage, o
         <input ref={inputRef} value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send(input)}
-          placeholder={`${username}...`}
+          placeholder={`${myUsername}...`}
           maxLength={120}
           className="flex-1 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-1.5
             text-xs text-white placeholder:text-slate-600
