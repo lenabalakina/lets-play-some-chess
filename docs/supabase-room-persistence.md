@@ -42,7 +42,7 @@ Expected: `{ "ok": true, "persistence": "supabase" }`
 
 ## 4. Operations
 
-- **Hourly cleanup**: Vercel cron calls `/api/cron/purge-rooms` (requires `CRON_SECRET` in production).
+- **Daily cleanup**: Vercel cron calls `/api/cron/purge-rooms` once per day (Hobby plan limit; requires `CRON_SECRET` in production).
 - **Health check**: `GET /api/room/health` — reports `memory_only`, `migration_required`, or `supabase`.
 - **General DB ping**: `GET /api/keepalive` — checks `games` + `private_rooms`.
 

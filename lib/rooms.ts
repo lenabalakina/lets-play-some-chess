@@ -247,8 +247,10 @@ export async function sendChat(
   const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
   if (!color) return { ok: false, error: 'Not a player in this room' }
 
-  const trimmed = text.trim().slice(0, 200)
-  if (!trimmed) return { ok: false, error: 'Empty message' }
+  const { moderateChatMessage } = await import('./chatModeration')
+  const mod = moderateChatMessage(text)
+  if (!mod.ok) return { ok: false, error: mod.reason }
+  const trimmed = mod.text
 
   const msg: ChatMessage = { color, text: trimmed, ts: Date.now() }
   room.messages.push(msg)

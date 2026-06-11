@@ -4,6 +4,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { Chess } from 'chess.js'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { NeonBloom } from './NeonBloom'
 import { Download } from 'lucide-react'
 import { Board3D } from './Board3D'
 import { ChessPiece3D } from './ChessPiece3D'
@@ -91,7 +92,7 @@ export function ChessBoard3D({
     <div
       className="relative rounded-sm overflow-hidden w-full h-full"
       style={{
-        boxShadow: '0 0 60px rgba(6,182,212,0.15), 0 0 120px rgba(139,92,246,0.08)',
+        boxShadow: '0 0 48px rgba(6,182,212,0.2), 0 0 96px rgba(192,132,252,0.12), 0 16px 48px rgba(0,0,0,0.5)',
         cursor: isGameOver ? 'default' : (isMyTurn ? 'crosshair' : 'default'),
       }}
     >
@@ -107,18 +108,17 @@ export function ChessBoard3D({
           <CameraRig playerColor={playerColor} />
 
           {/* Lighting */}
-          <ambientLight intensity={0.9} color="#ffffff" />
+          <ambientLight intensity={0.65} color="#8899bb" />
           <directionalLight
             position={[5, 12, 8]}
-            intensity={1.8}
+            intensity={1.4}
             color="#ffffff"
             castShadow
             shadow-mapSize={[1024, 1024]}
           />
-          {/* Neon fill lights — stronger without Bloom to compensate */}
-          <pointLight position={[0, 4, 0]}   intensity={1.4}  color="#06b6d4" distance={14} />
-          <pointLight position={[-4, 2, -4]} intensity={1.0}  color="#c084fc" distance={12} />
-          <pointLight position={[4, 2, 4]}   intensity={0.7}  color="#0ea5e9" distance={12} />
+          <pointLight position={[0, 4, 0]}   intensity={1.1} color="#06b6d4" distance={14} />
+          <pointLight position={[-4, 2, -4]} intensity={0.95} color="#c084fc" distance={14} />
+          <pointLight position={[4, 2, 4]}   intensity={0.55} color="#0ea5e9" distance={12} />
 
           {/* Board */}
           <Board3D
@@ -146,6 +146,8 @@ export function ChessBoard3D({
               onClick={!isGameOver ? onSquareClick : () => {}}
             />
           ))}
+
+          <NeonBloom />
 
         </Suspense>
       </Canvas>

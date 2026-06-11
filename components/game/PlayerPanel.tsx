@@ -23,7 +23,7 @@ interface Props {
 const MODES = [
   { icon: Globe,        title: 'Online',  tag: 'LIVE',        accent: '#06b6d4', href: '/play/online' },
   { icon: Trophy,       title: 'Ranked',  tag: 'ELO',         accent: '#f59e0b', href: '/leaderboard' },
-  { icon: Bot,          title: 'AI',      tag: 'STOCKFISH',   accent: '#a855f7', href: '/play/ai'     },
+  { icon: Bot,          title: 'AI',      tag: 'STOCKFISH',   accent: '#d8b4fe', href: '/play/ai'     },
   { icon: CalendarDays, title: 'Puzzle',  tag: 'DAILY',       accent: '#10b981', href: '/puzzles'      },
   { icon: Users,        title: 'Private', tag: 'INVITE',      accent: '#0ea5e9', href: '/play/online' },
   { icon: Layers,       title: '3D',      tag: 'THEMES',      accent: '#f43f5e', href: '/play/3d'  },
@@ -33,7 +33,7 @@ function Avatar({ username, size = 'md' }: { username: string; size?: 'md' | 'sm
   const initials = username.slice(0, 2).toUpperCase()
   const s = size === 'md' ? 'w-10 h-10 text-sm' : 'w-8 h-8 text-xs'
   return (
-    <div className={`${s} rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center font-bold text-white shrink-0`}>
+    <div className={`${s} rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center font-bold text-white shrink-0`}>
       {initials}
     </div>
   )
@@ -71,7 +71,7 @@ export function PlayerPanel({ player, opponent, whiteMs, blackMs, turn, isGameOv
         </div>
         <TimerBlock ms={oppMs} isActive={oppActive} color={opponent.color} />
         {oppActive && (
-          <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent rounded motion-safe:animate-pulse" />
+          <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-purple-400 to-transparent rounded motion-safe:animate-pulse" />
         )}
       </div>
 

@@ -71,19 +71,19 @@ export const THEME_COLORS: Record<BoardTheme, {
   light: string; dark: string; highlight: string; move: string; selected: string; check: string
 }> = {
   neon: {
-    light:     '#1a3d6b',   // brighter blue — more visible on mobile
-    dark:      '#071220',   // very dark navy
-    highlight: 'rgba(6, 182, 212, 0.60)',
-    move:      'rgba(6, 182, 212, 0.35)',
-    selected:  'rgba(6, 182, 212, 0.70)',
+    light:     '#1a3d6b',
+    dark:      '#071220',
+    highlight: 'rgba(6, 182, 212, 0.55)',
+    move:      'rgba(6, 182, 212, 0.32)',
+    selected:  'rgba(6, 182, 212, 0.65)',
     check:     'rgba(239, 68, 68, 0.75)',
   },
   void: {
     light:     '#312244',   // medium purple
     dark:      '#150d22',   // very dark purple
-    highlight: 'rgba(139, 92, 246, 0.55)',
-    move:      'rgba(139, 92, 246, 0.30)',
-    selected:  'rgba(139, 92, 246, 0.65)',
+    highlight: 'rgba(192, 132, 252, 0.55)',
+    move:      'rgba(192, 132, 252, 0.30)',
+    selected:  'rgba(216, 180, 254, 0.65)',
     check:     'rgba(239, 68, 68, 0.70)',
   },
   ember: {
@@ -102,4 +102,38 @@ export const THEME_COLORS: Record<BoardTheme, {
     selected:  'rgba(148, 226, 213, 0.6)',
     check:     'rgba(239, 68, 68, 0.6)',
   },
+}
+
+/** Neon piece colors — cyan white, light purple black */
+export const PIECE_PALETTE = {
+  white: { fill: '#dff6ff', stroke: '#06b6d4' },
+  black: { fill: '#c084fc', stroke: '#d8b4fe' },
+} as const
+
+export const PIECE_ORIG = PIECE_PALETTE
+
+/** 3D neon emissive — dark base + strong emissive for bloom */
+export const PIECE_3D = {
+  white: {
+    color:             '#a8e8ff',
+    emissive:          '#06b6d4',
+    emissiveIntensity: 1.05,
+  },
+  black: {
+    color:             '#180820',
+    emissive:          '#c084fc',
+    emissiveIntensity: 2.4,
+  },
+} as const
+
+export const PIECE_GLOW = {
+  white: '#06b6d4',
+  black: '#c084fc',
+} as const
+
+export const BOARD_NEON_GLOW: Record<BoardTheme, string> = {
+  neon:   'rgba(6,182,212,0.42)',
+  void:   'rgba(192,132,252,0.38)',
+  ember:  'rgba(249,115,22,0.35)',
+  arctic: 'rgba(148,226,213,0.35)',
 }

@@ -35,7 +35,7 @@ const MODES: {
     tag:    'FOG OF WAR',
     desc:   "Enemy pieces vanish from squares you can't attack",
     Icon:   CloudFog,
-    accent: '#a855f7',
+    accent: '#d8b4fe',
   },
 ]
 

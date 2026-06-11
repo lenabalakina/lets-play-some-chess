@@ -6,7 +6,7 @@ import type { AiLevel } from '@/features/ai/useStockfish'
 
 const THEMES: { id: BoardTheme; label: string; dot: string }[] = [
   { id: 'neon',   label: 'NEON',   dot: '#06b6d4' },
-  { id: 'void',   label: 'VOID',   dot: '#8b5cf6' },
+  { id: 'void',   label: 'VOID',   dot: '#d8b4fe' },
   { id: 'ember',  label: 'EMBER',  dot: '#f97316' },
   { id: 'arctic', label: 'ARCTIC', dot: '#94e2d5' },
 ]

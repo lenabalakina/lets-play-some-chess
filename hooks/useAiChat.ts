@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from 'react'
 import type { AiLevel } from '@/features/ai/useStockfish'
 import type { MoveRecord } from '@/features/chess/types/chess.types'
+import { generateConversationalReply, type ChatTurn } from '@/lib/aiChatBrain'
 
 export interface AiChatMessage {
   text:      string
   timestamp: number
 }
 
-const P = {
+const EVENT_PHRASES = {
   easy: {
     start:        ["Let's play! 😊", "Good luck, hope you have fun!", "I'm still learning, be gentle 🙏", "Yay chess!! 🎉"],
     aiMove:       ["Hmm, I think this is okay? 🤔", "Your turn! 😊", "I hope that was a good move!", "Let me try this!"],
@@ -19,33 +20,30 @@ const P = {
     theirCapture: ["Noo my piece! 😭", "That was my favourite one!", "Ok ok, I'll get it back! 💪"],
     win:          ["Oh wow, I won! Was that okay? 😅", "Yay! Rematch? 🙏"],
     lose:         ["You won!! Congrats!! 🎉🎉", "Wow you're amazing! 🏆", "So good! Well played! 🥹"],
-    respond:      ["Hehe 😄", "You're so nice!", "Let's have fun!", "Thanks! Good luck! 🤝", "Aww 😊", "Teehee 🙈"],
   },
   intermediate: {
-    start:        ["Good luck. You'll need it.", "Let's see what you've got.", "Ready? Let's go.", "I've been practising. 😏"],
-    aiMove:       ["Consider that.", "Your move.", "Think carefully.", "How do you like that? 😏", "Interesting position now."],
-    theirMove:    ["Not bad.", "Predictable.", "I've seen that before.", "Solid. But not solid enough.", "Hmm. Noted."],
-    check:        ["Check. Don't panic.", "You're in check. Deal with it.", "Tick tock ⏰", "Check — now what?"],
-    aiCapture:    ["Thanks for the piece 😌", "I'll take that.", "Donation accepted.", "One less problem for me."],
-    theirCapture: ["I'll get that back.", "Enjoy it while it lasts.", "Calculated sacrifice.", "Fine. I adapt 🧠"],
-    win:          ["As expected.", "Good game. Almost.", "You played well — not well enough though. GG."],
-    lose:         ["Well played. I underestimated you.", "You earned that. Rematch?", "Impressive. Round 2?"],
-    respond:      ["Focus on the game.", "Less talking, more thinking.", "Save it for after you win.", "Noted.", "Sure."],
+    start:        ["Good luck — let's play a clean game.", "Ready? Let's go.", "Nice to meet you at the board.", "Let's see what you've got."],
+    aiMove:       ["Your move.", "Think carefully.", "Interesting position now.", "How do you like that?"],
+    theirMove:    ["Not bad.", "Solid move.", "I've seen that before.", "Hmm. Noted."],
+    check:        ["Check. Don't panic.", "You're in check.", "Check — now what?"],
+    aiCapture:    ["I'll take that.", "Thanks for the piece.", "One less problem for me."],
+    theirCapture: ["I'll get that back.", "Enjoy it while it lasts.", "Fine. I adapt."],
+    win:          ["Good game. Well played.", "GG — solid effort from you."],
+    lose:         ["Well played. You earned that.", "Impressive. Rematch?", "You got me — nicely done."],
   },
   hard: {
-    start:        ["This won't take long.", "I've already calculated your defeat.", "Don't embarrass yourself.", "Prepare."],
-    aiMove:       ["Inevitable.", "I'm already 15 moves ahead.", "Resistance is futile.", "Did you see that coming? 😏", "Tick tock."],
-    theirMove:    ["Amateur.", "Exactly as predicted.", "Try harder.", "Is that the best you've got?", "Cute attempt."],
-    check:        ["CHECK. The end is near.", "Your king trembles. 👑", "Just resign now and save us time.", "Feel that? That's inevitability."],
-    aiCapture:    ["Pathetic defense.", "Another one falls.", "Your pieces crumble.", "Poetic, isn't it? 🖤"],
-    theirCapture: ["A gift? How kind 🎁", "You'll regret that.", "Enjoy your hollow victory.", "I let you have that. Obviously."],
-    win:          ["Predictable.", "I was bored, honestly.", "You never had a chance. GG I suppose."],
-    lose:         ["...Impossible.", "You got lucky. That's all.", "Rematch. Now."],
-    respond:      ["...", "Your words, like your moves, are weak.", "Silence won't save you.", "Fascinating. Still losing though."],
+    start:        ["Let's play.", "Ready when you are.", "Good luck.", "Shall we begin?"],
+    aiMove:       ["Your move.", "There.", "Consider that.", "The position speaks."],
+    theirMove:    ["Noted.", "Interesting.", "I see.", "Proceed."],
+    check:        ["Check.", "Your king is in danger.", "Check — respond carefully."],
+    aiCapture:    ["I'll take that.", "Captured.", "That piece is mine."],
+    theirCapture: ["Noted.", "I'll adjust.", "Fair exchange."],
+    win:          ["Good game.", "GG.", "Well played."],
+    lose:         ["Well played. You won.", "Good game — you outplayed me.", "Impressive. Rematch?"],
   },
-}
+} as const
 
-function pick(arr: string[]) { return arr[Math.floor(Math.random() * arr.length)] }
+function pick(arr: readonly string[]) { return arr[Math.floor(Math.random() * arr.length)] }
 
 export function useAiChat({
   aiEnabled, aiLevel, moveHistory, isGameOver, winner, myColor, playerMessage,
@@ -56,21 +54,30 @@ export function useAiChat({
   isGameOver:   boolean
   winner:       string | null | undefined
   myColor:      'w' | 'b'
-  playerMessage: string | null
+  playerMessage: { id: number; text: string } | null
 }) {
   const [aiMessage, setAiMessage] = useState<AiChatMessage | null>(null)
   const prevMoveCount  = useRef(0)
   const prevGameOver   = useRef(false)
-  const prevPlayerMsg  = useRef<string | null>(null)
+  const prevPlayerId   = useRef<number | null>(null)
   const startedRef     = useRef(false)
-  const p              = P[aiLevel]
+  const historyRef     = useRef<ChatTurn[]>([])
+  const p              = EVENT_PHRASES[aiLevel]
   const aiColor        = myColor === 'w' ? 'b' : 'w'
+
+  function pushHistory(role: 'player' | 'ai', text: string) {
+    historyRef.current = [...historyRef.current, { role, text, ts: Date.now() }].slice(-20)
+  }
 
   // Greeting when game / AI is enabled
   useEffect(() => {
     if (!aiEnabled || startedRef.current) return
     startedRef.current = true
-    const t = setTimeout(() => setAiMessage({ text: pick(p.start), timestamp: Date.now() }), 1400)
+    const text = pick(p.start)
+    const t = setTimeout(() => {
+      pushHistory('ai', text)
+      setAiMessage({ text, timestamp: Date.now() })
+    }, 1400)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiEnabled, aiLevel])
@@ -81,6 +88,8 @@ export function useAiChat({
       prevMoveCount.current = 0
       prevGameOver.current  = false
       startedRef.current    = false
+      prevPlayerId.current  = null
+      historyRef.current    = []
     }
   }, [moveHistory.length])
 
@@ -96,7 +105,6 @@ export function useAiChat({
     const isCapture  = last.san.includes('x')
     const isCheck    = last.san.includes('+') && !last.san.includes('#')
 
-    // React to special events always; otherwise ~30% chance
     const shouldReact = isCheck || isCapture || Math.random() < 0.3
     if (!shouldReact) return
 
@@ -108,7 +116,10 @@ export function useAiChat({
     else                            text = pick(p.theirMove)
 
     const delay = isAiMove ? 700 : 1100
-    const t = setTimeout(() => setAiMessage({ text, timestamp: Date.now() }), delay)
+    const t = setTimeout(() => {
+      pushHistory('ai', text)
+      setAiMessage({ text, timestamp: Date.now() })
+    }, delay)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moveHistory.length, aiEnabled])
@@ -118,23 +129,31 @@ export function useAiChat({
     if (!aiEnabled || !isGameOver || prevGameOver.current) return
     prevGameOver.current = true
     const aiWon = winner === aiColor
+    const text = pick(aiWon ? p.win : p.lose)
     const t = setTimeout(() => {
-      setAiMessage({ text: pick(aiWon ? p.win : p.lose), timestamp: Date.now() })
+      pushHistory('ai', text)
+      setAiMessage({ text, timestamp: Date.now() })
     }, 900)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGameOver, aiEnabled])
 
-  // Respond to player messages
+  // Respond to player messages with contextual conversation
   useEffect(() => {
     if (!aiEnabled || !playerMessage) return
+    if (playerMessage.id === prevPlayerId.current) return
+    prevPlayerId.current = playerMessage.id
+
+    pushHistory('player', playerMessage.text)
+    const reply = generateConversationalReply(playerMessage.text, historyRef.current, aiLevel)
+
     const t = setTimeout(() => {
-      prevPlayerMsg.current = playerMessage
-      setAiMessage({ text: pick(p.respond), timestamp: Date.now() })
+      pushHistory('ai', reply)
+      setAiMessage({ text: reply, timestamp: Date.now() })
     }, 700 + Math.random() * 900)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerMessage, aiEnabled])
+  }, [playerMessage, aiEnabled, aiLevel])
 
   return aiMessage
 }

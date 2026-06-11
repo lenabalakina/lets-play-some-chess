@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Smile, Zap, X } from 'lucide-react'
 import type { Color } from '@/features/chess/types/chess.types'
+import { moderateChatMessage } from '@/lib/chatModeration'
+import { loadChatHistory, saveChatHistory, clearChatHistory } from '@/lib/chatStorage'
 
 interface ChatMessage {
   id:        number
@@ -22,7 +24,7 @@ const STICKER_ROWS = [
   ['🐐', '🫶', '🤣', '😈', '🫠', '🎪'],
 ]
 
-const QUICK_PHRASES = ['gg', 'ez', 'noob', 'nice move!', 'oops lol', 'brb', 'good luck!', 'gg wp']
+const QUICK_PHRASES = ['good luck!', 'nice move!', 'well played!', 'great game!', 'thanks!', 'oops lol', 'brb', 'gg wp']
 
 let _id = 1
 function now() {
@@ -51,23 +53,58 @@ interface Props {
   injectMessage?:   ChatInjectMessage | null
   incomingMessages?: ChatIncomingMessage[]
   onPlayerSend?:    (text: string) => void
+  /** Persist chat to localStorage (e.g. ai-chat-easy). */
+  storageKey?:      string
+  /** Clear saved chat when this value changes (e.g. new game id). */
+  sessionId?:       string
 }
 
 export function ChatPanel({
   whiteUsername, blackUsername, myColor,
   injectMessage, incomingMessages, onPlayerSend,
+  storageKey, sessionId,
 }: Props) {
   const [messages,     setMessages]     = useState<ChatMessage[]>([])
   const [input,        setInput]        = useState('')
   const [showStickers, setShowStickers] = useState(false)
   const [buzzing,      setBuzzing]      = useState(false)
+  const [modWarning,   setModWarning]   = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
   const prevInjectId = useRef<number | null>(null)
   const seenIncoming = useRef<Set<number>>(new Set())
+  const prevSessionId = useRef<string | undefined>(undefined)
+  const hydrated = useRef(false)
 
   const myAuthor   = myColor === 'w' ? 'white' : 'black'
   const myUsername = myColor === 'w' ? whiteUsername : blackUsername
+
+  // Load persisted chat on mount
+  useEffect(() => {
+    if (!storageKey || hydrated.current) return
+    hydrated.current = true
+    const saved = loadChatHistory(storageKey)
+    if (saved.length) setMessages(saved)
+  }, [storageKey])
+
+  // Reset chat only when a new game session starts (not on page refresh)
+  useEffect(() => {
+    if (!storageKey || !sessionId) return
+    if (prevSessionId.current === undefined) {
+      prevSessionId.current = sessionId
+      return
+    }
+    if (sessionId !== prevSessionId.current) {
+      prevSessionId.current = sessionId
+      clearChatHistory(storageKey)
+      setMessages([])
+    }
+  }, [storageKey, sessionId])
+
+  useEffect(() => {
+    if (!storageKey || !hydrated.current) return
+    saveChatHistory(storageKey, messages)
+  }, [messages, storageKey])
 
   // Inject external message (e.g. AI response)
   useEffect(() => {
@@ -96,10 +133,19 @@ export function ChatPanel({
 
   function send(text: string, extra?: Partial<ChatMessage>) {
     if (!text.trim()) return
-    setMessages(p => [...p, { id: _id++, author: myAuthor, username: myUsername, text: text.trim(), time: now(), ...extra }])
-    onPlayerSend?.(text.trim())
+
+    const mod = moderateChatMessage(text)
+    if (!mod.ok) {
+      setModWarning(mod.reason)
+      setTimeout(() => setModWarning(null), 3000)
+      return
+    }
+
+    setMessages(p => [...p, { id: _id++, author: myAuthor, username: myUsername, text: mod.text, time: now(), ...extra }])
+    onPlayerSend?.(mod.text)
     setInput('')
     setShowStickers(false)
+    setModWarning(null)
     inputRef.current?.focus()
   }
 
@@ -135,11 +181,11 @@ export function ChatPanel({
               transition={{ duration: 0.15 }}
               className={`flex gap-2 ${isMe ? 'flex-row' : 'flex-row-reverse'}`}>
               <div className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[9px] font-black mt-0.5
-                ${isMe ? 'bg-cyan-600' : 'bg-purple-600'}`}>
+                ${isMe ? 'bg-cyan-600' : 'bg-purple-500'}`}>
                 {msg.username.slice(0, 2).toUpperCase()}
               </div>
               <div className={`flex flex-col gap-0.5 max-w-[75%] ${isMe ? 'items-start' : 'items-end'}`}>
-                <span className={`text-[9px] font-semibold ${isMe ? 'text-cyan-500' : 'text-purple-400'}`}>
+                <span className={`text-[9px] font-semibold ${isMe ? 'text-cyan-500' : 'text-purple-300'}`}>
                   {msg.username}
                 </span>
                 <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed
@@ -185,6 +231,19 @@ export function ChatPanel({
                 </div>
               ))}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="mx-2 mb-1 px-3 py-1.5 rounded-lg text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/30"
+          >
+            {modWarning}
           </motion.div>
         )}
       </AnimatePresence>

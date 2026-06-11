@@ -285,8 +285,10 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   }, [code, playerId])
 
   const sendChat = useCallback(async (text: string): Promise<{ ok: boolean; error?: string }> => {
-    const trimmed = text.trim().slice(0, 200)
-    if (!trimmed) return { ok: false, error: 'Empty message' }
+    const { moderateChatMessage } = await import('@/lib/chatModeration')
+    const mod = moderateChatMessage(text)
+    if (!mod.ok) return { ok: false, error: mod.reason }
+    const trimmed = mod.text
 
     const optimisticTs = Date.now()
     setRoom(r => ({

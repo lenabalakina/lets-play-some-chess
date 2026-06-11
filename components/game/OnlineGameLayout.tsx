@@ -475,7 +475,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                 <div className="p-3 space-y-2 overflow-y-auto h-full">
                   <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${myColor === 'w'
                     ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
-                    : 'border-purple-500/40 bg-purple-500/10 text-purple-300'
+                    : 'border-purple-400/40 bg-purple-400/10 text-purple-300'
                   }`}>
                     <span>{myColor === 'w' ? '♔' : '♚'}</span>
                     <span className="font-bold text-xs">You — {myColor === 'w' ? 'White' : 'Black'}</span>
