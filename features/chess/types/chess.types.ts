@@ -115,14 +115,14 @@ export const PIECE_ORIG = PIECE_PALETTE
 /** 3D neon emissive — dark base + strong emissive for bloom */
 export const PIECE_3D = {
   white: {
-    color:             '#a8e8ff',
-    emissive:          '#06b6d4',
-    emissiveIntensity: 1.05,
+    color:             '#061018',
+    emissive:          '#22d3ee',
+    emissiveIntensity: 2.85,
   },
   black: {
-    color:             '#180820',
-    emissive:          '#c084fc',
-    emissiveIntensity: 2.4,
+    color:             '#120818',
+    emissive:          '#d8b4fe',
+    emissiveIntensity: 3.2,
   },
 } as const
 

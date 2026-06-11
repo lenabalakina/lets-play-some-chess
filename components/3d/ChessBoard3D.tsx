@@ -4,11 +4,11 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { Chess } from 'chess.js'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { NeonBloom } from './NeonBloom'
 import { Download } from 'lucide-react'
 import { Board3D } from './Board3D'
 import { ChessPiece3D } from './ChessPiece3D'
 import { CameraRig } from './CameraRig'
+import { NeonBloom } from './NeonBloom'
 import { exportSceneAsGlb } from '@/lib/exportGlb'
 import type { BoardTheme, Color, PieceType, Square } from '@/features/chess/types/chess.types'
 
@@ -98,7 +98,12 @@ export function ChessBoard3D({
     >
       <Canvas
         shadows
-        gl={{ antialias: true, alpha: false, toneMapping: 3 /* ACESFilmicToneMapping */ }}
+        gl={{
+          antialias: true,
+          alpha: false,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.22,
+        }}
         onCreated={({ gl }) => { gl.setClearColor('#070d1a') }}
       >
         <Suspense fallback={null}>
@@ -107,18 +112,18 @@ export function ChessBoard3D({
           {/* Camera */}
           <CameraRig playerColor={playerColor} />
 
-          {/* Lighting */}
-          <ambientLight intensity={0.65} color="#8899bb" />
+          {/* Lighting — low ambient so emissive neon reads clearly */}
+          <ambientLight intensity={0.22} color="#334466" />
           <directionalLight
             position={[5, 12, 8]}
-            intensity={1.4}
-            color="#ffffff"
+            intensity={0.85}
+            color="#c8d8ff"
             castShadow
             shadow-mapSize={[1024, 1024]}
           />
-          <pointLight position={[0, 4, 0]}   intensity={1.1} color="#06b6d4" distance={14} />
-          <pointLight position={[-4, 2, -4]} intensity={0.95} color="#c084fc" distance={14} />
-          <pointLight position={[4, 2, 4]}   intensity={0.55} color="#0ea5e9" distance={12} />
+          <pointLight position={[0, 5, 0]}   intensity={1.6} color="#06b6d4" distance={16} decay={2} />
+          <pointLight position={[-4, 2, -4]} intensity={1.35} color="#c084fc" distance={15} decay={2} />
+          <pointLight position={[4, 2, 4]}   intensity={0.9} color="#0ea5e9" distance={13} decay={2} />
 
           {/* Board */}
           <Board3D
@@ -147,9 +152,8 @@ export function ChessBoard3D({
             />
           ))}
 
-          <NeonBloom />
-
         </Suspense>
+        <NeonBloom />
       </Canvas>
 
       {/* Export GLB button */}

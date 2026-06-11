@@ -36,18 +36,16 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
     toneMapped:        false,
   }), [color, piece3d, emissiveColor])
 
-  const auraMat = useMemo(() => new THREE.MeshBasicMaterial({
-    color:       emissiveColor.clone(),
-    transparent: true,
-    opacity:     color === 'w' ? 0.22 : 0.32,
-    toneMapped:  false,
-    depthWrite:  false,
-  }), [color, emissiveColor])
+  const auraLayers = useMemo(() => [
+    { r: 0.34, y: 0.018, o: color === 'w' ? 0.38 : 0.48 },
+    { r: 0.48, y: 0.014, o: color === 'w' ? 0.24 : 0.32 },
+    { r: 0.64, y: 0.010, o: color === 'w' ? 0.14 : 0.20 },
+  ], [color])
 
   useEffect(() => {
     if (!groupRef.current) return
     groupRef.current.traverse(obj => {
-      if ((obj as THREE.Mesh).isMesh && obj !== auraRef.current) {
+      if ((obj as THREE.Mesh).isMesh && !(obj as THREE.Mesh).userData.isAura) {
         (obj as THREE.Mesh).material = mat
       }
     })
@@ -89,10 +87,14 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
     mat.emissive.copy(isInCheck ? CHECK_COLOR : emissiveColor)
 
     if (auraRef.current) {
-      const auraScale = isSelected ? 1.18 : 1
-      auraRef.current.scale.setScalar(auraScale)
-      ;(auraRef.current.material as THREE.MeshBasicMaterial).opacity =
-        (color === 'w' ? 0.22 : 0.32) * (isSelected ? 1.35 : 1)
+      const pulse = isSelected ? 1.22 + Math.sin(Date.now() * 0.005) * 0.06 : 1
+      auraRef.current.scale.setScalar(pulse)
+      auraRef.current.children.forEach((child, i) => {
+        const mesh = child as THREE.Mesh
+        const base = auraLayers[i]?.o ?? 0.2
+        ;(mesh.material as THREE.MeshBasicMaterial).opacity =
+          base * (isSelected ? 1.4 : 1)
+      })
     }
 
     const targetScale = isSelected ? 1.1 : 1.0
@@ -113,10 +115,27 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
       onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
       onPointerOut={(e) => { e.stopPropagation(); document.body.style.cursor = 'default' }}
     >
-      {/* Ground glow disc under piece */}
-      <mesh ref={auraRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} material={auraMat}>
-        <circleGeometry args={[0.38, 32]} />
-      </mesh>
+      {/* Layered ground glow — cyan / purple neon halo */}
+      <group ref={auraRef}>
+        {auraLayers.map(({ r, y, o }) => (
+          <mesh
+            key={r}
+            userData={{ isAura: true }}
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, y, 0]}
+          >
+            <circleGeometry args={[r, 32]} />
+            <meshBasicMaterial
+              color={emissiveColor}
+              transparent
+              opacity={o}
+              toneMapped={false}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+        ))}
+      </group>
       <group rotation={[0, knightRotY, 0]}>
         <PieceShape />
       </group>
