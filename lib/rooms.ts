@@ -4,10 +4,17 @@ import type { ChatMessage, Room, RoomMove } from './roomTypes'
 export type { ChatMessage, Room, RoomMove } from './roomTypes'
 
 function isPersistenceEnabled(): boolean {
-  return !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    && !!process.env.NEXT_PUBLIC_SUPABASE_URL
-    && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project')
-    && !process.env.SUPABASE_SERVICE_ROLE_KEY.includes('your-')
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return false
+  if (url.includes('your-project') || key.includes('your-')) return false
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+  } catch {
+    return false
+  }
+  return true
 }
 
 async function loadFromDb(code: string): Promise<Omit<Room, 'subscribers'> | null> {
@@ -32,6 +39,7 @@ async function codeExistsInDb(code: string): Promise<boolean> {
 const g = global as typeof globalThis & {
   _chess_rooms?: Map<string, Room>
   _chess_rl?: Map<string, { count: number; resetAt: number }>
+  _chess_joinChains?: Map<string, Promise<unknown>>
 }
 export const rooms: Map<string, Room> = g._chess_rooms ?? (g._chess_rooms = new Map())
 const rl: Map<string, { count: number; resetAt: number }> = g._chess_rl ?? (g._chess_rl = new Map())
@@ -62,6 +70,7 @@ async function codeInUse(code: string): Promise<boolean> {
 
 /** Load room from memory cache or database. Preserves existing subscribers if cached. */
 export async function resolveRoom(code: string): Promise<Room | undefined> {
+  purgeStaleRooms()
   const upper = code.toUpperCase()
   const cached = rooms.get(upper)
   if (cached) return cached
@@ -74,15 +83,37 @@ export async function resolveRoom(code: string): Promise<Room | undefined> {
   return room
 }
 
+async function withRoomJoinLock<T>(code: string, fn: () => Promise<T>): Promise<T> {
+  const upper = code.toUpperCase()
+  const chains = g._chess_joinChains ?? (g._chess_joinChains = new Map())
+  const prev = chains.get(upper) ?? Promise.resolve()
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  chains.set(upper, prev.then(() => gate))
+  await prev
+  try {
+    return await fn()
+  } finally {
+    release()
+    if (chains.get(upper) === gate) chains.delete(upper)
+  }
+}
+
 async function commitRoom(room: Room): Promise<void> {
   rooms.set(room.code, room)
   await saveToDb(room)
 }
 
 function purgeStaleRooms(): void {
+  const now = Date.now()
+  const isDev = process.env.NODE_ENV === 'development'
   for (const [k, r] of rooms) {
-    const age = Date.now() - r.lastActivityAt
-    const limit = r.status === 'playing' ? 12 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000
+    const age = now - r.lastActivityAt
+    const empty = r.subscribers.size === 0
+    let limit = r.status === 'playing' ? 12 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000
+    if (isDev && empty) {
+      limit = r.status === 'playing' ? 2 * 60 * 60 * 1000 : 10 * 60 * 1000
+    }
     if (age > limit) rooms.delete(k)
   }
 }
@@ -115,21 +146,38 @@ export async function createRoom(playerId: string): Promise<Room> {
 export async function joinRoom(
   code: string, playerId: string,
 ): Promise<{ room: Room; color: 'w' | 'b' } | { error: string }> {
-  const room = await resolveRoom(code)
-  if (!room) return { error: 'Room not found' }
+  return withRoomJoinLock(code, async () => {
+    const room = await resolveRoom(code)
+    if (!room) return { error: 'Room not found' }
 
-  if (room.white === playerId) return { room, color: 'w' }
-  if (room.black === playerId) return { room, color: 'b' }
+    if (room.white === playerId) return { room, color: 'w' }
+    if (room.black === playerId) return { room, color: 'b' }
 
-  if (room.status !== 'waiting') return { error: 'Room is already full' }
-  if (room.black !== null) return { error: 'Room is already full' }
+    if (room.status !== 'waiting') return { error: 'Room is already full' }
+    if (room.black !== null) return { error: 'Room is already full' }
 
-  room.black = playerId
-  room.status = 'playing'
-  room.lastActivityAt = Date.now()
-  await commitRoom(room)
-  broadcast(code, { type: 'start', room: safeRoom(room) })
-  return { room, color: 'b' }
+    if (isPersistenceEnabled()) {
+      const { tryClaimBlackSeatInDb } = await import('./roomPersistence')
+      const claimed = await tryClaimBlackSeatInDb(room.code, playerId)
+      if (!claimed) {
+        const refreshed = await loadFromDb(room.code)
+        if (refreshed?.black === playerId) {
+          Object.assign(room, refreshed)
+          return { room, color: 'b' }
+        }
+        return { error: 'Room is already full' }
+      }
+      Object.assign(room, claimed)
+    } else {
+      room.black = playerId
+      room.status = 'playing'
+    }
+
+    room.lastActivityAt = Date.now()
+    await commitRoom(room)
+    broadcast(code, { type: 'start', room: safeRoom(room) })
+    return { room, color: 'b' }
+  })
 }
 
 export async function applyMove(
@@ -283,7 +331,7 @@ export function broadcastTyping(code: string, playerId: string) {
   const chunk = enc.encode(`data: ${JSON.stringify({ type: 'typing', color })}\n\n`)
   for (const [id, ctrl] of room.subscribers.entries()) {
     if (id === playerId) continue
-    try { ctrl.enqueue(chunk) } catch {}
+    try { ctrl.enqueue(chunk) } catch { room.subscribers.delete(id) }
   }
 }
 
@@ -311,7 +359,11 @@ function broadcast(code: string, data: object) {
   const room = rooms.get(code.toUpperCase())
   if (!room) return
   const chunk = enc.encode(`data: ${JSON.stringify(data)}\n\n`)
-  for (const ctrl of room.subscribers.values()) {
-    try { ctrl.enqueue(chunk) } catch {}
+  for (const [playerId, ctrl] of room.subscribers.entries()) {
+    try {
+      ctrl.enqueue(chunk)
+    } catch {
+      room.subscribers.delete(playerId)
+    }
   }
 }

@@ -90,6 +90,31 @@ export async function roomCodeExistsInDb(code: string): Promise<boolean> {
   return !error && !!data
 }
 
+export async function tryClaimBlackSeatInDb(
+  code: string,
+  playerId: string,
+): Promise<Omit<Room, 'subscribers'> | null> {
+  const admin = createAdminClient()
+  if (!admin) return null
+
+  const now = new Date().toISOString()
+  const { data, error } = await admin
+    .from('private_rooms')
+    .update({
+      black: playerId,
+      status: 'playing',
+      last_activity_at: now,
+    })
+    .eq('code', code)
+    .is('black', null)
+    .eq('status', 'waiting')
+    .select('*')
+    .maybeSingle()
+
+  if (error || !data) return null
+  return rowToRoomData(data as DbPrivateRoom)
+}
+
 export async function deleteStaleRoomsFromDb(olderThanMs: number): Promise<void> {
   const admin = createAdminClient()
   if (!admin) return
