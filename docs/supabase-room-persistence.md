@@ -4,24 +4,25 @@ Private code rooms (`/play/online`) need Supabase to survive Vercel serverless c
 
 ## 1. Environment variables
 
-Copy `.env.local.example` to `.env.local` and set:
+**Quick setup (recommended):**
 
-| Variable | Where |
-|----------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same |
-| `SUPABASE_SERVICE_ROLE_KEY` | same (server-only, never expose to client) |
-| `CRON_SECRET` | Any long random string (Vercel production only) |
+```bash
+npm run configure:supabase
+```
 
-In **Vercel → Project → Settings → Environment Variables**, add the same four for **Production** and **Preview**.
+This prompts for your Supabase URL, anon key, and service role key, writes `.env.local`, and generates `CRON_SECRET`.
+
+Keys are in **Supabase → Project Settings → API**: https://supabase.com/dashboard/project/_/settings/api
+
+Copy the same four variables to **Vercel → Project → Settings → Environment Variables** (Production + Preview).
 
 ## 2. Run migrations
 
-In **Supabase → SQL Editor**, run in order:
+In **Supabase → SQL Editor**, paste and run **`supabase/setup-all.sql`** (all migrations in one file).
 
-1. `supabase/migrations/001_initial_schema.sql`
-2. `supabase/migrations/002_phase5.sql`
-3. `supabase/migrations/003_private_rooms.sql`
+Or run individually: `001_initial_schema.sql`, `002_phase5.sql`, `003_private_rooms.sql`.
+
+Then enable **Realtime** for tables `moves` and `games`: Dashboard → Database → Replication.
 
 ## 3. Verify
 
