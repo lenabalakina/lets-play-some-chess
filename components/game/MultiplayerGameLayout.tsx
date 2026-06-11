@@ -10,7 +10,7 @@ import { Chess } from 'chess.js'
 import { ChessBoard2D } from './ChessBoard2D'
 import { PlayerPanel } from './PlayerPanel'
 import { MoveLog } from './MoveLog'
-import { ChatPanel } from './ChatPanel'
+import { ChatPanel, type ChatIncomingMessage } from './ChatPanel'
 import { TweaksPanel } from './TweaksPanel'
 import { GameControls } from './GameControls'
 import { ModeSelector } from './ModeSelector'
@@ -84,6 +84,7 @@ export function MultiplayerGameLayout({
   const [activeTab,      setActiveTab]      = useState<'chat' | 'moves'>('chat')
   const [mobileSheet,    setMobileSheet]    = useState<'moves' | 'chat' | null>(null)
   const [opponentOnline, setOpponentOnline] = useState(true)
+  const [incomingChat,   setIncomingChat]   = useState<ChatIncomingMessage[]>([])
 
   // Game over
   const [gameOver, setGameOver] = useState<GameOverState | null>(
@@ -138,7 +139,7 @@ export function MultiplayerGameLayout({
   })
 
   // ── Realtime channel ──────────────────────────────────────────────────────
-  const { sendDrawOffer, sendDrawDeclined } = useGameChannel({
+  const { sendDrawOffer, sendDrawDeclined, sendChat } = useGameChannel({
     gameId,
     myColor: me.color,
 
@@ -182,7 +183,21 @@ export function MultiplayerGameLayout({
       setDrawOfferSent(false)
       toast.error('Draw offer declined', { id: 'draw-sent' })
     },
+
+    onChatMessage: (msg) => {
+      chessAudio.chatMessage()
+      setIncomingChat(p => [...p, {
+        id:       msg.id,
+        author:   msg.from === 'w' ? 'white' : 'black',
+        username: opponent.username,
+        text:     msg.text,
+      }])
+    },
   })
+
+  const handleChatSend = useCallback((text: string) => {
+    sendChat(text)
+  }, [sendChat])
 
   // ── My move submission ────────────────────────────────────────────────────
   const submitMove = useCallback(async (from: string, to: string, promotion?: string) => {
@@ -582,7 +597,13 @@ export function MultiplayerGameLayout({
 
           <div className="flex-1 overflow-hidden min-h-0">
             {activeTab === 'chat'
-              ? <ChatPanel whiteUsername={me.username} blackUsername={opponent.username} turn={me.color} />
+              ? <ChatPanel
+                  whiteUsername={me.username}
+                  blackUsername={opponent.username}
+                  myColor={me.color}
+                  incomingMessages={incomingChat}
+                  onPlayerSend={handleChatSend}
+                />
               : <MoveLog moves={state.moveHistory} />
             }
           </div>
@@ -643,7 +664,9 @@ export function MultiplayerGameLayout({
                   <ChatPanel
                     whiteUsername={me.username}
                     blackUsername={opponent.username}
-                    turn={me.color}
+                    myColor={me.color}
+                    incomingMessages={incomingChat}
+                    onPlayerSend={handleChatSend}
                   />
                 )}
               </div>

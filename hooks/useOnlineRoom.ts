@@ -147,7 +147,11 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         } else if (msg.type === 'resign') {
           setRoom(r => ({ ...r, status: 'finished', winner: msg.winner }))
         } else if (msg.type === 'chat') {
-          setRoom(r => ({ ...r, messages: [...r.messages, { color: msg.color, text: msg.text, ts: msg.ts }] }))
+          setRoom(r => {
+            const last = r.messages[r.messages.length - 1]
+            if (last?.color === msg.color && last?.text === msg.text) return r
+            return { ...r, messages: [...r.messages, { color: msg.color, text: msg.text, ts: msg.ts }] }
+          })
         } else if (msg.type === 'draw_offer') {
           setRoom(r => ({ ...r, drawOfferedBy: msg.by }))
         } else if (msg.type === 'draw_accepted') {
@@ -280,13 +284,39 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     }).catch(() => {})
   }, [code, playerId])
 
-  const sendChat = useCallback(async (text: string) => {
-    await fetch(`/api/room/${code}/chat`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ playerId, text }),
-    })
-  }, [code, playerId])
+  const sendChat = useCallback(async (text: string): Promise<{ ok: boolean; error?: string }> => {
+    const trimmed = text.trim().slice(0, 200)
+    if (!trimmed) return { ok: false, error: 'Empty message' }
+
+    const optimisticTs = Date.now()
+    setRoom(r => ({
+      ...r,
+      messages: [...r.messages, { color: myColor, text: trimmed, ts: optimisticTs }],
+    }))
+
+    try {
+      const res = await fetch(`/api/room/${code}/chat`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ playerId, text: trimmed }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        setRoom(r => ({
+          ...r,
+          messages: r.messages.filter(m => m.ts !== optimisticTs),
+        }))
+        return { ok: false, error: data.error ?? 'Send failed' }
+      }
+      return { ok: true }
+    } catch {
+      setRoom(r => ({
+        ...r,
+        messages: r.messages.filter(m => m.ts !== optimisticTs),
+      }))
+      return { ok: false, error: 'Network error' }
+    }
+  }, [code, playerId, myColor])
 
   const offerDraw = useCallback(async () => {
     await fetch(`/api/room/${code}/draw`, {

@@ -14,6 +14,12 @@ interface IncomingMove {
   timeTakenMs: number
 }
 
+export interface IncomingChatMessage {
+  from: Color
+  text: string
+  id:   number
+}
+
 interface GameChannelOptions {
   gameId:             string
   myColor:            Color
@@ -22,29 +28,31 @@ interface GameChannelOptions {
   onOpponentPresence: (online: boolean) => void
   onDrawOffer?:       () => void
   onDrawDeclined?:    () => void
+  onChatMessage?:     (msg: IncomingChatMessage) => void
 }
 
 export function useGameChannel({
   gameId, myColor,
   onOpponentMove, onGameOver, onOpponentPresence,
-  onDrawOffer, onDrawDeclined,
+  onDrawOffer, onDrawDeclined, onChatMessage,
 }: GameChannelOptions) {
   const supabase    = createClient()
   const channelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
-  // Stable callback refs (avoids re-subscribing on every render)
   const refs = {
     onOpponentMove:     useRef(onOpponentMove),
     onGameOver:         useRef(onGameOver),
     onOpponentPresence: useRef(onOpponentPresence),
     onDrawOffer:        useRef(onDrawOffer),
     onDrawDeclined:     useRef(onDrawDeclined),
+    onChatMessage:      useRef(onChatMessage),
   }
   useEffect(() => { refs.onOpponentMove.current     = onOpponentMove },     [onOpponentMove])
   useEffect(() => { refs.onGameOver.current         = onGameOver },         [onGameOver])
   useEffect(() => { refs.onOpponentPresence.current = onOpponentPresence }, [onOpponentPresence])
   useEffect(() => { refs.onDrawOffer.current        = onDrawOffer },        [onDrawOffer])
   useEffect(() => { refs.onDrawDeclined.current     = onDrawDeclined },     [onDrawDeclined])
+  useEffect(() => { refs.onChatMessage.current      = onChatMessage },      [onChatMessage])
 
   useEffect(() => {
     if (!gameId) return
@@ -53,7 +61,6 @@ export function useGameChannel({
       config: { presence: { key: myColor } },
     })
 
-    // ── Presence ───────────────────────────────────────────────────────────────
     channel
       .on('presence', { event: 'join' }, ({ key }) => {
         if (key !== myColor) refs.onOpponentPresence.current(true)
@@ -62,7 +69,6 @@ export function useGameChannel({
         if (key !== myColor) refs.onOpponentPresence.current(false)
       })
 
-    // ── Move sync via Postgres Changes ─────────────────────────────────────────
     channel.on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'moves', filter: `game_id=eq.${gameId}` },
@@ -82,7 +88,6 @@ export function useGameChannel({
       }
     )
 
-    // ── Game state changes (completed) ─────────────────────────────────────────
     channel.on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
@@ -94,12 +99,20 @@ export function useGameChannel({
       }
     )
 
-    // ── Draw offer / decline broadcasts ────────────────────────────────────────
     channel.on('broadcast', { event: 'draw_offer' }, ({ payload }) => {
       if (payload?.from !== myColor) refs.onDrawOffer.current?.()
     })
     channel.on('broadcast', { event: 'draw_declined' }, ({ payload }) => {
       if (payload?.from !== myColor) refs.onDrawDeclined.current?.()
+    })
+    channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
+      if (payload?.from !== myColor && typeof payload?.text === 'string') {
+        refs.onChatMessage.current?.({
+          from: payload.from as Color,
+          text: payload.text,
+          id:   typeof payload.id === 'number' ? payload.id : Date.now(),
+        })
+      }
     })
 
     channel.subscribe(async (status) => {
@@ -125,7 +138,19 @@ export function useGameChannel({
     })
   }, [myColor])
 
-  return { sendDrawOffer, sendDrawDeclined }
+  const sendChat = useCallback((text: string) => {
+    const trimmed = text.trim().slice(0, 120)
+    if (!trimmed) return null
+    const id = Date.now()
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'chat',
+      payload: { from: myColor, text: trimmed, id },
+    })
+    return id
+  }, [myColor])
+
+  return { sendDrawOffer, sendDrawDeclined, sendChat }
 }
 
 export type { IncomingMove }

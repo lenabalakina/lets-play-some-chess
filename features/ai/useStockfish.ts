@@ -26,6 +26,7 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
   const onMoveRef  = useRef(onMove)
   const [thinking, setThinking] = useState(false)
   const [ready, setReady] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => { onMoveRef.current = onMove }, [onMove])
 
@@ -35,6 +36,12 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
 
     try {
       const worker = new Worker('/stockfish.js')
+
+      worker.onerror = () => {
+        pendingRef.current = false
+        setThinking(false)
+        setLoadError('AI engine failed to load')
+      }
 
       worker.onmessage = (e: MessageEvent<string>) => {
         const line = typeof e.data === 'string' ? e.data : String(e.data)
@@ -60,6 +67,7 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
       workerRef.current = worker
     } catch (err) {
       console.warn('Stockfish worker failed to load:', err)
+      setLoadError('AI engine failed to load')
     }
 
     return () => {
@@ -107,5 +115,5 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, turn, fen, level, myColor, ready])
 
-  return { thinking }
+  return { thinking, ready, loadError }
 }
