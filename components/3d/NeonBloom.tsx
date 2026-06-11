@@ -7,11 +7,11 @@ export function NeonBloom() {
   return (
     <EffectComposer multisampling={0} enableNormalPass={false}>
       <Bloom
-        luminanceThreshold={0.04}
-        luminanceSmoothing={0.65}
-        intensity={2.15}
+        luminanceThreshold={0.06}
+        luminanceSmoothing={0.72}
+        intensity={1.85}
         mipmapBlur
-        radius={0.72}
+        radius={0.78}
       />
     </EffectComposer>
   )

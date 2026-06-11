@@ -39,7 +39,7 @@ function Scene({ fen, lastMove }: { fen: string; lastMove: { from: Square; to: S
       <ambientLight intensity={0.18} color="#334466" />
       <directionalLight position={[5, 12, 8]} intensity={0.9} color="#c8d8ff" castShadow />
       <pointLight position={[0, 5, 0]}   intensity={1.7} color="#06b6d4" distance={16} decay={2} />
-      <pointLight position={[-4, 2, -4]} intensity={1.4} color="#c084fc" distance={14} decay={2} />
+      <pointLight position={[-4, 2, -4]} intensity={1.4} color="#f472b6" distance={14} decay={2} />
       <pointLight position={[4, 2, 4]}   intensity={0.85} color="#0ea5e9" distance={12} decay={2} />
 
       <Board3D

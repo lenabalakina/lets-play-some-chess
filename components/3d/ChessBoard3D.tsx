@@ -92,7 +92,7 @@ export function ChessBoard3D({
     <div
       className="relative rounded-sm overflow-hidden w-full h-full"
       style={{
-        boxShadow: '0 0 48px rgba(6,182,212,0.2), 0 0 96px rgba(192,132,252,0.12), 0 16px 48px rgba(0,0,0,0.5)',
+        boxShadow: '0 0 48px rgba(6,182,212,0.2), 0 0 96px rgba(244,114,182,0.14), 0 16px 48px rgba(0,0,0,0.5)',
         cursor: isGameOver ? 'default' : (isMyTurn ? 'crosshair' : 'default'),
       }}
     >
@@ -122,7 +122,7 @@ export function ChessBoard3D({
             shadow-mapSize={[1024, 1024]}
           />
           <pointLight position={[0, 5, 0]}   intensity={1.6} color="#06b6d4" distance={16} decay={2} />
-          <pointLight position={[-4, 2, -4]} intensity={1.35} color="#c084fc" distance={15} decay={2} />
+          <pointLight position={[-4, 2, -4]} intensity={1.35} color="#f472b6" distance={15} decay={2} />
           <pointLight position={[4, 2, 4]}   intensity={0.9} color="#0ea5e9" distance={13} decay={2} />
 
           {/* Board */}

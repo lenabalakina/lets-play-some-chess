@@ -31,15 +31,15 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
     color:             new THREE.Color(piece3d.color),
     emissive:          emissiveColor.clone(),
     emissiveIntensity: piece3d.emissiveIntensity,
-    roughness:         0.22,
-    metalness:         0.08,
+    roughness:         0.18,
+    metalness:         0.12,
     toneMapped:        false,
   }), [color, piece3d, emissiveColor])
 
   const auraLayers = useMemo(() => [
-    { r: 0.34, y: 0.018, o: color === 'w' ? 0.38 : 0.48 },
-    { r: 0.48, y: 0.014, o: color === 'w' ? 0.24 : 0.32 },
-    { r: 0.64, y: 0.010, o: color === 'w' ? 0.14 : 0.20 },
+    { r: 0.34, y: 0.018, o: color === 'w' ? 0.32 : 0.36 },
+    { r: 0.50, y: 0.014, o: color === 'w' ? 0.20 : 0.24 },
+    { r: 0.66, y: 0.010, o: color === 'w' ? 0.11 : 0.14 },
   ], [color])
 
   useEffect(() => {

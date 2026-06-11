@@ -104,31 +104,31 @@ export const THEME_COLORS: Record<BoardTheme, {
   },
 }
 
-/** Neon piece colors — cyan white, light purple black */
+/** Neon piece colors — ice white + soft pink */
 export const PIECE_PALETTE = {
-  white: { fill: '#dff6ff', stroke: '#06b6d4' },
-  black: { fill: '#c084fc', stroke: '#d8b4fe' },
+  white: { fill: '#eefcff', stroke: '#22d3ee' },
+  black: { fill: '#fce7f3', stroke: '#f472b6' },
 } as const
 
 export const PIECE_ORIG = PIECE_PALETTE
 
-/** 3D neon emissive — dark base + strong emissive for bloom */
+/** 3D — light pearl bodies + cyan / pink neon bloom (hero look) */
 export const PIECE_3D = {
   white: {
-    color:             '#061018',
+    color:             '#f4fcff',
     emissive:          '#22d3ee',
-    emissiveIntensity: 2.85,
+    emissiveIntensity: 1.25,
   },
   black: {
-    color:             '#120818',
-    emissive:          '#d8b4fe',
-    emissiveIntensity: 3.2,
+    color:             '#fff1f8',
+    emissive:          '#f472b6',
+    emissiveIntensity: 1.35,
   },
 } as const
 
 export const PIECE_GLOW = {
-  white: '#06b6d4',
-  black: '#c084fc',
+  white: '#22d3ee',
+  black: '#f472b6',
 } as const
 
 export const BOARD_NEON_GLOW: Record<BoardTheme, string> = {
