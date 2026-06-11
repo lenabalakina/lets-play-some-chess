@@ -4,7 +4,10 @@ import type { ChatMessage, Room, RoomMove } from './roomTypes'
 export type { ChatMessage, Room, RoomMove } from './roomTypes'
 
 function isPersistenceEnabled(): boolean {
-  return !!process.env.SUPABASE_SERVICE_ROLE_KEY && !!process.env.NEXT_PUBLIC_SUPABASE_URL
+  return !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    && !!process.env.NEXT_PUBLIC_SUPABASE_URL
+    && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project')
+    && !process.env.SUPABASE_SERVICE_ROLE_KEY.includes('your-')
 }
 
 async function loadFromDb(code: string): Promise<Omit<Room, 'subscribers'> | null> {
@@ -16,7 +19,7 @@ async function loadFromDb(code: string): Promise<Omit<Room, 'subscribers'> | nul
 async function saveToDb(room: Room): Promise<void> {
   if (!isPersistenceEnabled()) return
   const { saveRoomToDb } = await import('./roomPersistence')
-  await saveToDb(room)
+  await saveRoomToDb(room)
 }
 
 async function codeExistsInDb(code: string): Promise<boolean> {
