@@ -36,11 +36,11 @@ function Scene({ fen, lastMove }: { fen: string; lastMove: { from: Square; to: S
 
   return (
     <>
-      <ambientLight intensity={0.18} color="#334466" />
-      <directionalLight position={[5, 12, 8]} intensity={0.9} color="#c8d8ff" castShadow />
-      <pointLight position={[0, 5, 0]}   intensity={1.7} color="#06b6d4" distance={16} decay={2} />
-      <pointLight position={[-4, 2, -4]} intensity={1.4} color="#f472b6" distance={14} decay={2} />
-      <pointLight position={[4, 2, 4]}   intensity={0.85} color="#0ea5e9" distance={12} decay={2} />
+      <ambientLight intensity={0.42} color="#8899bb" />
+      <directionalLight position={[5, 12, 8]} intensity={1.1} color="#ffffff" castShadow />
+      <pointLight position={[0, 5, 0]}   intensity={0.8} color="#06b6d4" distance={16} decay={2} />
+      <pointLight position={[-4, 2, -4]} intensity={0.6} color="#f472b6" distance={14} decay={2} />
+      <pointLight position={[4, 2, 4]}   intensity={0.45} color="#0ea5e9" distance={12} decay={2} />
 
       <Board3D
         fen={fen}
@@ -104,7 +104,7 @@ export function HeroBoard3D() {
         antialias: true,
         alpha: true,
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.22,
+        toneMappingExposure: 1.0,
       }}
       style={{ width: '100%', height: '100%' }}
     >

@@ -102,7 +102,7 @@ export function ChessBoard3D({
           antialias: true,
           alpha: false,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.22,
+          toneMappingExposure: 1.0,
         }}
         onCreated={({ gl }) => { gl.setClearColor('#070d1a') }}
       >
@@ -112,18 +112,18 @@ export function ChessBoard3D({
           {/* Camera */}
           <CameraRig playerColor={playerColor} />
 
-          {/* Lighting — low ambient so emissive neon reads clearly */}
-          <ambientLight intensity={0.22} color="#334466" />
+          {/* Lighting — enough to read piece shape clearly */}
+          <ambientLight intensity={0.48} color="#8899bb" />
           <directionalLight
             position={[5, 12, 8]}
-            intensity={0.85}
-            color="#c8d8ff"
+            intensity={1.15}
+            color="#ffffff"
             castShadow
             shadow-mapSize={[1024, 1024]}
           />
-          <pointLight position={[0, 5, 0]}   intensity={1.6} color="#06b6d4" distance={16} decay={2} />
-          <pointLight position={[-4, 2, -4]} intensity={1.35} color="#f472b6" distance={15} decay={2} />
-          <pointLight position={[4, 2, 4]}   intensity={0.9} color="#0ea5e9" distance={13} decay={2} />
+          <pointLight position={[0, 5, 0]}   intensity={0.75} color="#06b6d4" distance={16} decay={2} />
+          <pointLight position={[-4, 2, -4]} intensity={0.55} color="#f472b6" distance={15} decay={2} />
+          <pointLight position={[4, 2, 4]}   intensity={0.45} color="#0ea5e9" distance={13} decay={2} />
 
           {/* Board */}
           <Board3D

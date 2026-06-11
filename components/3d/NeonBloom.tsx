@@ -2,16 +2,16 @@
 
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 
-/** Shared neon bloom for all 3D chess canvases */
+/** Subtle bloom — board frame only, keeps pieces sharp */
 export function NeonBloom() {
   return (
-    <EffectComposer multisampling={0} enableNormalPass={false}>
+    <EffectComposer multisampling={4} enableNormalPass={false}>
       <Bloom
-        luminanceThreshold={0.06}
-        luminanceSmoothing={0.72}
-        intensity={1.85}
-        mipmapBlur
-        radius={0.78}
+        luminanceThreshold={0.72}
+        luminanceSmoothing={0.35}
+        intensity={0.42}
+        mipmapBlur={false}
+        radius={0.35}
       />
     </EffectComposer>
   )

@@ -22,7 +22,6 @@ const CHECK_COLOR = new THREE.Color('#ef4444')
 
 export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playerColor, onClick }: Props) {
   const groupRef = useRef<THREE.Group>(null)
-  const auraRef  = useRef<THREE.Mesh>(null)
 
   const piece3d = color === 'w' ? PIECE_3D.white : PIECE_3D.black
   const emissiveColor = useMemo(() => new THREE.Color(piece3d.emissive), [piece3d.emissive])
@@ -31,21 +30,15 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
     color:             new THREE.Color(piece3d.color),
     emissive:          emissiveColor.clone(),
     emissiveIntensity: piece3d.emissiveIntensity,
-    roughness:         0.18,
-    metalness:         0.12,
-    toneMapped:        false,
+    roughness:         0.32,
+    metalness:         0.18,
+    toneMapped:        true,
   }), [color, piece3d, emissiveColor])
-
-  const auraLayers = useMemo(() => [
-    { r: 0.34, y: 0.018, o: color === 'w' ? 0.32 : 0.36 },
-    { r: 0.50, y: 0.014, o: color === 'w' ? 0.20 : 0.24 },
-    { r: 0.66, y: 0.010, o: color === 'w' ? 0.11 : 0.14 },
-  ], [color])
 
   useEffect(() => {
     if (!groupRef.current) return
     groupRef.current.traverse(obj => {
-      if ((obj as THREE.Mesh).isMesh && !(obj as THREE.Mesh).userData.isAura) {
+      if ((obj as THREE.Mesh).isMesh) {
         (obj as THREE.Mesh).material = mat
       }
     })
@@ -82,22 +75,11 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
 
     const base = piece3d.emissiveIntensity
     mat.emissiveIntensity = isSelected
-      ? base * 1.45 + Math.sin(Date.now() * 0.004) * 0.15
-      : isInCheck ? base * 1.6 : base
+      ? base * 1.35
+      : isInCheck ? base * 1.5 : base
     mat.emissive.copy(isInCheck ? CHECK_COLOR : emissiveColor)
 
-    if (auraRef.current) {
-      const pulse = isSelected ? 1.22 + Math.sin(Date.now() * 0.005) * 0.06 : 1
-      auraRef.current.scale.setScalar(pulse)
-      auraRef.current.children.forEach((child, i) => {
-        const mesh = child as THREE.Mesh
-        const base = auraLayers[i]?.o ?? 0.2
-        ;(mesh.material as THREE.MeshBasicMaterial).opacity =
-          base * (isSelected ? 1.4 : 1)
-      })
-    }
-
-    const targetScale = isSelected ? 1.1 : 1.0
+    const targetScale = isSelected ? 1.08 : 1.0
     groupRef.current.scale.lerp(
       new THREE.Vector3(targetScale, targetScale, targetScale),
       delta * 10,
@@ -115,27 +97,6 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
       onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
       onPointerOut={(e) => { e.stopPropagation(); document.body.style.cursor = 'default' }}
     >
-      {/* Layered ground glow — cyan / purple neon halo */}
-      <group ref={auraRef}>
-        {auraLayers.map(({ r, y, o }) => (
-          <mesh
-            key={r}
-            userData={{ isAura: true }}
-            rotation={[-Math.PI / 2, 0, 0]}
-            position={[0, y, 0]}
-          >
-            <circleGeometry args={[r, 32]} />
-            <meshBasicMaterial
-              color={emissiveColor}
-              transparent
-              opacity={o}
-              toneMapped={false}
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-        ))}
-      </group>
       <group rotation={[0, knightRotY, 0]}>
         <PieceShape />
       </group>

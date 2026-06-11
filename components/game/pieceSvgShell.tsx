@@ -18,12 +18,8 @@ export function PieceSvgShell({
   glowId:      string
   glowStrong?: boolean
 }) {
-  const s1 = glowStrong ? 2.2 : 1.6
-  const s2 = glowStrong ? 5   : 3.5
-  const s3 = glowStrong ? 9   : 6
-  const o1 = glowStrong ? 1   : 0.9
-  const o2 = glowStrong ? 0.85 : 0.7
-  const o3 = glowStrong ? 0.55 : 0.4
+  const blur = glowStrong ? 1.4 : 1.0
+  const opacity = glowStrong ? 0.62 : 0.48
 
   return (
     <svg
@@ -31,20 +27,19 @@ export function PieceSvgShell({
       width={size}
       height={size}
       style={{ overflow: 'visible' }}
+      shapeRendering="geometricPrecision"
       aria-hidden
     >
       <defs>
         <filter
           id={glowId}
-          x="-120%"
-          y="-120%"
-          width="340%"
-          height="340%"
+          x="-40%"
+          y="-40%"
+          width="180%"
+          height="180%"
           colorInterpolationFilters="sRGB"
         >
-          <feDropShadow dx="0" dy="0" stdDeviation={s1} floodColor={glowColor} floodOpacity={o1} />
-          <feDropShadow dx="0" dy="0" stdDeviation={s2} floodColor={glowColor} floodOpacity={o2} />
-          <feDropShadow dx="0" dy="0" stdDeviation={s3} floodColor={glowColor} floodOpacity={o3} />
+          <feDropShadow dx="0" dy="0" stdDeviation={blur} floodColor={glowColor} floodOpacity={opacity} />
         </filter>
       </defs>
       <g filter={`url(#${glowId})`}>{children}</g>
