@@ -6,6 +6,12 @@
   "regions": [
     "iad1"
   ],
+  "crons": [
+    {
+      "path": "/api/cron/purge-rooms",
+      "schedule": "0 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -140,6 +140,11 @@ export async function createRoom(playerId: string): Promise<Room> {
 
   await commitRoom(room)
   purgeStaleRooms()
+  if (isPersistenceEnabled()) {
+    void import('./roomPersistence').then(({ deleteStaleRoomsFromDb }) =>
+      deleteStaleRoomsFromDb(6 * 60 * 60 * 1000),
+    )
+  }
   return room
 }
 
