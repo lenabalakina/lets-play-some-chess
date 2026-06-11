@@ -843,7 +843,13 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           : state.winner === 'w' ? 'white'
           : state.winner === 'b' ? 'black'
           : state.winner ?? null}
-        myColor={aiEnabled ? playerColor : (resigningSide ?? state.turn)}
+        myColor={aiEnabled
+          ? playerColor
+          : resigned
+            ? (resigningSide ?? state.turn)
+            : state.winner && state.winner !== 'draw'
+              ? state.winner
+              : state.turn}
         reason={resigned ? 'resign' : (drawn || state.winner === 'draw') ? 'draw' : 'checkmate'}
         myUsername={me.username}
         oppUsername={opponent.username}

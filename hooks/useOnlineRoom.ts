@@ -34,25 +34,55 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const roomNotFoundRef = useRef(false)
   const typingTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const mergeRemoteRoom = useCallback((
+    local: OnlineRoomState,
+    rm: {
+      fen: string; turn: 'w' | 'b'; status: OnlineRoomState['status']
+      winner: OnlineRoomState['winner']; moves?: RoomMove[]
+      messages?: ChatMessage[]; drawOfferedBy?: 'w' | 'b' | null
+    },
+  ): OnlineRoomState | null => {
+    const rmMoves = rm.moves ?? local.moves
+    const rmMessages = rm.messages ?? local.messages
+    const drawOfferedBy = rm.drawOfferedBy ?? null
+
+    // Client already applied a newer move; ignore stale server snapshot.
+    if (local.moves.length > rmMoves.length) return null
+
+    if (
+      local.fen === rm.fen &&
+      local.moves.length === rmMoves.length &&
+      local.turn === rm.turn &&
+      local.status === rm.status &&
+      local.winner === rm.winner &&
+      local.drawOfferedBy === drawOfferedBy &&
+      local.messages.length === rmMessages.length
+    ) {
+      return null
+    }
+
+    return {
+      ...local,
+      fen:           rm.fen,
+      turn:          rm.turn,
+      status:        rm.status,
+      winner:        rm.winner,
+      moves:         rmMoves,
+      messages:      rmMessages,
+      drawOfferedBy,
+      lastMove: rmMoves.length
+        ? { from: rmMoves[rmMoves.length - 1].from, to: rmMoves[rmMoves.length - 1].to }
+        : local.lastMove,
+    }
+  }, [])
+
   const applyRemoteRoom = useCallback((rm: {
     fen: string; turn: 'w' | 'b'; status: OnlineRoomState['status']
     winner: OnlineRoomState['winner']; moves?: RoomMove[]
     messages?: ChatMessage[]; drawOfferedBy?: 'w' | 'b' | null
   }) => {
-    setRoom(r => ({
-      ...r,
-      fen:           rm.fen,
-      turn:          rm.turn,
-      status:        rm.status,
-      winner:        rm.winner,
-      moves:         rm.moves ?? r.moves,
-      messages:      rm.messages ?? r.messages,
-      drawOfferedBy: rm.drawOfferedBy ?? null,
-      lastMove: rm.moves?.length
-        ? { from: rm.moves[rm.moves.length - 1].from, to: rm.moves[rm.moves.length - 1].to }
-        : r.lastMove,
-    }))
-  }, [])
+    setRoom(r => mergeRemoteRoom(r, rm) ?? r)
+  }, [mergeRemoteRoom])
 
   const fetchRoomState = useCallback(async () => {
     if (!code) return
@@ -179,35 +209,11 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         const data = await res.json()
         const rm = data.room
         if (!rm) return
-        setRoom(r => {
-          const drawOfferedBy = rm.drawOfferedBy ?? null
-          if (
-            r.fen === rm.fen &&
-            r.moves.length === (rm.moves?.length ?? 0) &&
-            r.turn === rm.turn &&
-            r.status === rm.status &&
-            r.winner === rm.winner &&
-            r.drawOfferedBy === drawOfferedBy
-          ) {
-            return r
-          }
-          return {
-            ...r,
-            fen:           rm.fen,
-            turn:          rm.turn,
-            status:        rm.status,
-            winner:        rm.winner,
-            moves:         rm.moves ?? [],
-            drawOfferedBy: rm.drawOfferedBy ?? null,
-            lastMove: rm.moves?.length
-              ? { from: rm.moves[rm.moves.length - 1].from, to: rm.moves[rm.moves.length - 1].to }
-              : null,
-          }
-        })
+        setRoom(r => mergeRemoteRoom(r, rm) ?? r)
       } catch { /* ignore poll errors */ }
     }, 5000)
     return () => clearInterval(poll)
-  }, [code])
+  }, [code, mergeRemoteRoom])
 
   const applyMoveToState = useCallback((msg: {
     from: string; to: string; promotion?: string; san: string; fen: string
