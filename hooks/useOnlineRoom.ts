@@ -33,6 +33,37 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const retryCountRef   = useRef(0)
   const roomNotFoundRef = useRef(false)
   const typingTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const applyRemoteRoom = useCallback((rm: {
+    fen: string; turn: 'w' | 'b'; status: OnlineRoomState['status']
+    winner: OnlineRoomState['winner']; moves?: RoomMove[]
+    messages?: ChatMessage[]; drawOfferedBy?: 'w' | 'b' | null
+  }) => {
+    setRoom(r => ({
+      ...r,
+      fen:           rm.fen,
+      turn:          rm.turn,
+      status:        rm.status,
+      winner:        rm.winner,
+      moves:         rm.moves ?? r.moves,
+      messages:      rm.messages ?? r.messages,
+      drawOfferedBy: rm.drawOfferedBy ?? null,
+      lastMove: rm.moves?.length
+        ? { from: rm.moves[rm.moves.length - 1].from, to: rm.moves[rm.moves.length - 1].to }
+        : r.lastMove,
+    }))
+  }, [])
+
+  const fetchRoomState = useCallback(async () => {
+    if (!code) return
+    try {
+      const res = await fetch(`/api/room/${code}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.room) applyRemoteRoom(data.room)
+    } catch { /* ignore */ }
+  }, [code, applyRemoteRoom])
+
   const [room, setRoom] = useState<OnlineRoomState>({
     fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     turn:           'w',
@@ -64,18 +95,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         const msg = JSON.parse(e.data)
         if (msg.type === 'init' || msg.type === 'start') {
           const rm = msg.room
-          setRoom(r => ({
-            ...r,
-            fen:      rm.fen,
-            turn:     rm.turn,
-            status:   rm.status,
-            winner:   rm.winner,
-            moves:    rm.moves ?? [],
-            messages: rm.messages ?? [],
-            lastMove: rm.moves?.length
-              ? { from: rm.moves[rm.moves.length - 1].from, to: rm.moves[rm.moves.length - 1].to }
-              : null,
-          }))
+          applyRemoteRoom(rm)
         } else if (msg.type === 'move') {
           setRoom(r => {
             const last = r.moves[r.moves.length - 1]
@@ -104,7 +124,10 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
           setRoom(r => ({ ...r, drawOfferedBy: null }))
         } else if (msg.type === 'presence') {
           const isOpponent = msg.color !== myColor
-          if (isOpponent) setRoom(r => ({ ...r, opponentOnline: msg.online }))
+          if (isOpponent) {
+            setRoom(r => ({ ...r, opponentOnline: msg.online }))
+            if (msg.online) fetchRoomState()
+          }
         } else if (msg.type === 'typing') {
           setRoom(r => ({ ...r, opponentTyping: true }))
           if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
@@ -132,7 +155,19 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     }
 
     return () => es.close()
-  }, [code, playerId, retryKey, myColor])
+  }, [code, playerId, retryKey, myColor, applyRemoteRoom, fetchRoomState])
+
+  // Fast poll while waiting for opponent (covers missed SSE start event)
+  const statusRef = useRef(room.status)
+  useEffect(() => { statusRef.current = room.status }, [room.status])
+
+  useEffect(() => {
+    if (!code) return
+    const fast = setInterval(() => {
+      if (statusRef.current === 'waiting') fetchRoomState()
+    }, 1500)
+    return () => clearInterval(fast)
+  }, [code, fetchRoomState])
 
   // Poll authoritative room state as fallback (cross-instance SSE gaps)
   useEffect(() => {

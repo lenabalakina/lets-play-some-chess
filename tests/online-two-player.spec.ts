@@ -14,15 +14,13 @@ test('two players join by code and white move syncs to black', async ({ browser 
   const code = white.url().split('/').pop()!.split('?')[0]
   await expect(white.getByText(/waiting for opponent/i)).toBeVisible({ timeout: 8_000 })
 
-  // Player 2 joins with code
-  await black.goto('/play/online')
-  await black.getByPlaceholder('ROOM CODE').fill(code)
-  await black.locator('button').filter({ has: black.locator('svg') }).last().click()
-  await expect(black).toHaveURL(new RegExp(`play/online/${code}`), { timeout: 10_000 })
+  // Player 2 joins via direct URL (auto-join on page load)
+  await black.goto(`/play/online/${code}?color=b`)
+  await expect(black).toHaveURL(new RegExp(`play/online/${code}`), { timeout: 15_000 })
 
   // Game should start for both
-  await expect(white.getByText(/your move|opponent/i)).toBeVisible({ timeout: 10_000 })
-  await expect(black.getByText(/your move|opponent/i)).toBeVisible({ timeout: 10_000 })
+  await expect(white.getByText(/♟ Your move|opponent's turn/i)).toBeVisible({ timeout: 15_000 })
+  await expect(black.getByText(/♟ Your move|opponent's turn/i)).toBeVisible({ timeout: 15_000 })
 
   // White plays e2-e4
   await white.locator('[data-square="e2"]').click()
@@ -47,10 +45,8 @@ test('black player sees own pieces at bottom of 2D board', async ({ browser }) =
   await expect(white).toHaveURL(/play\/online\/[A-Z0-9]{6}/, { timeout: 10_000 })
   const code = white.url().split('/').pop()!.split('?')[0]
 
-  await black.goto('/play/online')
-  await black.getByPlaceholder('ROOM CODE').fill(code)
-  await black.locator('button').filter({ has: black.locator('svg') }).last().click()
-  await expect(black).toHaveURL(new RegExp(`play/online/${code}`), { timeout: 10_000 })
+  await black.goto(`/play/online/${code}?color=b`)
+  await expect(black).toHaveURL(new RegExp(`play/online/${code}`), { timeout: 15_000 })
 
   // Black's e7 pawn should be on a lower row than e2 (rank 7 vs rank 2 in DOM order for black view)
   const e7Box = await black.locator('[data-square="e7"]').boundingBox()

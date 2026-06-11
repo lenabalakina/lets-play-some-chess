@@ -124,8 +124,11 @@ export function MultiplayerGameLayout({
     const result: GameResultColor = color === 'w' ? 'black' : 'white'
     setGameOver({ result, reason: 'timeout' })
     forceGameOver(resultToWinner(result))
+    if (color === me.color) {
+      resignGame(gameId).catch(() => {})
+    }
     chessAudio.gameLose()
-  }, [forceGameOver])
+  }, [forceGameOver, me.color, gameId])
 
   const { whiteMs, blackMs } = useTimer({
     initialWhiteMs: whiteTimeMs,

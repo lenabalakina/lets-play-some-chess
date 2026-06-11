@@ -55,7 +55,9 @@ function buildInitialState(chess: Chess): GameState {
   }
 }
 
-export function useChessGame(playerColor: Color = 'w') {
+export type ColorLock = 'fixed' | 'turn'
+
+export function useChessGame(playerColor: Color = 'w', colorLock: ColorLock = 'fixed') {
   const chessRef = { current: new Chess() }
   // We keep chess instance in a ref-like pattern via closure; reducer handles immutable state.
   // For phase 1 (local play), we instantiate once. Multiplayer will hydrate from FEN.
@@ -67,14 +69,14 @@ export function useChessGame(playerColor: Color = 'w') {
         case 'SELECT': {
           if (state.isGameOver) return state
           const { square } = action
-          if (state.turn !== playerColor) {
+          const activeColor = colorLock === 'turn' ? state.turn : playerColor
+          if (state.turn !== activeColor) {
             return { ...state, selectedSquare: null, legalMoves: [] }
           }
-          // Deselect if same square clicked
           if (state.selectedSquare === square) {
             return { ...state, selectedSquare: null, legalMoves: [] }
           }
-          if (!canPlayerSelectPiece(state.fen, square, playerColor, state.turn === playerColor)) {
+          if (!canPlayerSelectPiece(state.fen, square, activeColor, state.turn === activeColor)) {
             return { ...state, selectedSquare: null, legalMoves: [] }
           }
           const tempChess = new Chess(state.fen)
@@ -217,7 +219,7 @@ export function useChessGame(playerColor: Color = 'w') {
     dispatch({ type: 'FORCE_GAME_OVER', winner })
   }, [])
 
-  const isMyTurn = state.turn === playerColor
+  const isMyTurn = colorLock === 'turn' ? !state.isGameOver : state.turn === playerColor
 
   return { state, selectSquare, makeMove, applyOpponentMove, resetGame, hydrate, forceGameOver, isMyTurn }
 }

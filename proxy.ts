@@ -36,7 +36,8 @@ export async function proxy(request: NextRequest) {
                       (path.startsWith('/play') &&
                        !path.startsWith('/play/local') &&
                        !path.startsWith('/play/ai') &&
-                       !path.startsWith('/play/online'))
+                       !path.startsWith('/play/online') &&
+                       !path.startsWith('/play/3d'))
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))
