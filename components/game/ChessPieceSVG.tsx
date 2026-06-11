@@ -1,6 +1,7 @@
 // Crisp Staunton-style chess pieces — no blur, sharp vector edges
 
 import type { PieceType } from '@/features/chess/types/chess.types'
+import { PIECE_PALETTE } from '@/features/chess/types/chess.types'
 
 interface PieceProps { fill: string; stroke: string; size?: number | string }
 
@@ -129,9 +130,7 @@ interface ChessPieceSVGProps {
 }
 
 export function ChessPieceSVG({ type, isWhite, isSelected, size = 45 }: ChessPieceSVGProps) {
-  // White = bright ice, Black = vivid purple — both equally vibrant, NO blur
-  const fill   = isWhite ? '#dff6ff' : '#c084fc'
-  const stroke = isWhite ? '#06b6d4' : '#7c3aed'
+  const { fill, stroke } = isWhite ? PIECE_PALETTE.white : PIECE_PALETTE.black
 
   const Piece = { p: PawnSVG, r: RookSVG, n: KnightSVG, b: BishopSVG, q: QueenSVG, k: KingSVG }[type]
 

@@ -2,13 +2,13 @@
 
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useEffect, useState } from 'react'
+import * as THREE from 'three'
 import { Chess } from 'chess.js'
 import { Board3D } from './3d/Board3D'
 import { ChessPiece3D } from './3d/ChessPiece3D'
+import { NeonBloom } from './3d/NeonBloom'
 import type { Color, PieceType, Square } from '@/features/chess/types/chess.types'
 
-// Morphy's Opera Game (1858) — one of the most brilliant short games ever played
-// Features piece sacrifices, a rook sacrifice, and a queen sacrifice to force checkmate
 const MOVES = [
   'e4', 'e5', 'Nf3', 'd6', 'd4', 'Bg4',
   'dxe5', 'Bxf3', 'Qxf3', 'dxe5', 'Bc4', 'Nf6',
@@ -36,11 +36,11 @@ function Scene({ fen, lastMove }: { fen: string; lastMove: { from: Square; to: S
 
   return (
     <>
-      <ambientLight intensity={0.5} color="#ffffff" />
-      <directionalLight position={[5, 12, 8]} intensity={1.4} color="#ffffff" castShadow />
-      <pointLight position={[0, 4, 0]}   intensity={1.0} color="#06b6d4" distance={14} />
-      <pointLight position={[-4, 2, -4]} intensity={0.6} color="#a855f7" distance={10} />
-      <pointLight position={[4, 2, 4]}   intensity={0.4} color="#0ea5e9" distance={10} />
+      <ambientLight intensity={0.52} color="#eef4ff" />
+      <directionalLight position={[5, 12, 8]} intensity={1.25} color="#ffffff" castShadow />
+      <pointLight position={[0, 4, 0]}   intensity={0.85} color="#06b6d4" distance={14} />
+      <pointLight position={[-4, 2, -4]} intensity={0.55} color="#f9a8d4" distance={11} />
+      <pointLight position={[4, 2, 4]}   intensity={0.35} color="#0ea5e9" distance={10} />
 
       <Board3D
         fen={fen}
@@ -67,7 +67,6 @@ function Scene({ fen, lastMove }: { fen: string; lastMove: { from: Square; to: S
           onClick={() => {}}
         />
       ))}
-
     </>
   )
 }
@@ -83,15 +82,13 @@ export function HeroBoard3D() {
       setMoveIdx(i => {
         const next = i % MOVES.length
         try {
-          if (next === 0) {
-            chess.reset()
-          }
+          if (next === 0) chess.reset()
           const result = chess.move(MOVES[next])
           if (result) {
             setFen(chess.fen())
             setLastMove({ from: result.from as Square, to: result.to as Square })
           }
-        } catch {}
+        } catch { /* invalid move in loop */ }
         return next + 1
       })
     }, 1600)
@@ -100,15 +97,20 @@ export function HeroBoard3D() {
 
   return (
     <Canvas
-      flat
       shadows
       camera={{ position: [0, 9, 9], fov: 45 }}
-      gl={{ antialias: true, alpha: true }}
+      gl={{
+        antialias: true,
+        alpha: true,
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: 1.05,
+      }}
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
         <Scene fen={fen} lastMove={lastMove} />
       </Suspense>
+      <NeonBloom />
     </Canvas>
   )
 }

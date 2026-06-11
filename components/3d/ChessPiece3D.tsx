@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { PIECE_COMPONENTS } from './PieceShapes'
 import { chessSquareToWorld3D } from '@/features/chess/boardCoordinates'
 import type { Color, PieceType, Square } from '@/features/chess/types/chess.types'
+import { PIECE_3D } from '@/features/chess/types/chess.types'
 
 interface Props {
   square:      Square
@@ -17,24 +18,22 @@ interface Props {
   onClick:     (sq: Square) => void
 }
 
-const WHITE_EMISSIVE = new THREE.Color('#06b6d4')   // cyan
-const BLACK_EMISSIVE = new THREE.Color('#a855f7')   // purple
-const CHECK_COLOR    = new THREE.Color('#ef4444')   // red
+const CHECK_COLOR = new THREE.Color('#ef4444')
 
 export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playerColor, onClick }: Props) {
   const groupRef = useRef<THREE.Group>(null)
 
-  // Create material imperatively — avoids the JSX ref-override bug where
-  // spreading material.props clobbered MaterialProvider's ref, leaving meshes uncolored
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({
-    color:             new THREE.Color(color === 'w' ? '#ffffff' : '#110618'),
-    emissive:          color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE,
-    emissiveIntensity: color === 'w' ? 0.55 : 1.3,
-    roughness:         0.30,
-    metalness:         0.15,
-  }), [color])
+  const piece3d = color === 'w' ? PIECE_3D.white : PIECE_3D.black
+  const emissiveColor = useMemo(() => new THREE.Color(piece3d.emissive), [piece3d.emissive])
 
-  // Apply material to every child mesh after each render
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({
+    color:             new THREE.Color(piece3d.color),
+    emissive:          emissiveColor.clone(),
+    emissiveIntensity: piece3d.emissiveIntensity,
+    roughness:         0.32,
+    metalness:         0.24,
+  }), [color, piece3d, emissiveColor])
+
   useEffect(() => {
     if (!groupRef.current) return
     groupRef.current.traverse(obj => {
@@ -42,18 +41,14 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
         (obj as THREE.Mesh).material = mat
       }
     })
-  })
+  }, [mat])
 
-  // Target 3D position
   const target  = chessSquareToWorld3D(square, playerColor)
   const current = useRef<[number, number, number]>([...target])
   const moving  = useRef(false)
 
-  useEffect(() => {
-    moving.current = true
-  }, [square])
+  useEffect(() => { moving.current = true }, [square])
 
-  // Mount: scale in from zero
   useEffect(() => {
     if (groupRef.current) groupRef.current.scale.setScalar(0)
   }, [])
@@ -61,7 +56,6 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
   useFrame((_, delta) => {
     if (!groupRef.current) return
 
-    // Smooth position lerp + arc
     const lerpSpeed = 8
     const dx   = target[0] - current.current[0]
     const dz   = target[2] - current.current[2]
@@ -78,23 +72,20 @@ export function ChessPiece3D({ square, type, color, isSelected, isInCheck, playe
     }
     groupRef.current.position.set(...current.current)
 
-    // Animate emissive intensity
-    const base = color === 'w' ? 0.20 : 0.55
+    const base = piece3d.emissiveIntensity
     mat.emissiveIntensity = isSelected
-      ? 0.7 + Math.sin(Date.now() * 0.005) * 0.15
-      : isInCheck ? 0.7 : base
-    mat.emissive = isInCheck ? CHECK_COLOR : (color === 'w' ? WHITE_EMISSIVE : BLACK_EMISSIVE)
+      ? base * 1.5
+      : isInCheck ? base * 1.65 : base
+    mat.emissive.copy(isInCheck ? CHECK_COLOR : emissiveColor)
 
-    // Scale pulse on selection
-    const targetScale = isSelected ? 1.1 : 1.0
+    const targetScale = isSelected ? 1.08 : 1.0
     groupRef.current.scale.lerp(
       new THREE.Vector3(targetScale, targetScale, targetScale),
-      delta * 10
+      delta * 10,
     )
   })
 
   const PieceShape = PIECE_COMPONENTS[type]
-  // Knight snout faces +Z; white pieces sit at +Z (near camera) so rotate 180° to face the opponent
   const knightRotY = type === 'n' && color === 'w' ? Math.PI : 0
 
   return (

@@ -103,3 +103,23 @@ export const THEME_COLORS: Record<BoardTheme, {
     check:     'rgba(239, 68, 68, 0.6)',
   },
 }
+
+/** 2D + 3D piece palette — ice white vs soft pink (reference hero look) */
+export const PIECE_PALETTE = {
+  white: { fill: '#eef6ff', stroke: '#06b6d4' },
+  black: { fill: '#fce7f3', stroke: '#f472b6' },
+} as const
+
+/** 3D satin pieces — sharp bodies, subtle rim glow */
+export const PIECE_3D = {
+  white: {
+    color:             '#f0f9ff',
+    emissive:          '#67e8f9',
+    emissiveIntensity: 0.14,
+  },
+  black: {
+    color:             '#fdf2f8',
+    emissive:          '#f9a8d4',
+    emissiveIntensity: 0.16,
+  },
+} as const

@@ -155,22 +155,27 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
 
       {tiles}
 
-      {/* Top ring — flat shape handles connected corners */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.09, 0]} renderOrder={1}>
+      {/* Outer neon ring */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.09, 0]} renderOrder={2}>
         <shapeGeometry args={[frameShape]} />
-        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={2} depthWrite={false} />
+        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={2.2} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Inner accent ring — double-line frame like reference */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.088, 0]} renderOrder={1}>
+        <ringGeometry args={[3.92, 4.04, 4]} />
+        <meshStandardMaterial color="#0891b2" emissive="#22d3ee" emissiveIntensity={1.4} toneMapped={false} depthWrite={false} transparent opacity={0.85} />
       </mesh>
       {/* Side glow — thin strips on the outer faces of the board surround */}
       {([-4.21, 4.21] as number[]).map(x => (
         <mesh key={`sx${x}`} position={[x, -0.04, 0]}>
           <boxGeometry args={[0.03, 0.12, 8.4]} />
-          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} />
+          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.6} toneMapped={false} />
         </mesh>
       ))}
       {([-4.21, 4.21] as number[]).map(z => (
         <mesh key={`sz${z}`} position={[0, -0.04, z]}>
           <boxGeometry args={[8.4, 0.12, 0.03]} />
-          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} />
+          <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.6} toneMapped={false} />
         </mesh>
       ))}
     </group>

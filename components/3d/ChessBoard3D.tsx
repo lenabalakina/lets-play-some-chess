@@ -8,6 +8,7 @@ import { Download } from 'lucide-react'
 import { Board3D } from './Board3D'
 import { ChessPiece3D } from './ChessPiece3D'
 import { CameraRig } from './CameraRig'
+import { NeonBloom } from './NeonBloom'
 import { exportSceneAsGlb } from '@/lib/exportGlb'
 import type { BoardTheme, Color, PieceType, Square } from '@/features/chess/types/chess.types'
 
@@ -91,7 +92,7 @@ export function ChessBoard3D({
     <div
       className="relative rounded-sm overflow-hidden w-full h-full"
       style={{
-        boxShadow: '0 0 60px rgba(6,182,212,0.15), 0 0 120px rgba(139,92,246,0.08)',
+        boxShadow: '0 0 48px rgba(6,182,212,0.22), 0 0 80px rgba(244,114,182,0.1), 0 16px 48px rgba(0,0,0,0.5)',
         cursor: isGameOver ? 'default' : (isMyTurn ? 'crosshair' : 'default'),
       }}
     >
@@ -106,19 +107,18 @@ export function ChessBoard3D({
           {/* Camera */}
           <CameraRig playerColor={playerColor} />
 
-          {/* Lighting */}
-          <ambientLight intensity={0.9} color="#ffffff" />
+          {/* Lighting — crisp pieces, cyan frame glow */}
+          <ambientLight intensity={0.5} color="#eef4ff" />
           <directionalLight
             position={[5, 12, 8]}
-            intensity={1.8}
+            intensity={1.2}
             color="#ffffff"
             castShadow
             shadow-mapSize={[1024, 1024]}
           />
-          {/* Neon fill lights — stronger without Bloom to compensate */}
-          <pointLight position={[0, 4, 0]}   intensity={1.4}  color="#06b6d4" distance={14} />
-          <pointLight position={[-4, 2, -4]} intensity={1.0}  color="#c084fc" distance={12} />
-          <pointLight position={[4, 2, 4]}   intensity={0.7}  color="#0ea5e9" distance={12} />
+          <pointLight position={[0, 4, 0]}   intensity={0.9}  color="#06b6d4" distance={14} />
+          <pointLight position={[-4, 2, -4]} intensity={0.55} color="#f9a8d4" distance={12} />
+          <pointLight position={[4, 2, 4]}   intensity={0.4}  color="#0ea5e9" distance={12} />
 
           {/* Board */}
           <Board3D
@@ -148,6 +148,7 @@ export function ChessBoard3D({
           ))}
 
         </Suspense>
+        <NeonBloom />
       </Canvas>
 
       {/* Export GLB button */}
