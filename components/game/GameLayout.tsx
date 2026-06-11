@@ -327,7 +327,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
     onSquareClick:  handleSquareClick,
   }
   const board2DProps = { ...sharedBoardProps, playerColor: aiEnabled ? playerColor : state.turn }
-  const board3DProps = { ...sharedBoardProps, playerColor: 'w' as const }
+  const board3DProps = { ...sharedBoardProps, playerColor: aiEnabled ? playerColor : state.turn }
 
   const statusText = isGameOver
     ? (resigned

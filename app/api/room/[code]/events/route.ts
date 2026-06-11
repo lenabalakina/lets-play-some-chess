@@ -1,32 +1,29 @@
 import { NextRequest } from 'next/server'
-import { rooms, subscribe, unsubscribe, safeRoom, broadcastPresence } from '@/lib/rooms'
+import { resolveRoom, subscribe, unsubscribe, safeRoom, broadcastPresence } from '@/lib/rooms'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
   const upperCode = code.toUpperCase()
-  const playerId  = req.nextUrl.searchParams.get('playerId') ?? 'anon'
-  const connId    = crypto.randomUUID() // unique per SSE connection, guards reload race
+  const playerId  = req.nextUrl.searchParams.get('playerId')
+  if (!playerId || playerId === 'anon') {
+    return new Response(JSON.stringify({ error: 'playerId required' }), { status: 400 })
+  }
+  const connId = crypto.randomUUID()
 
-  const room = rooms.get(upperCode)
-  const enc  = new TextEncoder()
+  const enc = new TextEncoder()
 
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      // Subscribe first so no broadcasts are missed between reading state and subscribing
-      subscribe(upperCode, playerId, controller, connId)
-
-      // Tell the other player this player is now online
+    async start(controller) {
+      await subscribe(upperCode, playerId, controller, connId)
       broadcastPresence(upperCode, playerId, true)
 
-      // Send initial state after subscribing (safe to re-read room now)
-      const currentRoom = rooms.get(upperCode)
+      const currentRoom = await resolveRoom(upperCode)
       if (currentRoom) {
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'init', room: safeRoom(currentRoom) })}\n\n`))
       } else {
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'error', error: 'Room not found' })}\n\n`))
       }
 
-      // Keep-alive heartbeat every 20 s
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(enc.encode(': heartbeat\n\n'))

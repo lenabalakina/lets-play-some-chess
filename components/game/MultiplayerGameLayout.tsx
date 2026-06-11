@@ -22,7 +22,7 @@ import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { useGameChannel } from '@/features/multiplayer/hooks/useGameChannel'
 import { recordMove, resignGame, offerDraw } from '@/features/multiplayer/actions/game'
 import { chessAudio } from '@/lib/audio'
-import type { BoardTheme, Color, GameResultColor, MoveRecord, TimeControl } from '@/features/chess/types/chess.types'
+import type { BoardTheme, Color, GameResultColor, MoveRecord, Square, TimeControl } from '@/features/chess/types/chess.types'
 import { resultToWinner } from '@/features/chess/types/chess.types'
 import { Radio, Wifi, WifiOff, Volume2, VolumeX, X, AlignJustify, MessageCircle } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
@@ -103,11 +103,11 @@ export function MultiplayerGameLayout({
 
   const moveStartTime = useRef<number>(Date.now())
 
-  const { state, selectSquare, applyOpponentMove, hydrate, forceGameOver } = useChessGame(me.color)
+  const { state, selectSquare, makeMove, applyOpponentMove, hydrate, forceGameOver } = useChessGame(me.color)
 
-  // Hydrate board from server state on mount
+  // Hydrate board from server state on mount (including fresh games with no moves yet)
   useEffect(() => {
-    if (initialFen && initialMoves.length > 0) {
+    if (initialFen) {
       hydrate(initialFen, initialMoves)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,12 +184,15 @@ export function MultiplayerGameLayout({
   // ── My move submission ────────────────────────────────────────────────────
   const submitMove = useCallback(async (from: string, to: string, promotion?: string) => {
     const timeTakenMs = Date.now() - moveStartTime.current
-    selectSquare(to)   // optimistic local update
 
     const result = await recordMove(gameId, from, to, promotion, timeTakenMs)
     if (result.error) {
       toast.error(`Move rejected: ${result.error}`)
       return
+    }
+
+    if (result.fen) {
+      makeMove(from as Square, to as Square, promotion, timeTakenMs)
     }
 
     // Play sounds based on move notation
@@ -211,7 +214,7 @@ export function MultiplayerGameLayout({
       else if (iWon)                chessAudio.gameWin()
       else                          chessAudio.gameLose()
     }
-  }, [gameId, me.color, selectSquare, forceGameOver])
+  }, [gameId, me.color, makeMove, forceGameOver])
 
   const handleSquareClick = useCallback(async (square: string) => {
     if (gameOver || state.isGameOver) return

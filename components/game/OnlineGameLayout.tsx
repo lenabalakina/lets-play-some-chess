@@ -10,6 +10,7 @@ import { MoveLog } from './MoveLog'
 import { PromotionDialog } from './PromotionDialog'
 import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
+import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
 import { chessAudio } from '@/lib/audio'
 import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/types/chess.types'
 import { THEME_COLORS } from '@/features/chess/types/chess.types'
@@ -131,15 +132,11 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     }
 
     const chess = new Chess(room.fen)
-    const moves = chess.moves({ square: sq as Parameters<typeof chess.moves>[0]['square'], verbose: true })
-    const myMoves = moves.filter(() => {
-      const piece = chess.get(sq as Parameters<typeof chess.get>[0])
-      return piece?.color === myColor
-    })
+    const myMoves = getLegalTargetsForPlayer(room.fen, sq, myColor)
 
     if (myMoves.length > 0) {
       setSelectedSquare(sq)
-      setLegalMoves(myMoves.map(m => m.to))
+      setLegalMoves(myMoves)
     } else {
       setSelectedSquare(null)
       setLegalMoves([])

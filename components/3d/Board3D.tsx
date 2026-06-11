@@ -4,17 +4,10 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import type { BoardTheme, Color, Square } from '@/features/chess/types/chess.types'
 import { THEME_COLORS } from '@/features/chess/types/chess.types'
+import { chessSquareToWorld3D } from '@/features/chess/boardCoordinates'
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8']
-
-function squareTo3D(sq: Square, playerColor: Color): [number, number, number] {
-  const file = sq.charCodeAt(0) - 97
-  const rank = parseInt(sq[1]) - 1
-  if (playerColor === 'w') return [file - 3.5, 0, 3.5 - rank]
-  // Black: mirror x (a-file on right) but same z direction (rank 8 near camera = bottom of screen)
-  return [3.5 - file, 0, 3.5 - rank]
-}
 
 interface TileProps {
   square:       Square
@@ -32,7 +25,7 @@ interface TileProps {
 
 function Tile({ square, playerColor, isLight, isSelected, isLegal, isLastFrom, isLastTo, isCheck, theme, transparentBg, onClick }: TileProps) {
   const tc  = THEME_COLORS[theme]
-  const pos = squareTo3D(square, playerColor)
+  const pos = chessSquareToWorld3D(square, playerColor)
   const dotPos: [number, number, number] = [pos[0], 0.08, pos[2]]
 
   const hasMarking = isCheck || isSelected || isLastFrom || isLastTo

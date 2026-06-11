@@ -77,15 +77,21 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
               : null,
           }))
         } else if (msg.type === 'move') {
-          setRoom(r => ({
-            ...r,
-            fen:      msg.fen,
-            turn:     msg.turn,
-            status:   msg.status,
-            winner:   msg.winner,
-            lastMove: { from: msg.from, to: msg.to },
-            moves:    [...r.moves, { from: msg.from, to: msg.to, promotion: msg.promotion, san: msg.san, fen: msg.fen }],
-          }))
+          setRoom(r => {
+            const last = r.moves[r.moves.length - 1]
+            if (last?.from === msg.from && last?.to === msg.to && last?.fen === msg.fen) {
+              return { ...r, fen: msg.fen, turn: msg.turn, status: msg.status, winner: msg.winner }
+            }
+            return {
+              ...r,
+              fen:      msg.fen,
+              turn:     msg.turn,
+              status:   msg.status,
+              winner:   msg.winner,
+              lastMove: { from: msg.from, to: msg.to },
+              moves:    [...r.moves, { from: msg.from, to: msg.to, promotion: msg.promotion, san: msg.san, fen: msg.fen }],
+            }
+          })
         } else if (msg.type === 'resign') {
           setRoom(r => ({ ...r, status: 'finished', winner: msg.winner }))
         } else if (msg.type === 'chat') {
@@ -126,7 +132,59 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     }
 
     return () => es.close()
-  }, [code, playerId, retryKey])
+  }, [code, playerId, retryKey, myColor])
+
+  // Poll authoritative room state as fallback (cross-instance SSE gaps)
+  useEffect(() => {
+    if (!code) return
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/room/${code}`)
+        if (!res.ok) return
+        const data = await res.json()
+        const rm = data.room
+        if (!rm) return
+        setRoom(r => {
+          if (r.status === 'finished' && rm.status === 'finished' && r.fen === rm.fen) return r
+          if (r.fen === rm.fen && r.moves.length === (rm.moves?.length ?? 0) && r.turn === rm.turn) return r
+          return {
+            ...r,
+            fen:           rm.fen,
+            turn:          rm.turn,
+            status:        rm.status,
+            winner:        rm.winner,
+            moves:         rm.moves ?? [],
+            drawOfferedBy: rm.drawOfferedBy ?? null,
+            lastMove: rm.moves?.length
+              ? { from: rm.moves[rm.moves.length - 1].from, to: rm.moves[rm.moves.length - 1].to }
+              : null,
+          }
+        })
+      } catch { /* ignore poll errors */ }
+    }, 5000)
+    return () => clearInterval(poll)
+  }, [code])
+
+  const applyMoveToState = useCallback((msg: {
+    from: string; to: string; promotion?: string; san: string; fen: string
+    turn: 'w' | 'b'; status: OnlineRoomState['status']; winner: OnlineRoomState['winner']
+  }) => {
+    setRoom(r => {
+      const last = r.moves[r.moves.length - 1]
+      if (last?.from === msg.from && last?.to === msg.to && last?.fen === msg.fen) {
+        return { ...r, fen: msg.fen, turn: msg.turn, status: msg.status, winner: msg.winner }
+      }
+      return {
+        ...r,
+        fen:      msg.fen,
+        turn:     msg.turn,
+        status:   msg.status,
+        winner:   msg.winner,
+        lastMove: { from: msg.from, to: msg.to },
+        moves:    [...r.moves, { from: msg.from, to: msg.to, promotion: msg.promotion, san: msg.san, fen: msg.fen }],
+      }
+    })
+  }, [])
 
   const makeMove = useCallback(async (from: string, to: string, promotion?: string): Promise<{ ok: boolean; error?: string }> => {
     try {
@@ -136,11 +194,23 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         body:    JSON.stringify({ playerId, from, to, promotion }),
       })
       const data = await res.json()
+      if (data.ok && data.move && data.room) {
+        applyMoveToState({
+          from: data.move.from,
+          to: data.move.to,
+          promotion: data.move.promotion,
+          san: data.move.san,
+          fen: data.room.fen,
+          turn: data.room.turn,
+          status: data.room.status,
+          winner: data.room.winner,
+        })
+      }
       return data
     } catch {
       return { ok: false, error: 'Network error' }
     }
-  }, [code, playerId])
+  }, [code, playerId, applyMoveToState])
 
   const resign = useCallback(async () => {
     await fetch(`/api/room/${code}/resign`, {
