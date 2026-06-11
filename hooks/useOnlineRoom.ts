@@ -43,11 +43,13 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     },
   ): OnlineRoomState | null => {
     const rmMoves = rm.moves ?? local.moves
-    const rmMessages = rm.messages ?? local.messages
+    const rmMessages = rm.messages ?? []
     const drawOfferedBy = rm.drawOfferedBy ?? null
 
     // Client already applied a newer move; ignore stale server snapshot.
     if (local.moves.length > rmMoves.length) return null
+
+    const messages = local.messages.length > rmMessages.length ? local.messages : rmMessages
 
     if (
       local.fen === rm.fen &&
@@ -56,7 +58,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       local.status === rm.status &&
       local.winner === rm.winner &&
       local.drawOfferedBy === drawOfferedBy &&
-      local.messages.length === rmMessages.length
+      local.messages.length === messages.length
     ) {
       return null
     }
@@ -68,7 +70,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       status:        rm.status,
       winner:        rm.winner,
       moves:         rmMoves,
-      messages:      rmMessages,
+      messages,
       drawOfferedBy,
       lastMove: rmMoves.length
         ? { from: rmMoves[rmMoves.length - 1].from, to: rmMoves[rmMoves.length - 1].to }

@@ -9,8 +9,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
     return new Response(JSON.stringify({ error: 'playerId required' }), { status: 400 })
   }
   const connId = crypto.randomUUID()
-
   const enc = new TextEncoder()
+  let heartbeat: ReturnType<typeof setInterval> | null = null
+  let cleaned = false
+
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    if (heartbeat) {
+      clearInterval(heartbeat)
+      heartbeat = null
+    }
+    unsubscribe(upperCode, playerId, connId)
+    broadcastPresence(upperCode, playerId, false)
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -24,22 +36,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'error', error: 'Room not found' })}\n\n`))
       }
 
-      const heartbeat = setInterval(() => {
+      heartbeat = setInterval(() => {
         try {
           controller.enqueue(enc.encode(': heartbeat\n\n'))
         } catch {
-          clearInterval(heartbeat)
+          cleanup()
         }
       }, 20_000)
 
-      req.signal.addEventListener('abort', () => {
-        clearInterval(heartbeat)
-        unsubscribe(upperCode, playerId, connId)
-        broadcastPresence(upperCode, playerId, false)
-      })
+      req.signal.addEventListener('abort', cleanup)
     },
     cancel() {
-      unsubscribe(upperCode, playerId, connId)
+      cleanup()
     },
   })
 
