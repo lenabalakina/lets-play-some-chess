@@ -180,8 +180,17 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         const rm = data.room
         if (!rm) return
         setRoom(r => {
-          if (r.status === 'finished' && rm.status === 'finished' && r.fen === rm.fen) return r
-          if (r.fen === rm.fen && r.moves.length === (rm.moves?.length ?? 0) && r.turn === rm.turn) return r
+          const drawOfferedBy = rm.drawOfferedBy ?? null
+          if (
+            r.fen === rm.fen &&
+            r.moves.length === (rm.moves?.length ?? 0) &&
+            r.turn === rm.turn &&
+            r.status === rm.status &&
+            r.winner === rm.winner &&
+            r.drawOfferedBy === drawOfferedBy
+          ) {
+            return r
+          }
           return {
             ...r,
             fen:           rm.fen,
