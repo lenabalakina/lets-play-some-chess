@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { Chess } from 'chess.js'
 import { ChessBoard2D } from './ChessBoard2D'
@@ -104,7 +103,7 @@ export function MultiplayerGameLayout({
   const [promoDialog,    setPromoDialog]    = useState(false)
   const [pendingPromo,   setPendingPromo]   = useState<PendingPromo | null>(null)
 
-  const moveStartTime = useRef<number>(Date.now())
+  const moveStartTime = useRef<number>(0)
 
   const { state, selectSquare, makeMove, applyOpponentMove, hydrate, forceGameOver } = useChessGame(me.color)
 
