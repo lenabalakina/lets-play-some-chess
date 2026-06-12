@@ -20,7 +20,7 @@ import type { PromoPiece } from './PromotionDialog'
 import { useChessGame } from '@/features/chess/hooks/useChessGame'
 import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { useGameChannel } from '@/features/multiplayer/hooks/useGameChannel'
-import { recordMove, resignGame, offerDraw } from '@/features/multiplayer/actions/game'
+import { recordMove, resignGame, offerDraw, acceptDraw } from '@/features/multiplayer/actions/game'
 import { chessAudio } from '@/lib/audio'
 import type { BoardTheme, Color, GameResultColor, MoveRecord, Square, TimeControl } from '@/features/chess/types/chess.types'
 import { resultToWinner } from '@/features/chess/types/chess.types'
@@ -51,6 +51,7 @@ interface Props {
   timeControl:  TimeControl
   status:       'active' | 'completed' | 'abandoned'
   result?:      'white' | 'black' | 'draw' | null
+  initialDrawOfferedBy?: string | null
 }
 
 type EndReason = 'checkmate' | 'timeout' | 'resign' | 'draw' | 'stalemate' | 'opponent_resigned'
@@ -71,6 +72,7 @@ export function MultiplayerGameLayout({
   initialFen, initialMoves,
   whiteTimeMs, blackTimeMs,
   timeControl, status, result: initialResult,
+  initialDrawOfferedBy = null,
 }: Props) {
   const router = useRouter()
 
@@ -95,8 +97,8 @@ export function MultiplayerGameLayout({
   )
 
   // Draw offer
-  const [drawOfferPending,  setDrawOfferPending]  = useState(false)  // opponent offered us a draw
-  const [drawOfferSent,     setDrawOfferSent]     = useState(false)   // we offered a draw
+  const [drawOfferPending,  setDrawOfferPending]  = useState(initialDrawOfferedBy !== null && initialDrawOfferedBy !== me.id)
+  const [drawOfferSent,     setDrawOfferSent]     = useState(initialDrawOfferedBy === me.id)
 
   // Pawn promotion
   const [promoDialog,    setPromoDialog]    = useState(false)
@@ -144,6 +146,8 @@ export function MultiplayerGameLayout({
     myColor: me.color,
 
     onOpponentMove: (move) => {
+      setDrawOfferPending(false)
+      setDrawOfferSent(false)
       applyOpponentMove(move.from, move.to, move.promotion, move.fen)
       // Play appropriate sound
       if (move.san.includes('x'))       chessAudio.capture()
@@ -161,6 +165,8 @@ export function MultiplayerGameLayout({
       const myColor = me.color
       const myResult: GameResultColor = myColor === 'w' ? 'white' : 'black'
       const iWon = result === myResult
+      setDrawOfferPending(false)
+      setDrawOfferSent(false)
       setGameOver({ result, reason: 'checkmate' })
       forceGameOver(resultToWinner(result))
       if (result === 'draw') chessAudio.draw()
@@ -211,6 +217,8 @@ export function MultiplayerGameLayout({
 
     if (result.fen) {
       makeMove(from as Square, to as Square, promotion, timeTakenMs)
+      setDrawOfferPending(false)
+      setDrawOfferSent(false)
     }
 
     // Play sounds based on move notation
@@ -284,18 +292,24 @@ export function MultiplayerGameLayout({
       // Accept incoming draw offer
       toast.dismiss('draw-offer')
       setDrawOfferPending(false)
-      const { error } = await offerDraw(gameId)
+      const { error } = await acceptDraw(gameId)
       if (error) { toast.error(error); return }
       setGameOver({ result: 'draw', reason: 'draw' })
       forceGameOver('draw')
       chessAudio.draw()
     } else {
       // Send draw offer to opponent
+      if (drawOfferSent) {
+        toast.info('Draw offer already sent', { id: 'draw-sent' })
+        return
+      }
+      const { error } = await offerDraw(gameId)
+      if (error) { toast.error(error); return }
       sendDrawOffer()
       setDrawOfferSent(true)
       toast.info('Draw offer sent', { id: 'draw-sent' })
     }
-  }, [drawOfferPending, gameId, sendDrawOffer, forceGameOver])
+  }, [drawOfferPending, drawOfferSent, gameId, sendDrawOffer, forceGameOver])
 
   const handleDeclineDraw = useCallback(() => {
     toast.dismiss('draw-offer')

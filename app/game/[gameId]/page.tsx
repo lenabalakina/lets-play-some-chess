@@ -85,6 +85,7 @@ export default async function GamePage({ params }: Props) {
       timeControl={game.time_control as TimeControl}
       status={game.status as 'active' | 'completed' | 'abandoned'}
       result={game.result}
+      initialDrawOfferedBy={game.draw_offered_by}
     />
   )
 }
