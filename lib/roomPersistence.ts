@@ -1,5 +1,6 @@
 import { createAdminClient, isRoomPersistenceEnabled } from './supabase/admin'
 import type { ChatMessage, Room, RoomMove } from './roomTypes'
+import { getStaleRoomCutoffs } from './roomPurgePolicy'
 
 interface DbPrivateRoom {
   code:             string
@@ -17,18 +18,6 @@ interface DbPrivateRoom {
 }
 
 export { isRoomPersistenceEnabled }
-
-export const PLAYING_ROOM_STALE_MS = 12 * 60 * 60 * 1000
-
-export function getStaleRoomCutoffs(olderThanMs: number, now = Date.now()): {
-  inactiveCutoff: string
-  playingCutoff: string
-} {
-  return {
-    inactiveCutoff: new Date(now - olderThanMs).toISOString(),
-    playingCutoff:  new Date(now - Math.max(olderThanMs, PLAYING_ROOM_STALE_MS)).toISOString(),
-  }
-}
 
 function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
   return {

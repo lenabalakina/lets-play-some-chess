@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { getStaleRoomCutoffs, PLAYING_ROOM_STALE_MS } from '../../lib/roomPersistence.ts'
+import { getStaleRoomCutoffs, PLAYING_ROOM_STALE_MS } from '../../lib/roomPurgePolicy.ts'
 
 describe('roomPersistence', () => {
   it('keeps playing room cleanup on the longer stale horizon', () => {
