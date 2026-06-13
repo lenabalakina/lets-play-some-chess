@@ -109,6 +109,15 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
     return s
   }, [])
 
+  const innerFrameShape = useMemo(() => {
+    const s = new THREE.Shape()
+    s.moveTo(-4.04, -4.04); s.lineTo(4.04, -4.04); s.lineTo(4.04, 4.04); s.lineTo(-4.04, 4.04); s.closePath()
+    const hole = new THREE.Path()
+    hole.moveTo(-3.94, -3.94); hole.lineTo(3.94, -3.94); hole.lineTo(3.94, 3.94); hole.lineTo(-3.94, 3.94); hole.closePath()
+    s.holes.push(hole)
+    return s
+  }, [])
+
   const tiles: React.ReactNode[] = []
 
   for (const rank of RANKS) {
@@ -162,7 +171,7 @@ export function Board3D({ selectedSquare, legalMoves, lastMove, checkSquare, the
       </mesh>
       {/* Inner accent ring — double-line frame like reference */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.088, 0]} renderOrder={1}>
-        <ringGeometry args={[3.92, 4.04, 4]} />
+        <shapeGeometry args={[innerFrameShape]} />
         <meshStandardMaterial color="#0891b2" emissive="#22d3ee" emissiveIntensity={1.4} toneMapped={false} depthWrite={false} transparent opacity={0.85} />
       </mesh>
       {/* Side glow — thin strips on the outer faces of the board surround */}

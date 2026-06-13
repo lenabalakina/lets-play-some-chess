@@ -6,7 +6,7 @@ export type AiLevel = 'easy' | 'intermediate' | 'hard'
 
 const LEVEL_MAP: Record<AiLevel, { elo: number | null; skill: number; depth: number; moveTime: number; delay: number }> = {
   easy:         { elo: 800,  skill: 5,  depth: 3,  moveTime: 800,  delay: 600  },
-  intermediate: { elo: 1200, skill: 8,  depth: 5,  moveTime: 1000, delay: 800  },
+  intermediate: { elo: 1400, skill: 10, depth: 8,  moveTime: 1200, delay: 800  },
   hard:         { elo: null, skill: 20, depth: 15, moveTime: 1500, delay: 400  },
 }
 

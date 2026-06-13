@@ -3,19 +3,23 @@
 import { Flag, Handshake, Settings, Zap } from 'lucide-react'
 
 interface Props {
-  onResign:   () => void
-  onDraw:     () => void
-  onSettings: () => void
-  onNewGame:  () => void
-  disabled?:  boolean
+  onResign:     () => void
+  onDraw:       () => void
+  onSettings:   () => void
+  onNewGame:    () => void
+  disabled?:    boolean
+  drawDisabled?: boolean
 }
 
-export function GameControls({ onResign, onDraw, onSettings, onNewGame, disabled }: Props) {
+export function GameControls({ onResign, onDraw, onSettings, onNewGame, disabled, drawDisabled }: Props) {
+  const resignDisabled = disabled || drawDisabled
+  const offerDrawDisabled = drawDisabled ?? disabled
+
   return (
     <div className="flex items-center justify-center gap-2 py-2 px-2 md:gap-3 md:py-4 md:px-4">
       <button
         onClick={onResign}
-        disabled={disabled}
+        disabled={resignDisabled}
         className="flex items-center gap-1 px-2.5 py-3 rounded-lg text-xs font-bold tracking-wider
           bg-red-900/30 text-red-400 border border-red-800/50
           hover:bg-red-800/40 hover:border-red-600/60 hover:shadow-[0_0_12px_rgba(239,68,68,0.2)]
@@ -29,7 +33,7 @@ export function GameControls({ onResign, onDraw, onSettings, onNewGame, disabled
 
       <button
         onClick={onDraw}
-        disabled={disabled}
+        disabled={offerDrawDisabled}
         className="flex items-center gap-1 px-2.5 py-3 rounded-lg text-xs font-bold tracking-wider
           bg-slate-800/60 text-slate-300 border border-slate-700
           hover:bg-slate-700/60 hover:border-slate-500

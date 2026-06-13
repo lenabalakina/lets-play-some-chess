@@ -746,20 +746,26 @@ export function MultiplayerGameLayout({
             className="bg-[#0d1829] border border-slate-700 rounded-2xl p-6 w-80 flex flex-col gap-4 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <h2 className="text-white font-bold text-base tracking-wide">Leave current game?</h2>
-            <p className="text-slate-400 text-sm">Your game will be counted as a loss if you leave now.</p>
+            <h2 className="text-white font-bold text-base tracking-wide">Leave and resign?</h2>
+            <p className="text-slate-400 text-sm">You&apos;ll forfeit this ranked game if it&apos;s still in progress.</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setLeaveConfirm(false)}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all cursor-pointer"
               >
-                Cancel
+                Stay
               </button>
               <button
-                onClick={() => router.push('/')}
+                onClick={async () => {
+                  setLeaveConfirm(false)
+                  if (gameOver) router.push('/')
+                  else {
+                    await handleResign()
+                  }
+                }}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600/80 border border-red-500/60 hover:bg-red-600 transition-all cursor-pointer"
               >
-                Leave
+                Resign &amp; leave
               </button>
             </div>
           </div>

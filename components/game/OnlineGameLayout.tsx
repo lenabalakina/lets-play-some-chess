@@ -11,6 +11,10 @@ import { PromotionDialog } from './PromotionDialog'
 import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
+import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
+import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
+import type { GameResultColor } from '@/features/chess/types/chess.types'
+import { GameResultModal } from './GameResultModal'
 import { toast } from 'sonner'
 import { chessAudio } from '@/lib/audio'
 import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/types/chess.types'
@@ -30,16 +34,25 @@ interface Props {
   myColor:  Color
 }
 
-function formatTime(ms: number) {
-  const s = Math.floor(ms / 1000)
-  const m = Math.floor(s / 60)
-  return `${m}:${String(s % 60).padStart(2, '0')}`
-}
-
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
+  const onlineTimeMs = TIME_CONTROL_MS.rapid_10
+
+  const handleTimeout = useCallback((color: Color) => {
+    if (color === myColor && room.status === 'playing') {
+      resign()
+      chessAudio.gameLose()
+    }
+  }, [myColor, room.status, resign])
+
+  const { whiteMs, blackMs } = useTimer({
+    initialWhiteMs: onlineTimeMs,
+    initialBlackMs: onlineTimeMs,
+    activeColor:    room.status === 'playing' ? room.turn : null,
+    onTimeout:      handleTimeout,
+  })
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoves,     setLegalMoves]     = useState<string[]>([])
@@ -162,6 +175,14 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
   const isGameOver = room.status === 'finished'
   const opponentColor: Color = myColor === 'w' ? 'b' : 'w'
+  const myMs  = myColor === 'w' ? whiteMs : blackMs
+  const oppMs = opponentColor === 'w' ? whiteMs : blackMs
+  const gameResult: GameResultColor | null = isGameOver
+    ? (room.winner === 'draw' ? 'draw'
+      : room.winner === 'w' ? 'white'
+      : room.winner === 'b' ? 'black'
+      : null)
+    : null
 
   const moveHistory: MoveRecord[] = room.moves.map((m, i) => ({
     san:        m.san,
@@ -283,7 +304,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       <main className="flex-1 flex overflow-hidden min-h-0">
 
         {/* Center: board */}
-        <section className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <section className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
 
           {/* Mobile: opponent color strip */}
           <div className="lg:hidden px-2 pt-2 pb-1 shrink-0">
@@ -294,6 +315,11 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                   Opponent ({opponentColor === 'w' ? 'White' : 'Black'})
                 </span>
               </div>
+              {room.status === 'playing' && (
+                <span className={`font-mono text-sm font-bold tabular-nums ${room.turn === opponentColor ? 'text-cyan-300' : 'text-slate-500'}`}>
+                  {formatTime(oppMs)}
+                </span>
+              )}
             </div>
           </div>
 
@@ -382,28 +408,35 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
           {/* Mobile: my color strip */}
           <div className="lg:hidden px-2 pb-1 shrink-0">
-            <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between px-3 py-2 glass-panel rounded-xl gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <span className="text-lg">{myColor === 'w' ? '♔' : '♚'}</span>
-                <span className={`font-bold text-sm ${myColor === 'w' ? 'text-cyan-300' : 'text-purple-300'}`}>
+                <span className={`font-bold text-sm truncate ${myColor === 'w' ? 'text-cyan-300' : 'text-purple-300'}`}>
                   You ({myColor === 'w' ? 'White' : 'Black'})
                 </span>
               </div>
-              {!isGameOver && room.status === 'playing' && (
-                <div className="flex items-center gap-1.5">
-                  {!room.drawOfferedBy && (
-                    <button onClick={offerDraw}
-                      className="px-2.5 py-1 rounded-lg border border-slate-600/50 text-slate-400 text-xs font-semibold transition-all">
-                      ½
+              <div className="flex items-center gap-2 shrink-0">
+                {room.status === 'playing' && (
+                  <span className={`font-mono text-sm font-bold tabular-nums ${room.turn === myColor ? 'text-cyan-300' : 'text-slate-500'}`}>
+                    {formatTime(myMs)}
+                  </span>
+                )}
+                {!isGameOver && room.status === 'playing' && (
+                  <>
+                    {!room.drawOfferedBy && (
+                      <button onClick={offerDraw}
+                        className="px-2.5 py-1 rounded-lg border border-slate-600/50 text-slate-400 text-xs font-semibold transition-all">
+                        ½
+                      </button>
+                    )}
+                    <button onClick={() => setResignConfirm(true)}
+                      className="px-3 py-1 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
+                        text-xs font-semibold transition-all">
+                      Resign
                     </button>
-                  )}
-                  <button onClick={() => setResignConfirm(true)}
-                    className="px-3 py-1 rounded-lg border border-red-900/50 text-red-500 hover:border-red-600
-                      text-xs font-semibold transition-all">
-                    Resign
-                  </button>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -673,25 +706,44 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
             className="bg-[#0d1829] border border-slate-700 rounded-2xl p-6 w-80 flex flex-col gap-4 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <h2 className="text-white font-bold text-base tracking-wide">Leave current game?</h2>
-            <p className="text-slate-400 text-sm">Your game will be counted as a loss if you leave now.</p>
+            <h2 className="text-white font-bold text-base tracking-wide">Leave and resign?</h2>
+            <p className="text-slate-400 text-sm">You&apos;ll forfeit this game. Your opponent wins if the game is still in progress.</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setLeaveConfirm(false)}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all cursor-pointer"
               >
-                Cancel
+                Stay
               </button>
               <button
-                onClick={() => router.push('/')}
+                onClick={() => {
+                  setLeaveConfirm(false)
+                  if (isGameOver) router.push('/')
+                  else if (room.status === 'playing') resign()
+                  else router.push('/')
+                }}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600/80 border border-red-500/60 hover:bg-red-600 transition-all cursor-pointer"
               >
-                Leave
+                Resign &amp; leave
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <GameResultModal
+        open={isGameOver}
+        result={gameResult}
+        myColor={myColor}
+        reason={room.winner === 'draw' ? 'draw' : 'checkmate'}
+        myUsername="You"
+        oppUsername="Opponent"
+        myElo={1200}
+        userId=""
+        onNewGame={() => router.push('/play/online')}
+        onDashboard={() => router.push('/')}
+        onRematch={() => router.push('/play/online')}
+      />
     </div>
   )
 }

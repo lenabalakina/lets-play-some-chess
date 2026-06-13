@@ -43,7 +43,7 @@ const LEVELS: Level[] = [
     id:       'hard',
     label:    'Master',
     sublabel: 'ELO ~2400',
-    elo:      '2400',
+    elo:      '2200',
     desc:     'Near-perfect engine play. Ruthless, relentless, unforgiving.',
     accent:   '#a855f7',
     border:   'rgba(168,85,247,0.2)',

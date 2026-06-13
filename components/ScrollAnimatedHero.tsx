@@ -139,9 +139,9 @@ export function ScrollAnimatedHero({ stats, topPlayers }: Props) {
             <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               style={{ background: 'linear-gradient(to right, transparent, rgba(16,185,129,0.7), transparent)' }} />
             <div className="mb-4"><Puzzle className="w-9 h-9" style={{ color: 'rgba(16,185,129,0.8)' }} /></div>
-            <h3 className="font-black text-white text-base mb-1">Daily Puzzle</h3>
-            <p className="text-[9px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(16,185,129,0.7)' }}>EVERY DAY</p>
-            <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>One tactical puzzle, refreshed daily. From Lichess's massive database.</p>
+            <h3 className="font-black text-white text-base mb-1">Puzzle of the Day</h3>
+            <p className="text-[9px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(16,185,129,0.7)' }}>777 PUZZLES</p>
+            <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>One shared tactical puzzle each day, plus 777 more to train on anytime.</p>
           </Link>
 
           <Link href="/leaderboard" className="group relative rounded-2xl p-6 overflow-hidden block cursor-pointer"
@@ -151,7 +151,7 @@ export function ScrollAnimatedHero({ stats, topPlayers }: Props) {
             <div className="mb-4"><Trophy className="w-9 h-9" style={{ color: 'rgba(245,158,11,0.8)' }} /></div>
             <h3 className="font-black text-white text-base mb-1">Leaderboard</h3>
             <p className="text-[9px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(245,158,11,0.7)' }}>RANKED ELO</p>
-            <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>See who sits at the top. Play AI games to earn your rating.</p>
+            <p style={{ fontSize: '12px', color: 'rgba(100,116,139,0.6)', lineHeight: 1.5 }}>See who sits at the top. Ranked games and AI wins update your ELO.</p>
           </Link>
 
         </div>

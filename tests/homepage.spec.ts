@@ -15,7 +15,7 @@ test('homepage loads and shows key sections', async ({ page }) => {
   // Four mode cards
   await expect(page.getByText('VS Stockfish')).toBeVisible()
   await expect(page.getByText('Local Game')).toBeVisible()
-  await expect(page.getByText('Daily Puzzle')).toBeVisible()
+  await expect(page.getByText('Puzzle of the Day')).toBeVisible()
   await expect(page.getByText('Leaderboard')).toBeVisible()
 
   // Nav Sign In / Get Started

@@ -16,7 +16,11 @@
     "test:headed": "playwright test --headed",
     "audit": "node scripts/audit.mjs",
     "setup:rooms": "node scripts/setup-private-rooms.mjs",
-    "configure:supabase": "node scripts/configure-supabase.mjs"
+    "configure:supabase": "node scripts/configure-supabase.mjs",
+    "import:puzzles": "node scripts/import-puzzles.mjs 777",
+    "enrich:puzzles": "node scripts/enrich-puzzle-lastmove.mjs",
+    "setup:stockfish": "node scripts/setup-stockfish.mjs",
+    "postinstall": "node scripts/setup-stockfish.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

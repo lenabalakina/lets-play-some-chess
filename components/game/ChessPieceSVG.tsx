@@ -130,7 +130,8 @@ interface ChessPieceSVGProps {
 }
 
 export function ChessPieceSVG({ type, isWhite, isSelected, size = 45 }: ChessPieceSVGProps) {
-  const { fill, stroke } = isWhite ? PIECE_PALETTE.white : PIECE_PALETTE.black
+  const fill   = isWhite ? '#dff6ff' : '#c084fc'
+  const stroke = isWhite ? '#06b6d4' : '#7c3aed'
 
   const Piece = { p: PawnSVG, r: RookSVG, n: KnightSVG, b: BishopSVG, q: QueenSVG, k: KingSVG }[type]
 

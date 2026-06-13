@@ -6,13 +6,20 @@ function tryParseHost(url: string | undefined): string {
 }
 const supabaseHost = tryParseHost(process.env.NEXT_PUBLIC_SUPABASE_URL)
 
+const connectSrc = [
+  "'self'",
+  'https://lichess.org',
+  ...(supabaseHost ? [`https://${supabaseHost}`, `wss://${supabaseHost}`] : []),
+  'https://fonts.googleapis.com',
+].join(' ')
+
 // Content Security Policy
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-eval' 'unsafe-inline'",   // unsafe-eval needed by Three.js / WASM
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://fonts.googleapis.com`,
+  `connect-src ${connectSrc}`,
   "img-src 'self' data: blob: https:",
   "worker-src 'self' blob:",                            // needed by chess WASM / R3F workers
   "frame-ancestors 'none'",

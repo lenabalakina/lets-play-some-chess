@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# Stockfish engine binaries (copied on npm postinstall)
+public/stockfish.js
+public/stockfish.wasm

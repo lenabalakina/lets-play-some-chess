@@ -24,7 +24,7 @@ export interface LichessPuzzleData {
 
 type Status = 'playing' | 'wrong' | 'solved'
 
-export function PuzzleBoard({ initialPuzzle }: { initialPuzzle: LichessPuzzleData }) {
+export function PuzzleBoard({ initialPuzzle, poolSize, daily }: { initialPuzzle: LichessPuzzleData; poolSize?: number; daily?: boolean }) {
   const [puzzle, setPuzzle]         = useState(initialPuzzle)
   const [fen, setFen]               = useState('')
   const [playerColor, setColor]     = useState<Color>('w')
@@ -58,23 +58,31 @@ export function PuzzleBoard({ initialPuzzle }: { initialPuzzle: LichessPuzzleDat
   // Auto-play opponent response after a correct player move
   useEffect(() => {
     if (status !== 'playing') return
-    if (solutionIdx === 0 || solutionIdx % 2 === 0) return
+    if (solutionIdx % 2 === 0) return
     if (solutionIdx >= puzzle.puzzle.solution.length) return
 
+    const uci  = puzzle.puzzle.solution[solutionIdx]
+    const from = uci.slice(0, 2) as Square
+    const to   = uci.slice(2, 4) as Square
+    const promo = uci.length === 5 ? uci[4] : undefined
+
     const timer = setTimeout(() => {
-      const uci  = puzzle.puzzle.solution[solutionIdx]
-      const from = uci.slice(0, 2) as Square
-      const to   = uci.slice(2, 4) as Square
-      const promo = uci.length === 5 ? uci[4] : undefined
-      const chess = new Chess(fen)
-      chess.move({ from, to, promotion: promo })
-      setFen(chess.fen())
-      setLastMove({ from, to })
-      setSolutionIdx(i => i + 1)
+      setFen(currentFen => {
+        const chess = new Chess(currentFen)
+        try {
+          const result = chess.move({ from, to, promotion: promo })
+          if (!result) return currentFen
+        } catch {
+          return currentFen
+        }
+        setLastMove({ from, to })
+        setSolutionIdx(i => i + 1)
+        return chess.fen()
+      })
     }, 700)
 
     return () => clearTimeout(timer)
-  }, [solutionIdx, fen, puzzle, status])
+  }, [solutionIdx, puzzle, status])
 
   const handleSquareClick = useCallback((sq: Square) => {
     if (status !== 'playing') return
@@ -119,6 +127,7 @@ export function PuzzleBoard({ initialPuzzle }: { initialPuzzle: LichessPuzzleDat
         const isLegalMove = (chess.moves({ square: selected as CjMoveOpts['square'], verbose: true } as CjMoveOpts) as { to: string }[]).find(m => m.to === sq)
         if (isLegalMove) {
           setStatus('wrong')
+          setHintSquare(null)
           setTimeout(() => setStatus('playing'), 1200)
         }
         setSelected(null); setLegalMoves([])
@@ -172,8 +181,13 @@ export function PuzzleBoard({ initialPuzzle }: { initialPuzzle: LichessPuzzleDat
 
         {/* Center — page label */}
         <div className="flex-1 text-center hidden sm:block">
-          <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Daily Puzzle</p>
-          <p className="text-[10px] text-slate-600 mt-0.5">Rating: {puzzle.puzzle.rating}</p>
+          <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
+            {daily ? 'Puzzle of the Day' : 'Chess Puzzles'}
+          </p>
+          <p className="text-[10px] text-slate-600 mt-0.5">
+            Rating: {puzzle.puzzle.rating}
+            {poolSize ? ` · ${poolSize.toLocaleString()} puzzles` : ''}
+          </p>
         </div>
 
         {/* Right — nav */}
@@ -274,19 +288,20 @@ export function PuzzleBoard({ initialPuzzle }: { initialPuzzle: LichessPuzzleDat
 
           {/* Buttons */}
           <div className="flex flex-col gap-2 mt-1">
-            {status === 'solved' && (
-              <button
-                onClick={loadNewPuzzle}
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-black tracking-wider text-sm
-                  bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950
-                  shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all
-                  flex items-center justify-center gap-2"
-              >
-                <ArrowRight className="w-4 h-4" />
-                {loading ? 'Loading…' : 'New Puzzle'}
-              </button>
-            )}
+            <button
+              onClick={loadNewPuzzle}
+              disabled={loading}
+              className={`w-full py-3 rounded-xl font-black tracking-wider text-sm
+                disabled:opacity-50 text-slate-950 transition-all
+                flex items-center justify-center gap-2
+                ${status === 'solved'
+                  ? 'bg-cyan-500 hover:bg-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.4)]'
+                  : 'bg-slate-700 hover:bg-slate-600 text-white shadow-none'
+                }`}
+            >
+              <ArrowRight className="w-4 h-4" />
+              {loading ? 'Loading…' : status === 'solved' ? 'Next Puzzle' : 'Skip Puzzle'}
+            </button>
 
             {status === 'playing' && (
               <button
@@ -297,7 +312,7 @@ export function PuzzleBoard({ initialPuzzle }: { initialPuzzle: LichessPuzzleDat
                   setHintSquare(move.slice(0, 2))
                   setHintsUsed(h => h + 1)
                 }}
-                disabled={hintsUsed >= MAX_HINTS || hintSquare !== null}
+                disabled={hintsUsed >= MAX_HINTS}
                 className="w-full py-2.5 rounded-xl text-sm font-bold
                   border transition-all flex items-center justify-center gap-2
                   disabled:opacity-40 disabled:cursor-not-allowed
@@ -306,10 +321,10 @@ export function PuzzleBoard({ initialPuzzle }: { initialPuzzle: LichessPuzzleDat
                   disabled:hover:bg-amber-500/10 disabled:hover:border-amber-500/30"
               >
                 <Lightbulb className="w-3.5 h-3.5" />
-                {hintSquare !== null
-                  ? 'Piece highlighted'
-                  : hintsUsed >= MAX_HINTS
-                    ? 'No hints left'
+                {hintsUsed >= MAX_HINTS
+                  ? 'No hints left'
+                  : hintSquare !== null
+                    ? `Hint active (${MAX_HINTS - hintsUsed} left)`
                     : `Hint (${MAX_HINTS - hintsUsed} left)`}
               </button>
             )}

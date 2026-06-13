@@ -6,8 +6,22 @@ export async function proxy(request: NextRequest) {
   const supabaseKey  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const supabaseConfigured = supabaseUrl?.startsWith('http')
 
-  // If Supabase isn't configured yet, let all requests through unguarded
+  const path = request.nextUrl.pathname
+  const isProtected = path.startsWith('/dashboard') ||
+                      path.startsWith('/game') ||
+                      (path.startsWith('/play') &&
+                       !path.startsWith('/play/local') &&
+                       !path.startsWith('/play/ai') &&
+                       !path.startsWith('/play/online') &&
+                       !path.startsWith('/play/3d'))
+
+  // No Supabase — block protected routes instead of leaving them wide open
   if (!supabaseConfigured || !supabaseKey) {
+    if (isProtected) {
+      const url = new URL('/login', request.url)
+      url.searchParams.set('error', 'accounts-disabled')
+      return NextResponse.redirect(url)
+    }
     return NextResponse.next({ request })
   }
 
@@ -28,16 +42,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthPage  = request.nextUrl.pathname.startsWith('/login') ||
-                      request.nextUrl.pathname.startsWith('/register')
-  const path = request.nextUrl.pathname
-  const isProtected = path.startsWith('/dashboard') ||
-                      path.startsWith('/game') ||
-                      (path.startsWith('/play') &&
-                       !path.startsWith('/play/local') &&
-                       !path.startsWith('/play/ai') &&
-                       !path.startsWith('/play/online') &&
-                       !path.startsWith('/play/3d'))
+  const isAuthPage = path.startsWith('/login') || path.startsWith('/register')
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))

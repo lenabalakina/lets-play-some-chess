@@ -405,8 +405,8 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           </button>
           <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            LIVE ARENA
-            <Radio className="w-3.5 h-3.5" />
+            {aiEnabled ? 'VS AI' : 'FREE PLAY'}
+            {aiEnabled && <Radio className="w-3.5 h-3.5" />}
           </div>
         </div>
       </header>
@@ -691,7 +691,8 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
           onDraw={handleDraw}
           onSettings={() => setTweaksOpen(v => !v)}
           onNewGame={handleNewGame}
-          disabled={isGameOver || drawOffered}
+          disabled={isGameOver}
+          drawDisabled={isGameOver || drawOffered}
         />
       </footer>
 
@@ -866,7 +867,7 @@ export function GameLayout({ me, opponent, initialAi = false, initialAiLevel = '
         myElo={me.elo}
         userId={me.id ?? ''}
         onNewGame={handleNewGame}
-        onDashboard={() => router.push('/')}
+        onDashboard={() => router.push('/dashboard')}
         onRematch={handleNewGame}
       />
     </div>
