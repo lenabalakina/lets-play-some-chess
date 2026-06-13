@@ -18,6 +18,18 @@ interface DbPrivateRoom {
 
 export { isRoomPersistenceEnabled }
 
+export const PLAYING_ROOM_STALE_MS = 12 * 60 * 60 * 1000
+
+export function getStaleRoomCutoffs(olderThanMs: number, now = Date.now()): {
+  inactiveCutoff: string
+  playingCutoff: string
+} {
+  return {
+    inactiveCutoff: new Date(now - olderThanMs).toISOString(),
+    playingCutoff:  new Date(now - Math.max(olderThanMs, PLAYING_ROOM_STALE_MS)).toISOString(),
+  }
+}
+
 function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
   return {
     code:          row.code,
@@ -119,6 +131,7 @@ export async function deleteStaleRoomsFromDb(olderThanMs: number): Promise<void>
   const admin = createAdminClient()
   if (!admin) return
 
-  const cutoff = new Date(Date.now() - olderThanMs).toISOString()
-  await admin.from('private_rooms').delete().lt('last_activity_at', cutoff)
+  const { inactiveCutoff, playingCutoff } = getStaleRoomCutoffs(olderThanMs)
+  await admin.from('private_rooms').delete().neq('status', 'playing').lt('last_activity_at', inactiveCutoff)
+  await admin.from('private_rooms').delete().eq('status', 'playing').lt('last_activity_at', playingCutoff)
 }
