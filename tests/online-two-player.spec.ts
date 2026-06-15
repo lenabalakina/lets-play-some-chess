@@ -21,6 +21,8 @@ test('two players join by code and white move syncs to black', async ({ browser 
   // Game should start for both
   await expect(white.getByText(/♟ Your move|opponent's turn/i)).toBeVisible({ timeout: 15_000 })
   await expect(black.getByText(/♟ Your move|opponent's turn/i)).toBeVisible({ timeout: 15_000 })
+  await expect(white.locator('text=10:00')).toHaveCount(0)
+  await expect(black.locator('text=10:00')).toHaveCount(0)
 
   // White plays e2-e4
   await white.locator('[data-square="e2"]').click()
