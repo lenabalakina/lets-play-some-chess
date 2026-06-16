@@ -24,9 +24,12 @@ export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeou
   useEffect(() => {
     if (!syncInitial) return
     // Online rooms receive authoritative server snapshots; mirror them into the local countdown.
-    setWhiteMs(initialWhiteMs)
-    setBlackMs(initialBlackMs)
-    lastTickRef.current = Date.now()
+    const syncTimer = setTimeout(() => {
+      setWhiteMs(initialWhiteMs)
+      setBlackMs(initialBlackMs)
+      lastTickRef.current = Date.now()
+    }, 0)
+    return () => clearTimeout(syncTimer)
   }, [initialWhiteMs, initialBlackMs, syncInitial])
 
   useEffect(() => {
