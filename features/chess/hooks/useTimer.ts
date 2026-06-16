@@ -15,7 +15,7 @@ export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeou
   const [whiteMs, setWhiteMs] = useState(initialWhiteMs)
   const [blackMs, setBlackMs] = useState(initialBlackMs)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastTickRef = useRef<number>(Date.now())
+  const lastTickRef = useRef<number>(0)
 
   const clear = () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -23,7 +23,10 @@ export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeou
 
   useEffect(() => {
     if (!syncInitial) return
+    // Online rooms receive authoritative server snapshots; mirror them into the local countdown.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWhiteMs(initialWhiteMs)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBlackMs(initialBlackMs)
     lastTickRef.current = Date.now()
   }, [initialWhiteMs, initialBlackMs, syncInitial])
