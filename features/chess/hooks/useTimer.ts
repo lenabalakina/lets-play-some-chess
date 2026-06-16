@@ -8,9 +8,10 @@ interface UseTimerOptions {
   initialBlackMs: number
   activeColor:    Color | null   // null = paused (game over / not started)
   onTimeout:      (color: Color) => void
+  syncInitial?:    boolean
 }
 
-export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeout }: UseTimerOptions) {
+export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeout, syncInitial = false }: UseTimerOptions) {
   const [whiteMs, setWhiteMs] = useState(initialWhiteMs)
   const [blackMs, setBlackMs] = useState(initialBlackMs)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -19,6 +20,13 @@ export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeou
   const clear = () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
   }
+
+  useEffect(() => {
+    if (!syncInitial) return
+    setWhiteMs(initialWhiteMs)
+    setBlackMs(initialBlackMs)
+    lastTickRef.current = Date.now()
+  }, [initialWhiteMs, initialBlackMs, syncInitial])
 
   useEffect(() => {
     clear()

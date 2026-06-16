@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS public.private_rooms (
   moves             JSONB NOT NULL DEFAULT '[]'::jsonb,
   messages          JSONB NOT NULL DEFAULT '[]'::jsonb,
   draw_offered_by   TEXT CHECK (draw_offered_by IN ('w', 'b') OR draw_offered_by IS NULL),
+  white_time_ms     INTEGER NOT NULL DEFAULT 600000,
+  black_time_ms     INTEGER NOT NULL DEFAULT 600000,
+  clock_started_at  TIMESTAMPTZ,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_activity_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

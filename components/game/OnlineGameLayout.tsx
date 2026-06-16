@@ -35,23 +35,23 @@ interface Props {
 }
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
-  const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const { room, makeMove, resign, claimTimeout, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
-  const onlineTimeMs = TIME_CONTROL_MS.rapid_10
 
   const handleTimeout = useCallback((color: Color) => {
-    if (color === myColor && room.status === 'playing') {
-      resign()
-      chessAudio.gameLose()
+    if (color === room.turn && room.status === 'playing') {
+      claimTimeout()
+      if (color === myColor) chessAudio.gameLose()
     }
-  }, [myColor, room.status, resign])
+  }, [claimTimeout, myColor, room.status, room.turn])
 
   const { whiteMs, blackMs } = useTimer({
-    initialWhiteMs: onlineTimeMs,
-    initialBlackMs: onlineTimeMs,
+    initialWhiteMs: room.whiteTimeMs ?? TIME_CONTROL_MS.rapid_10,
+    initialBlackMs: room.blackTimeMs ?? TIME_CONTROL_MS.rapid_10,
     activeColor:    room.status === 'playing' ? room.turn : null,
     onTimeout:      handleTimeout,
+    syncInitial:    true,
   })
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
