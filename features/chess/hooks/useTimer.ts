@@ -14,7 +14,7 @@ export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeou
   const [whiteMs, setWhiteMs] = useState(initialWhiteMs)
   const [blackMs, setBlackMs] = useState(initialBlackMs)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastTickRef = useRef<number>(Date.now())
+  const lastTickRef = useRef<number>(0)
 
   const clear = () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
