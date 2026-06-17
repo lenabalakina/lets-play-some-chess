@@ -40,18 +40,13 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const router = useRouter()
   const onlineTimeMs = TIME_CONTROL_MS.rapid_10
 
-  const handleTimeout = useCallback((color: Color) => {
-    if (color === myColor && room.status === 'playing') {
-      resign()
-      chessAudio.gameLose()
-    }
-  }, [myColor, room.status, resign])
-
   const { whiteMs, blackMs } = useTimer({
     initialWhiteMs: onlineTimeMs,
     initialBlackMs: onlineTimeMs,
     activeColor:    room.status === 'playing' ? room.turn : null,
-    onTimeout:      handleTimeout,
+    // Private-room clocks are not persisted server-side yet. Keep this display-only
+    // so a refreshed or throttled browser cannot decide the game result.
+    onTimeout:      () => {},
   })
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
