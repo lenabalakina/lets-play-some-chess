@@ -9,11 +9,14 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BIN  = join(ROOT, 'node_modules/stockfish/bin')
 const OUT  = join(ROOT, 'public')
 
-const FILES = ['stockfish.js', 'stockfish.wasm']
+const ASSETS = [
+  ['stockfish-18-lite-single.js', 'stockfish.js'],
+  ['stockfish-18-lite-single.wasm', 'stockfish.wasm'],
+]
 
-for (const name of FILES) {
-  const src = join(BIN, name)
-  const dst = join(OUT, name)
+for (const [sourceName, publicName] of ASSETS) {
+  const src = join(BIN, sourceName)
+  const dst = join(OUT, publicName)
   if (!existsSync(src)) {
     console.error(`Missing ${src} — run npm install`)
     process.exit(1)
