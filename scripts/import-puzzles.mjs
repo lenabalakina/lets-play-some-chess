@@ -4,7 +4,7 @@
  * Default count: 777
  */
 import { spawn } from 'node:child_process'
-import { createWriteStream, mkdirSync } from 'node:fs'
+import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Chess } from 'chess.js'
@@ -12,6 +12,7 @@ import { Chess } from 'chess.js'
 const TARGET = Number(process.argv[2] ?? 777)
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'data', 'puzzles.json')
+const TEMP_OUT = `${OUT}.tmp`
 const URL = 'https://database.lichess.org/lichess_db_puzzle.csv.zst'
 
 function validateLine(fen, moves) {
@@ -136,12 +137,7 @@ const payload = {
   puzzles,
 }
 
-await new Promise((resolve, reject) => {
-  const ws = createWriteStream(OUT)
-  ws.write(JSON.stringify(payload))
-  ws.end()
-  ws.on('finish', resolve)
-  ws.on('error', reject)
-})
+writeFileSync(TEMP_OUT, JSON.stringify(payload))
+renameSync(TEMP_OUT, OUT)
 
 console.log(`✓ Wrote ${puzzles.length} puzzles to ${OUT} (${skipped} invalid rows skipped)`)

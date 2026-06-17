@@ -2,13 +2,14 @@
  * Sync puzzles with Lichess API (FEN, solution, lastMove) when valid.
  * Usage: node scripts/enrich-puzzle-lastmove.mjs
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Chess } from 'chess.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DATA = join(ROOT, 'data', 'puzzles.json')
+const TEMP_DATA = `${DATA}.tmp`
 const DELAY_MS = 35
 
 function validateLine(fen, moves) {
@@ -74,5 +75,6 @@ for (let i = 0; i < payload.puzzles.length; i++) {
 }
 
 process.stdout.write('\n')
-writeFileSync(DATA, JSON.stringify(payload))
+writeFileSync(TEMP_DATA, JSON.stringify(payload))
+renameSync(TEMP_DATA, DATA)
 console.log(`✓ Done — ${updated} puzzles synced with lastMove, ${failed} kept from CSV`)
