@@ -137,7 +137,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       if (last?.color !== myColor) chessAudio.chatMessage()
       prevMsgCountRef.current = room.messages.length
     }
-  }, [room.messages.length, myColor])
+  }, [room.messages, myColor])
 
   function copyCode() {
     navigator.clipboard.writeText(code)
