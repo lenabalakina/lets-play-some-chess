@@ -1,3 +1,5 @@
+export const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
+
 export interface RoomMove {
   from: string
   to: string
@@ -20,6 +22,9 @@ export interface Room {
   black:   string | null
   status:  'waiting' | 'playing' | 'finished'
   winner:  'w' | 'b' | 'draw' | null
+  whiteMs: number
+  blackMs: number
+  clockStartedAt: number | null
   moves:   RoomMove[]
   messages: ChatMessage[]
   drawOfferedBy: 'w' | 'b' | null

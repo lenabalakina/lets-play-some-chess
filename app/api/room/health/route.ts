@@ -22,9 +22,15 @@ export async function GET() {
     }, { status: 503 })
   }
 
-  const { error } = await admin.from('private_rooms').select('code').limit(1)
+  const { error } = await admin
+    .from('private_rooms')
+    .select('code,white_time_ms,black_time_ms,clock_started_at')
+    .limit(1)
   if (error) {
-    const missing = error.message.includes('does not exist') || error.code === '42P01'
+    const missing = error.message.includes('does not exist') ||
+      error.message.includes('column') ||
+      error.code === '42P01' ||
+      error.code === '42703'
     return NextResponse.json({
       ok: false,
       persistence: missing ? 'migration_required' : 'error',

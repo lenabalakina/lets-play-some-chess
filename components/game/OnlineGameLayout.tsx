@@ -11,8 +11,7 @@ import { PromotionDialog } from './PromotionDialog'
 import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
-import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
-import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
+import { formatTime } from '@/features/chess/hooks/useTimer'
 import type { GameResultColor } from '@/features/chess/types/chess.types'
 import { GameResultModal } from './GameResultModal'
 import { toast } from 'sonner'
@@ -35,24 +34,24 @@ interface Props {
 }
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
-  const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const { room, makeMove, resign, claimTimeout, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timeoutClaimRef = useRef<string | null>(null)
   const router = useRouter()
-  const onlineTimeMs = TIME_CONTROL_MS.rapid_10
 
   const handleTimeout = useCallback((color: Color) => {
-    if (color === myColor && room.status === 'playing') {
-      resign()
-      chessAudio.gameLose()
-    }
-  }, [myColor, room.status, resign])
-
-  const { whiteMs, blackMs } = useTimer({
-    initialWhiteMs: onlineTimeMs,
-    initialBlackMs: onlineTimeMs,
-    activeColor:    room.status === 'playing' ? room.turn : null,
-    onTimeout:      handleTimeout,
-  })
+    if (room.status !== 'playing') return
+    const key = `${room.moves.length}:${color}:${room.clockStartedAt ?? 0}`
+    if (timeoutClaimRef.current === key) return
+    timeoutClaimRef.current = key
+    claimTimeout().then(result => {
+      if (!result.ok) {
+        timeoutClaimRef.current = null
+        return
+      }
+      if (color === myColor) chessAudio.gameLose()
+    })
+  }, [claimTimeout, myColor, room.clockStartedAt, room.moves.length, room.status])
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoves,     setLegalMoves]     = useState<string[]>([])
@@ -76,6 +75,35 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const { ref: boardAreaRef, size: boardSize } = useBoardSize()
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const prevMoveCountRef = useRef(0)
+  const [clockNow, setClockNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    timeoutClaimRef.current = null
+  }, [room.turn, room.status, room.clockStartedAt])
+
+  useEffect(() => {
+    if (room.status !== 'playing') return
+    setClockNow(Date.now())
+    const timer = setInterval(() => setClockNow(Date.now()), 250)
+    return () => clearInterval(timer)
+  }, [room.status, room.turn, room.clockStartedAt])
+
+  const getClockMs = useCallback((color: Color) => {
+    const baseMs = color === 'w' ? room.whiteMs : room.blackMs
+    if (room.status !== 'playing' || room.turn !== color || room.clockStartedAt === null) {
+      return baseMs
+    }
+    return Math.max(0, baseMs - Math.max(0, clockNow - room.clockStartedAt))
+  }, [clockNow, room.blackMs, room.clockStartedAt, room.status, room.turn, room.whiteMs])
+
+  const whiteMs = getClockMs('w')
+  const blackMs = getClockMs('b')
+
+  useEffect(() => {
+    if (room.status !== 'playing') return
+    const activeMs = room.turn === 'w' ? whiteMs : blackMs
+    if (activeMs <= 0) handleTimeout(room.turn)
+  }, [blackMs, handleTimeout, room.status, room.turn, whiteMs])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
