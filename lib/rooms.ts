@@ -1,7 +1,9 @@
 import { Chess } from 'chess.js'
-import { PRIVATE_ROOM_TIME_MS, type ChatMessage, type Room, type RoomMove, type SafeRoom } from './roomTypes'
+import type { ChatMessage, Room, RoomMove, SafeRoom } from './roomTypes'
 
 export type { ChatMessage, Room, RoomMove } from './roomTypes'
+
+const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
 
 function opponent(color: 'w' | 'b'): 'w' | 'b' {
   return color === 'w' ? 'b' : 'w'
