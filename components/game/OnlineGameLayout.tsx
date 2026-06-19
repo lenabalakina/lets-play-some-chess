@@ -11,8 +11,6 @@ import { PromotionDialog } from './PromotionDialog'
 import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
-import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
-import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { GameResultColor } from '@/features/chess/types/chess.types'
 import { GameResultModal } from './GameResultModal'
 import { toast } from 'sonner'
@@ -38,21 +36,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
-  const onlineTimeMs = TIME_CONTROL_MS.rapid_10
-
-  const handleTimeout = useCallback((color: Color) => {
-    if (color === myColor && room.status === 'playing') {
-      resign()
-      chessAudio.gameLose()
-    }
-  }, [myColor, room.status, resign])
-
-  const { whiteMs, blackMs } = useTimer({
-    initialWhiteMs: onlineTimeMs,
-    initialBlackMs: onlineTimeMs,
-    activeColor:    room.status === 'playing' ? room.turn : null,
-    onTimeout:      handleTimeout,
-  })
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoves,     setLegalMoves]     = useState<string[]>([])
@@ -175,8 +158,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
 
   const isGameOver = room.status === 'finished'
   const opponentColor: Color = myColor === 'w' ? 'b' : 'w'
-  const myMs  = myColor === 'w' ? whiteMs : blackMs
-  const oppMs = opponentColor === 'w' ? whiteMs : blackMs
   const gameResult: GameResultColor | null = isGameOver
     ? (room.winner === 'draw' ? 'draw'
       : room.winner === 'w' ? 'white'
@@ -315,11 +296,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                   Opponent ({opponentColor === 'w' ? 'White' : 'Black'})
                 </span>
               </div>
-              {room.status === 'playing' && (
-                <span className={`font-mono text-sm font-bold tabular-nums ${room.turn === opponentColor ? 'text-cyan-300' : 'text-slate-500'}`}>
-                  {formatTime(oppMs)}
-                </span>
-              )}
             </div>
           </div>
 
@@ -416,11 +392,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {room.status === 'playing' && (
-                  <span className={`font-mono text-sm font-bold tabular-nums ${room.turn === myColor ? 'text-cyan-300' : 'text-slate-500'}`}>
-                    {formatTime(myMs)}
-                  </span>
-                )}
                 {!isGameOver && room.status === 'playing' && (
                   <>
                     {!room.drawOfferedBy && (
