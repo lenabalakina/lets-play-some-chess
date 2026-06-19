@@ -248,7 +248,12 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
           </button>
           <span className="text-slate-600 text-[10px]">Share this code</span>
         </div>
-        <a href="/" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">← Leave</a>
+        <button
+          onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)}
+          className="text-slate-600 hover:text-slate-400 text-xs transition-colors cursor-pointer"
+        >
+          ← Leave
+        </button>
       </header>
 
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
