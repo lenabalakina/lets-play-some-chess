@@ -58,11 +58,6 @@ function buildInitialState(chess: Chess): GameState {
 export type ColorLock = 'fixed' | 'turn'
 
 export function useChessGame(playerColor: Color = 'w', colorLock: ColorLock = 'fixed') {
-  const chessRef = { current: new Chess() }
-  // We keep chess instance in a ref-like pattern via closure; reducer handles immutable state.
-  // For phase 1 (local play), we instantiate once. Multiplayer will hydrate from FEN.
-  const chess = new Chess()
-
   const [state, dispatch] = useReducer(
     (state: GameState, action: Action): GameState => {
       switch (action.type) {
@@ -178,7 +173,7 @@ export function useChessGame(playerColor: Color = 'w', colorLock: ColorLock = 'f
       }
     },
     undefined,
-    () => buildInitialState(chess)
+    () => buildInitialState(new Chess())
   )
 
   const selectSquare = useCallback((square: Square) => {

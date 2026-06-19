@@ -63,6 +63,7 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
       }
 
       worker.postMessage('uci')
+      worker.postMessage('ucinewgame')
       worker.postMessage('isready')
       workerRef.current = worker
     } catch (err) {
