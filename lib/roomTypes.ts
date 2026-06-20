@@ -28,4 +28,4 @@ export interface Room {
   subscribers: Map<string, ReadableStreamDefaultController<Uint8Array>>
 }
 
-export type SafeRoom = Omit<Room, 'subscribers'>
+export type SafeRoom = Omit<Room, 'subscribers' | 'white' | 'black'>

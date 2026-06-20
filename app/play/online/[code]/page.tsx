@@ -27,10 +27,10 @@ export default function OnlineGamePage({ params }: Props) {
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
-    const id = getOrCreatePlayerId()
-    setPlayerId(id)
-
     async function ensureJoined() {
+      const id = getOrCreatePlayerId()
+      setPlayerId(id)
+
       try {
         const res = await fetch(`/api/room/${roomCode}`, {
           method:  'POST',
@@ -46,16 +46,11 @@ export default function OnlineGamePage({ params }: Props) {
         }
 
         // Rejoin path: player already seated but POST failed (e.g. room full)
-        const getRes = await fetch(`/api/room/${roomCode}`)
+        const getRes = await fetch(`/api/room/${roomCode}?playerId=${encodeURIComponent(id)}`)
         const getData = await getRes.json()
-        if (getData.room?.white === id) {
-          setMyColor('w')
-          localStorage.setItem('chess_last_room', JSON.stringify({ code: roomCode, color: 'w' }))
-          return
-        }
-        if (getData.room?.black === id) {
-          setMyColor('b')
-          localStorage.setItem('chess_last_room', JSON.stringify({ code: roomCode, color: 'b' }))
+        if (getRes.ok && (getData.color === 'w' || getData.color === 'b')) {
+          setMyColor(getData.color)
+          localStorage.setItem('chess_last_room', JSON.stringify({ code: roomCode, color: getData.color }))
           return
         }
 

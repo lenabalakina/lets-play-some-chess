@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { resolveRoom, subscribe, unsubscribe, safeRoom, broadcastPresence } from '@/lib/rooms'
+import { resolveRoom, subscribe, unsubscribe, safeRoom, broadcastPresence, roomPlayerColor } from '@/lib/rooms'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
@@ -7,6 +7,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   const playerId  = req.nextUrl.searchParams.get('playerId')
   if (!playerId || playerId === 'anon') {
     return new Response(JSON.stringify({ error: 'playerId required' }), { status: 400 })
+  }
+  const initialRoom = await resolveRoom(upperCode)
+  if (initialRoom && !roomPlayerColor(initialRoom, playerId)) {
+    return new Response(JSON.stringify({ error: 'Not a player in this room' }), { status: 403 })
   }
   const connId = crypto.randomUUID()
   const enc = new TextEncoder()

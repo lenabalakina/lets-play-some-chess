@@ -34,6 +34,21 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const roomNotFoundRef = useRef(false)
   const typingTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [room, setRoom] = useState<OnlineRoomState>({
+    fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    turn:           'w',
+    status:         'waiting',
+    winner:         null,
+    moves:          [],
+    messages:       [],
+    connected:      false,
+    lastMove:       null,
+    drawOfferedBy:  null,
+    opponentTyping: false,
+    opponentOnline: false,
+    roomNotFound:   false,
+  })
+
   const mergeRemoteRoom = useCallback((
     local: OnlineRoomState,
     rm: {
@@ -84,38 +99,23 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     messages?: ChatMessage[]; drawOfferedBy?: 'w' | 'b' | null
   }) => {
     setRoom(r => mergeRemoteRoom(r, rm) ?? r)
-  }, [mergeRemoteRoom])
+  }, [mergeRemoteRoom, setRoom])
 
   const fetchRoomState = useCallback(async () => {
     if (!code) return
     try {
-      const res = await fetch(`/api/room/${code}`)
+      const res = await fetch(`/api/room/${code}?playerId=${encodeURIComponent(playerId)}`)
       if (!res.ok) return
       const data = await res.json()
       if (data.room) applyRemoteRoom(data.room)
     } catch { /* ignore */ }
-  }, [code, applyRemoteRoom])
-
-  const [room, setRoom] = useState<OnlineRoomState>({
-    fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    turn:           'w',
-    status:         'waiting',
-    winner:         null,
-    moves:          [],
-    messages:       [],
-    connected:      false,
-    lastMove:       null,
-    drawOfferedBy:  null,
-    opponentTyping: false,
-    opponentOnline: false,
-    roomNotFound:   false,
-  })
+  }, [code, playerId, applyRemoteRoom])
 
   // SSE connection with auto-reconnect (exponential backoff, max 5 retries)
   useEffect(() => {
     if (!code || !playerId) return
     roomNotFoundRef.current = false
-    const es = new EventSource(`/api/room/${code}/events?playerId=${playerId}`)
+    const es = new EventSource(`/api/room/${code}/events?playerId=${encodeURIComponent(playerId)}`)
 
     es.onopen = () => {
       setRoom(r => ({ ...r, connected: true }))
@@ -210,7 +210,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     if (!code) return
     const poll = setInterval(async () => {
       try {
-        const res = await fetch(`/api/room/${code}`)
+        const res = await fetch(`/api/room/${code}?playerId=${encodeURIComponent(playerId)}`)
         if (!res.ok) return
         const data = await res.json()
         const rm = data.room
@@ -219,7 +219,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       } catch { /* ignore poll errors */ }
     }, 5000)
     return () => clearInterval(poll)
-  }, [code, mergeRemoteRoom])
+  }, [code, playerId, mergeRemoteRoom])
 
   const applyMoveToState = useCallback((msg: {
     from: string; to: string; promotion?: string; san: string; fen: string
@@ -240,7 +240,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         moves:    [...r.moves, { from: msg.from, to: msg.to, promotion: msg.promotion, san: msg.san, fen: msg.fen }],
       }
     })
-  }, [])
+  }, [setRoom])
 
   const makeMove = useCallback(async (from: string, to: string, promotion?: string): Promise<{ ok: boolean; error?: string }> => {
     try {
@@ -318,7 +318,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       }))
       return { ok: false, error: 'Network error' }
     }
-  }, [code, playerId, myColor])
+  }, [code, playerId, myColor, setRoom])
 
   const offerDraw = useCallback(async () => {
     await fetch(`/api/room/${code}/draw`, {
