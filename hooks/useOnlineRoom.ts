@@ -91,7 +91,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         ? { from: rmMoves[rmMoves.length - 1].from, to: rmMoves[rmMoves.length - 1].to }
         : local.lastMove,
     }
-  }, [setRoom])
+  }, [])
 
   const applyRemoteRoom = useCallback((rm: {
     fen: string; turn: 'w' | 'b'; status: OnlineRoomState['status']
@@ -240,7 +240,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         moves:    [...r.moves, { from: msg.from, to: msg.to, promotion: msg.promotion, san: msg.san, fen: msg.fen }],
       }
     })
-  }, [])
+  }, [setRoom])
 
   const makeMove = useCallback(async (from: string, to: string, promotion?: string): Promise<{ ok: boolean; error?: string }> => {
     try {
