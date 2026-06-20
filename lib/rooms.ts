@@ -118,6 +118,13 @@ function purgeStaleRooms(): void {
   }
 }
 
+export function roomPlayerColor(room: Pick<Room, 'white' | 'black'>, playerId: string | null | undefined): 'w' | 'b' | null {
+  if (!playerId) return null
+  if (room.white === playerId) return 'w'
+  if (room.black === playerId) return 'b'
+  return null
+}
+
 export async function createRoom(playerId: string): Promise<Room> {
   let code: string
   do { code = randomCode() } while (await codeInUse(code))
@@ -318,7 +325,7 @@ export async function resignRoom(code: string, playerId: string): Promise<{ ok: 
 
 export function safeRoom(room: Room) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { subscribers: _s, ...rest } = room
+  const { subscribers: _s, white: _w, black: _b, ...rest } = room
   return rest
 }
 

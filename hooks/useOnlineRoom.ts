@@ -89,12 +89,12 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const fetchRoomState = useCallback(async () => {
     if (!code) return
     try {
-      const res = await fetch(`/api/room/${code}`)
+      const res = await fetch(`/api/room/${code}?playerId=${encodeURIComponent(playerId)}`)
       if (!res.ok) return
       const data = await res.json()
       if (data.room) applyRemoteRoom(data.room)
     } catch { /* ignore */ }
-  }, [code, applyRemoteRoom])
+  }, [code, playerId, applyRemoteRoom])
 
   const [room, setRoom] = useState<OnlineRoomState>({
     fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -115,7 +115,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   useEffect(() => {
     if (!code || !playerId) return
     roomNotFoundRef.current = false
-    const es = new EventSource(`/api/room/${code}/events?playerId=${playerId}`)
+    const es = new EventSource(`/api/room/${code}/events?playerId=${encodeURIComponent(playerId)}`)
 
     es.onopen = () => {
       setRoom(r => ({ ...r, connected: true }))
@@ -210,7 +210,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     if (!code) return
     const poll = setInterval(async () => {
       try {
-        const res = await fetch(`/api/room/${code}`)
+        const res = await fetch(`/api/room/${code}?playerId=${encodeURIComponent(playerId)}`)
         if (!res.ok) return
         const data = await res.json()
         const rm = data.room
@@ -219,7 +219,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       } catch { /* ignore poll errors */ }
     }, 5000)
     return () => clearInterval(poll)
-  }, [code, mergeRemoteRoom])
+  }, [code, playerId, mergeRemoteRoom])
 
   const applyMoveToState = useCallback((msg: {
     from: string; to: string; promotion?: string; san: string; fen: string
