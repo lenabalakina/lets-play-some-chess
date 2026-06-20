@@ -27,10 +27,10 @@ export default function OnlineGamePage({ params }: Props) {
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
-    const id = getOrCreatePlayerId()
-    setPlayerId(id)
-
     async function ensureJoined() {
+      const id = getOrCreatePlayerId()
+      setPlayerId(id)
+
       try {
         const res = await fetch(`/api/room/${roomCode}`, {
           method:  'POST',
