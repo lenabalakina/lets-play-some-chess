@@ -1,5 +1,6 @@
 import { createAdminClient, isRoomPersistenceEnabled } from './supabase/admin'
 import type { ChatMessage, Room, RoomMove } from './roomTypes'
+import { getStaleRoomCutoffs } from './roomPurgePolicy'
 
 interface DbPrivateRoom {
   code:             string
@@ -119,6 +120,7 @@ export async function deleteStaleRoomsFromDb(olderThanMs: number): Promise<void>
   const admin = createAdminClient()
   if (!admin) return
 
-  const cutoff = new Date(Date.now() - olderThanMs).toISOString()
-  await admin.from('private_rooms').delete().lt('last_activity_at', cutoff)
+  const { inactiveCutoff, playingCutoff } = getStaleRoomCutoffs(olderThanMs)
+  await admin.from('private_rooms').delete().neq('status', 'playing').lt('last_activity_at', inactiveCutoff)
+  await admin.from('private_rooms').delete().eq('status', 'playing').lt('last_activity_at', playingCutoff)
 }

@@ -73,7 +73,17 @@ export async function resolveRoom(code: string): Promise<Room | undefined> {
   purgeStaleRooms()
   const upper = code.toUpperCase()
   const cached = rooms.get(upper)
-  if (cached) return cached
+  if (cached) {
+    if (!isPersistenceEnabled()) return cached
+
+    const row = await loadFromDb(upper)
+    if (!row) return cached
+
+    const { subscribers } = cached
+    Object.assign(cached, row, { subscribers })
+    rooms.set(upper, cached)
+    return cached
+  }
 
   const row = await loadFromDb(upper)
   if (!row) return undefined
@@ -318,7 +328,7 @@ export async function resignRoom(code: string, playerId: string): Promise<{ ok: 
 
 export function safeRoom(room: Room) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { subscribers: _s, ...rest } = room
+  const { subscribers: _s, white: _white, black: _black, ...rest } = room
   return rest
 }
 
