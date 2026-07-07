@@ -12,9 +12,14 @@ interface DbPrivateRoom {
   moves:            RoomMove[]
   messages:         ChatMessage[]
   draw_offered_by:  'w' | 'b' | null
+  white_time_ms?:   number | null
+  black_time_ms?:   number | null
+  clock_started_at?: string | null
   created_at:       string
   last_activity_at: string
 }
+
+const DEFAULT_ROOM_TIME_MS = 10 * 60 * 1000
 
 export { isRoomPersistenceEnabled }
 
@@ -30,6 +35,9 @@ function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
     moves:         row.moves ?? [],
     messages:      row.messages ?? [],
     drawOfferedBy: row.draw_offered_by,
+    whiteTimeMs:   row.white_time_ms ?? DEFAULT_ROOM_TIME_MS,
+    blackTimeMs:   row.black_time_ms ?? DEFAULT_ROOM_TIME_MS,
+    clockStartedAt: row.clock_started_at ? new Date(row.clock_started_at).getTime() : null,
     createdAt:     new Date(row.created_at).getTime(),
     lastActivityAt: new Date(row.last_activity_at).getTime(),
   }
@@ -50,6 +58,9 @@ function roomToRow(room: Room): Omit<DbPrivateRoom, 'created_at' | 'last_activit
     moves:           room.moves,
     messages:        room.messages,
     draw_offered_by: room.drawOfferedBy,
+    white_time_ms:   room.whiteTimeMs,
+    black_time_ms:   room.blackTimeMs,
+    clock_started_at: room.clockStartedAt ? new Date(room.clockStartedAt).toISOString() : null,
     created_at:      new Date(room.createdAt).toISOString(),
     last_activity_at: new Date(room.lastActivityAt).toISOString(),
   }
@@ -103,6 +114,7 @@ export async function tryClaimBlackSeatInDb(
     .update({
       black: playerId,
       status: 'playing',
+      clock_started_at: now,
       last_activity_at: now,
     })
     .eq('code', code)

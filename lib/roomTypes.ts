@@ -23,6 +23,9 @@ export interface Room {
   moves:   RoomMove[]
   messages: ChatMessage[]
   drawOfferedBy: 'w' | 'b' | null
+  whiteTimeMs: number
+  blackTimeMs: number
+  clockStartedAt: number | null
   createdAt:       number
   lastActivityAt:  number
   subscribers: Map<string, ReadableStreamDefaultController<Uint8Array>>

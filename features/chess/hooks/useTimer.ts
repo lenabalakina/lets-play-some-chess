@@ -8,17 +8,29 @@ interface UseTimerOptions {
   initialBlackMs: number
   activeColor:    Color | null   // null = paused (game over / not started)
   onTimeout:      (color: Color) => void
+  syncInitial?:    boolean
 }
 
-export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeout }: UseTimerOptions) {
+export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeout, syncInitial = false }: UseTimerOptions) {
   const [whiteMs, setWhiteMs] = useState(initialWhiteMs)
   const [blackMs, setBlackMs] = useState(initialBlackMs)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastTickRef = useRef<number>(Date.now())
+  const lastTickRef = useRef<number>(0)
 
   const clear = () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
   }
+
+  useEffect(() => {
+    if (!syncInitial) return
+    // Online rooms receive authoritative server snapshots; mirror them into the local countdown.
+    const syncTimer = setTimeout(() => {
+      setWhiteMs(initialWhiteMs)
+      setBlackMs(initialBlackMs)
+      lastTickRef.current = Date.now()
+    }, 0)
+    return () => clearTimeout(syncTimer)
+  }, [initialWhiteMs, initialBlackMs, syncInitial])
 
   useEffect(() => {
     clear()
