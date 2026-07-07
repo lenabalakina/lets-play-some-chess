@@ -56,6 +56,7 @@ export interface Database {
           created_at: string
           updated_at: string
           completed_at: string | null
+          draw_offered_by: string | null
         }
         Insert: {
           player_white: string
@@ -70,6 +71,7 @@ export interface Database {
           is_ai_game?: boolean
           ai_difficulty?: number
           board_theme?: string
+          draw_offered_by?: string | null
         }
         Update: {
           player_black?: string | null
@@ -82,6 +84,7 @@ export interface Database {
           black_time_ms?: number
           board_theme?: string
           completed_at?: string | null
+          draw_offered_by?: string | null
         }
         Relationships: []
       }
