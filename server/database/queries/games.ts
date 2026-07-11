@@ -63,10 +63,58 @@ export async function completeGame(db: DB, gameId: string, result: 'white' | 'bl
       status:       'completed',
       result,
       completed_at: new Date().toISOString(),
+      draw_offered_by: null,
     })
     .eq('id', gameId)
 
   if (error) throw new Error(error.message)
+}
+
+export async function setDrawOffer(db: DB, gameId: string, userId: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('games')
+    .update({ draw_offered_by: userId })
+    .eq('id', gameId)
+    .eq('status', 'active')
+    .is('draw_offered_by', null)
+    .select('id')
+    .maybeSingle() as { data: { id: string } | null; error: { message: string } | null }
+
+  if (error) throw new Error(error.message)
+  return !!data
+}
+
+export async function clearDrawOffer(db: DB, gameId: string, offeredBy: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('games')
+    .update({ draw_offered_by: null })
+    .eq('id', gameId)
+    .eq('status', 'active')
+    .eq('draw_offered_by', offeredBy)
+    .select('id')
+    .maybeSingle() as { data: { id: string } | null; error: { message: string } | null }
+
+  if (error) throw new Error(error.message)
+  return !!data
+}
+
+export async function completeAcceptedDraw(db: DB, gameId: string, offeredBy: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('games')
+    .update({
+      status:          'completed',
+      result:          'draw',
+      completed_at:    new Date().toISOString(),
+      draw_offered_by: null,
+    })
+    .eq('id', gameId)
+    .eq('status', 'active')
+    .eq('draw_offered_by', offeredBy)
+    .select('id')
+    .maybeSingle() as { data: { id: string } | null; error: { message: string } | null }
+
+  if (error) throw new Error(error.message)
+  return !!data
 }
 
 export async function getPlayerProfile(db: DB, userId: string): Promise<{

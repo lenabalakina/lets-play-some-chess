@@ -2,7 +2,16 @@
 
 import { Chess } from 'chess.js'
 import { createClient } from '@/lib/supabase/server'
-import { getGame, updateGameState, completeGame, getPlayerProfile, updatePlayerStats } from '@/server/database/queries/games'
+import {
+  getGame,
+  updateGameState,
+  completeGame,
+  setDrawOffer,
+  clearDrawOffer,
+  completeAcceptedDraw,
+  getPlayerProfile,
+  updatePlayerStats,
+} from '@/server/database/queries/games'
 import { insertMove } from '@/server/database/queries/moves'
 import { calculateElo } from '@/features/rating/eloCalculator'
 import { validate, recordMoveSchema, gameIdSchema } from '@/lib/validate'
@@ -15,6 +24,18 @@ interface MoveResult {
   isGameOver?: boolean
   result?:     'white' | 'black' | 'draw'
 }
+
+interface DrawOfferResult {
+  error?:    string
+  offered?:  boolean
+}
+
+interface AcceptDrawResult {
+  error?:    string
+  accepted?: boolean
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
 export async function recordMove(
   gameId:      string,
@@ -141,7 +162,7 @@ export async function resignGame(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-export async function offerDraw(gameId: string): Promise<{ error?: string }> {
+export async function offerDraw(gameId: string): Promise<DrawOfferResult> {
   const v = validate(gameIdSchema, { gameId })
   if ('error' in v) return { error: v.error }
 
@@ -153,16 +174,81 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   if (!game) return { error: 'Game not found' }
   if (game.status !== 'active') return { error: 'Game not active' }
 
-  await completeGame(supabase, gameId, 'draw')
+  const isWhite = game.player_white === user.id
+  const isBlack = game.player_black === user.id
+  if (!isWhite && !isBlack) return { error: 'Not a player' }
+  if (!game.player_black) return { error: 'No opponent to offer a draw' }
+
+  const pendingOfferBy = game.draw_offered_by
+  if (pendingOfferBy === user.id) return { error: 'Draw already offered' }
+  if (pendingOfferBy) return { error: 'Opponent already offered a draw' }
+
+  const offered = await setDrawOffer(supabase, gameId, user.id)
+  return offered
+    ? { offered: true }
+    : { error: 'Draw offer changed. Please refresh and try again.' }
+}
+
+export async function acceptDraw(gameId: string): Promise<AcceptDrawResult> {
+  const v = validate(gameIdSchema, { gameId })
+  if ('error' in v) return { error: v.error }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const game = await getGame(supabase, gameId)
+  if (!game) return { error: 'Game not found' }
+  if (game.status !== 'active') return { error: 'Game not active' }
+
+  const isWhite = game.player_white === user.id
+  const isBlack = game.player_black === user.id
+  if (!isWhite && !isBlack) return { error: 'Not a player' }
+  if (!game.player_black) return { error: 'No opponent to accept a draw from' }
+
+  const pendingOfferBy = game.draw_offered_by
+  if (!pendingOfferBy) {
+    return { error: 'No draw offer to accept' }
+  }
+
+  if (pendingOfferBy === user.id) return { error: 'Draw already offered' }
+  if (pendingOfferBy !== game.player_white && pendingOfferBy !== game.player_black) {
+    return { error: 'Invalid draw offer' }
+  }
+
+  const completed = await completeAcceptedDraw(supabase, gameId, pendingOfferBy)
+  if (!completed) return { error: 'Draw offer is no longer available' }
   if (game.player_black) {
     await applyEloUpdate(supabase, game.player_white, game.player_black, 'draw')
   }
-  return {}
+  return { accepted: true }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function declineDraw(gameId: string): Promise<{ error?: string }> {
+  const v = validate(gameIdSchema, { gameId })
+  if ('error' in v) return { error: v.error }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const game = await getGame(supabase, gameId)
+  if (!game) return { error: 'Game not found' }
+  if (game.status !== 'active') return { error: 'Game not active' }
+
+  const isWhite = game.player_white === user.id
+  const isBlack = game.player_black === user.id
+  if (!isWhite && !isBlack) return { error: 'Not a player' }
+  if (!game.draw_offered_by || game.draw_offered_by === user.id) {
+    return { error: 'No draw offer to decline' }
+  }
+
+  const cleared = await clearDrawOffer(supabase, gameId, game.draw_offered_by)
+  return cleared ? {} : { error: 'Draw offer is no longer available' }
+}
+
 async function applyEloUpdate(
-  supabase: any,
+  supabase: SupabaseServerClient,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'

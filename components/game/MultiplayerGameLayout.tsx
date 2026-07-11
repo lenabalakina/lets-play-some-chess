@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { Chess } from 'chess.js'
 import { ChessBoard2D } from './ChessBoard2D'
@@ -20,7 +19,7 @@ import type { PromoPiece } from './PromotionDialog'
 import { useChessGame } from '@/features/chess/hooks/useChessGame'
 import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { useGameChannel } from '@/features/multiplayer/hooks/useGameChannel'
-import { recordMove, resignGame, offerDraw } from '@/features/multiplayer/actions/game'
+import { recordMove, resignGame, offerDraw, acceptDraw, declineDraw } from '@/features/multiplayer/actions/game'
 import { chessAudio } from '@/lib/audio'
 import type { BoardTheme, Color, GameResultColor, MoveRecord, Square, TimeControl } from '@/features/chess/types/chess.types'
 import { resultToWinner } from '@/features/chess/types/chess.types'
@@ -96,13 +95,12 @@ export function MultiplayerGameLayout({
 
   // Draw offer
   const [drawOfferPending,  setDrawOfferPending]  = useState(false)  // opponent offered us a draw
-  const [drawOfferSent,     setDrawOfferSent]     = useState(false)   // we offered a draw
 
   // Pawn promotion
   const [promoDialog,    setPromoDialog]    = useState(false)
   const [pendingPromo,   setPendingPromo]   = useState<PendingPromo | null>(null)
 
-  const moveStartTime = useRef<number>(Date.now())
+  const moveStartTime = useRef<number>(0)
 
   const { state, selectSquare, makeMove, applyOpponentMove, hydrate, forceGameOver } = useChessGame(me.color)
 
@@ -180,7 +178,6 @@ export function MultiplayerGameLayout({
     },
 
     onDrawDeclined: () => {
-      setDrawOfferSent(false)
       toast.error('Draw offer declined', { id: 'draw-sent' })
     },
 
@@ -201,7 +198,7 @@ export function MultiplayerGameLayout({
 
   // ── My move submission ────────────────────────────────────────────────────
   const submitMove = useCallback(async (from: string, to: string, promotion?: string) => {
-    const timeTakenMs = Date.now() - moveStartTime.current
+    const timeTakenMs = Date.now() - (moveStartTime.current || Date.now())
 
     const result = await recordMove(gameId, from, to, promotion, timeTakenMs)
     if (result.error) {
@@ -283,26 +280,34 @@ export function MultiplayerGameLayout({
     if (drawOfferPending) {
       // Accept incoming draw offer
       toast.dismiss('draw-offer')
+      const result = await acceptDraw(gameId)
+      if (result.error) { toast.error(result.error); return }
+      if (!result.accepted) {
+        toast.error('Draw offer is no longer available')
+        setDrawOfferPending(false)
+        return
+      }
       setDrawOfferPending(false)
-      const { error } = await offerDraw(gameId)
-      if (error) { toast.error(error); return }
       setGameOver({ result: 'draw', reason: 'draw' })
       forceGameOver('draw')
       chessAudio.draw()
     } else {
       // Send draw offer to opponent
+      const result = await offerDraw(gameId)
+      if (result.error) { toast.error(result.error); return }
       sendDrawOffer()
-      setDrawOfferSent(true)
       toast.info('Draw offer sent', { id: 'draw-sent' })
     }
   }, [drawOfferPending, gameId, sendDrawOffer, forceGameOver])
 
-  const handleDeclineDraw = useCallback(() => {
+  const handleDeclineDraw = useCallback(async () => {
     toast.dismiss('draw-offer')
-    setDrawOfferPending(false)
+    const { error } = await declineDraw(gameId)
+    if (error) { toast.error(error); return }
     sendDrawDeclined()
+    setDrawOfferPending(false)
     toast.success('Draw offer declined')
-  }, [sendDrawDeclined])
+  }, [gameId, sendDrawDeclined])
 
   const isGameOver = !!gameOver || state.isGameOver
 
