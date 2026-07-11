@@ -20,7 +20,7 @@ import type { PromoPiece } from './PromotionDialog'
 import { useChessGame } from '@/features/chess/hooks/useChessGame'
 import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
 import { useGameChannel } from '@/features/multiplayer/hooks/useGameChannel'
-import { recordMove, resignGame, offerDraw } from '@/features/multiplayer/actions/game'
+import { recordMove, resignGame, offerDraw, acceptDraw, declineDraw } from '@/features/multiplayer/actions/game'
 import { chessAudio } from '@/lib/audio'
 import type { BoardTheme, Color, GameResultColor, MoveRecord, Square, TimeControl } from '@/features/chess/types/chess.types'
 import { resultToWinner } from '@/features/chess/types/chess.types'
@@ -283,26 +283,35 @@ export function MultiplayerGameLayout({
     if (drawOfferPending) {
       // Accept incoming draw offer
       toast.dismiss('draw-offer')
+      const result = await acceptDraw(gameId)
+      if (result.error) { toast.error(result.error); return }
+      if (!result.accepted) {
+        toast.error('Draw offer is no longer available')
+        setDrawOfferPending(false)
+        return
+      }
       setDrawOfferPending(false)
-      const { error } = await offerDraw(gameId)
-      if (error) { toast.error(error); return }
       setGameOver({ result: 'draw', reason: 'draw' })
       forceGameOver('draw')
       chessAudio.draw()
     } else {
       // Send draw offer to opponent
+      const result = await offerDraw(gameId)
+      if (result.error) { toast.error(result.error); return }
       sendDrawOffer()
       setDrawOfferSent(true)
       toast.info('Draw offer sent', { id: 'draw-sent' })
     }
   }, [drawOfferPending, gameId, sendDrawOffer, forceGameOver])
 
-  const handleDeclineDraw = useCallback(() => {
+  const handleDeclineDraw = useCallback(async () => {
     toast.dismiss('draw-offer')
-    setDrawOfferPending(false)
+    const { error } = await declineDraw(gameId)
+    if (error) { toast.error(error); return }
     sendDrawDeclined()
+    setDrawOfferPending(false)
     toast.success('Draw offer declined')
-  }, [sendDrawDeclined])
+  }, [gameId, sendDrawDeclined])
 
   const isGameOver = !!gameOver || state.isGameOver
 
