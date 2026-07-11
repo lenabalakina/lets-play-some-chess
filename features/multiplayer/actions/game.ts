@@ -35,6 +35,8 @@ interface AcceptDrawResult {
   accepted?: boolean
 }
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
 export async function recordMove(
   gameId:      string,
   from:        string,
@@ -245,9 +247,8 @@ export async function declineDraw(gameId: string): Promise<{ error?: string }> {
   return cleared ? {} : { error: 'Draw offer is no longer available' }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function applyEloUpdate(
-  supabase: any,
+  supabase: SupabaseServerClient,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'

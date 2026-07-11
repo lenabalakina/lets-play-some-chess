@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { Chess } from 'chess.js'
 import { ChessBoard2D } from './ChessBoard2D'
@@ -96,13 +95,12 @@ export function MultiplayerGameLayout({
 
   // Draw offer
   const [drawOfferPending,  setDrawOfferPending]  = useState(false)  // opponent offered us a draw
-  const [drawOfferSent,     setDrawOfferSent]     = useState(false)   // we offered a draw
 
   // Pawn promotion
   const [promoDialog,    setPromoDialog]    = useState(false)
   const [pendingPromo,   setPendingPromo]   = useState<PendingPromo | null>(null)
 
-  const moveStartTime = useRef<number>(Date.now())
+  const moveStartTime = useRef<number>(0)
 
   const { state, selectSquare, makeMove, applyOpponentMove, hydrate, forceGameOver } = useChessGame(me.color)
 
@@ -180,7 +178,6 @@ export function MultiplayerGameLayout({
     },
 
     onDrawDeclined: () => {
-      setDrawOfferSent(false)
       toast.error('Draw offer declined', { id: 'draw-sent' })
     },
 
@@ -201,7 +198,7 @@ export function MultiplayerGameLayout({
 
   // ── My move submission ────────────────────────────────────────────────────
   const submitMove = useCallback(async (from: string, to: string, promotion?: string) => {
-    const timeTakenMs = Date.now() - moveStartTime.current
+    const timeTakenMs = Date.now() - (moveStartTime.current || Date.now())
 
     const result = await recordMove(gameId, from, to, promotion, timeTakenMs)
     if (result.error) {
@@ -299,7 +296,6 @@ export function MultiplayerGameLayout({
       const result = await offerDraw(gameId)
       if (result.error) { toast.error(result.error); return }
       sendDrawOffer()
-      setDrawOfferSent(true)
       toast.info('Draw offer sent', { id: 'draw-sent' })
     }
   }, [drawOfferPending, gameId, sendDrawOffer, forceGameOver])
