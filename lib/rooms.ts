@@ -1,7 +1,9 @@
 import { Chess } from 'chess.js'
-import type { ChatMessage, Room, RoomMove } from './roomTypes'
+import type { ChatMessage, Room, RoomMove, SafeRoom } from './roomTypes'
 
 export type { ChatMessage, Room, RoomMove } from './roomTypes'
+
+const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
 
 function isPersistenceEnabled(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -62,6 +64,49 @@ function randomCode(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
+function ensureClockFields(room: Room): void {
+  room.whiteMs ??= PRIVATE_ROOM_TIME_MS
+  room.blackMs ??= PRIVATE_ROOM_TIME_MS
+  room.clockStartedAt ??= room.status === 'playing' ? Date.now() : null
+}
+
+function clockSnapshot(room: Room, now = Date.now()): { whiteMs: number; blackMs: number } {
+  ensureClockFields(room)
+  if (room.status !== 'playing' || room.clockStartedAt === null) {
+    return { whiteMs: room.whiteMs, blackMs: room.blackMs }
+  }
+
+  const elapsed = Math.max(0, now - room.clockStartedAt)
+  if (room.turn === 'w') {
+    return { whiteMs: Math.max(0, room.whiteMs - elapsed), blackMs: room.blackMs }
+  }
+  return { whiteMs: room.whiteMs, blackMs: Math.max(0, room.blackMs - elapsed) }
+}
+
+function markTimedOut(room: Room, now = Date.now()): boolean {
+  if (room.status !== 'playing' || room.clockStartedAt === null) return false
+
+  const clocks = clockSnapshot(room, now)
+  const activeMs = room.turn === 'w' ? clocks.whiteMs : clocks.blackMs
+  if (activeMs > 0) return false
+
+  room.whiteMs = clocks.whiteMs
+  room.blackMs = clocks.blackMs
+  room.status = 'finished'
+  room.winner = room.turn === 'w' ? 'b' : 'w'
+  room.drawOfferedBy = null
+  room.clockStartedAt = null
+  room.lastActivityAt = now
+  return true
+}
+
+async function finishTimedOutRoom(room: Room, now = Date.now()): Promise<boolean> {
+  if (!markTimedOut(room, now)) return false
+  await commitRoom(room)
+  broadcast(room.code, { type: 'timeout', room: safeRoom(room, now) })
+  return true
+}
+
 async function codeInUse(code: string): Promise<boolean> {
   if (rooms.has(code)) return true
   if (isPersistenceEnabled()) return codeExistsInDb(code)
@@ -73,13 +118,19 @@ export async function resolveRoom(code: string): Promise<Room | undefined> {
   purgeStaleRooms()
   const upper = code.toUpperCase()
   const cached = rooms.get(upper)
-  if (cached) return cached
+  if (cached) {
+    ensureClockFields(cached)
+    await finishTimedOutRoom(cached)
+    return cached
+  }
 
   const row = await loadFromDb(upper)
   if (!row) return undefined
 
   const room: Room = { ...row, subscribers: new Map() }
+  ensureClockFields(room)
   rooms.set(upper, room)
+  await finishTimedOutRoom(room)
   return room
 }
 
@@ -133,6 +184,9 @@ export async function createRoom(playerId: string): Promise<Room> {
     moves:    [],
     messages: [],
     drawOfferedBy: null,
+    whiteMs:       PRIVATE_ROOM_TIME_MS,
+    blackMs:       PRIVATE_ROOM_TIME_MS,
+    clockStartedAt: null,
     createdAt:      Date.now(),
     lastActivityAt: Date.now(),
     subscribers:    new Map(),
@@ -178,7 +232,10 @@ export async function joinRoom(
       room.status = 'playing'
     }
 
-    room.lastActivityAt = Date.now()
+    const now = Date.now()
+    ensureClockFields(room)
+    room.clockStartedAt = now
+    room.lastActivityAt = now
     await commitRoom(room)
     broadcast(code, { type: 'start', room: safeRoom(room) })
     return { room, color: 'b' }
@@ -191,7 +248,7 @@ export async function applyMove(
 ): Promise<{
   ok: true
   move: RoomMove
-  room: { fen: string; turn: 'w' | 'b'; status: Room['status']; winner: Room['winner'] }
+  room: SafeRoom
 } | { ok: false; error: string }> {
   if (rateLimit(`move:${playerId}`, 60)) return { ok: false, error: 'Too many moves' }
 
@@ -203,33 +260,48 @@ export async function applyMove(
   if (!myColor)              return { ok: false, error: 'Not a player in this room' }
   if (room.turn !== myColor) return { ok: false, error: 'Not your turn' }
 
+  const now = Date.now()
+  if (markTimedOut(room, now)) {
+    await commitRoom(room)
+    broadcast(code, { type: 'timeout', room: safeRoom(room, now) })
+    return { ok: false, error: 'Time expired' }
+  }
+
   const chess = new Chess(room.fen)
   try {
     const result = chess.move({ from, to, promotion: promotion ?? 'q' })
     if (!result) return { ok: false, error: 'Illegal move' }
 
+    const clocks = clockSnapshot(room, now)
+    room.whiteMs = clocks.whiteMs
+    room.blackMs = clocks.blackMs
     room.fen  = chess.fen()
     room.turn = chess.turn() as 'w' | 'b'
     const moveRecord: RoomMove = { from, to, promotion, san: result.san, fen: room.fen }
     room.moves.push(moveRecord)
-    room.lastActivityAt = Date.now()
+    room.lastActivityAt = now
 
     if (chess.isGameOver()) {
       room.status = 'finished'
       if (chess.isCheckmate()) room.winner = room.turn === 'w' ? 'b' : 'w'
       else                     room.winner = 'draw'
+      room.clockStartedAt = null
+    } else {
+      room.clockStartedAt = now
     }
 
     await commitRoom(room)
+    const safe = safeRoom(room, now)
     broadcast(code, {
       type: 'move', from, to, promotion,
       san: result.san, fen: room.fen,
       turn: room.turn, status: room.status, winner: room.winner,
+      room: safe,
     })
     return {
       ok: true,
       move: moveRecord,
-      room: { fen: room.fen, turn: room.turn, status: room.status, winner: room.winner },
+      room: safe,
     }
   } catch {
     return { ok: false, error: 'Illegal move' }
@@ -316,10 +388,35 @@ export async function resignRoom(code: string, playerId: string): Promise<{ ok: 
   return { ok: true }
 }
 
-export function safeRoom(room: Room) {
+export async function claimTimeout(
+  code: string,
+  playerId: string,
+): Promise<{ ok: true; room: SafeRoom } | { ok: false; error: string }> {
+  if (rateLimit(`timeout:${playerId}`, 20)) return { ok: false, error: 'Too many timeout checks' }
+
+  const room = await resolveRoom(code)
+  if (!room) return { ok: false, error: 'Room not found' }
+
+  const isPlayer = room.white === playerId || room.black === playerId
+  if (!isPlayer) return { ok: false, error: 'Not a player' }
+  if (room.status === 'finished') return { ok: true, room: safeRoom(room) }
+  if (room.status !== 'playing') return { ok: false, error: 'Game not active' }
+
+  const now = Date.now()
+  if (!await finishTimedOutRoom(room, now)) return { ok: false, error: 'Clock still running' }
+  return { ok: true, room: safeRoom(room, now) }
+}
+
+export function safeRoom(room: Room, now = Date.now()): SafeRoom {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { subscribers: _s, ...rest } = room
-  return rest
+  const clocks = clockSnapshot(room, now)
+  return {
+    ...rest,
+    ...clocks,
+    clockStartedAt: room.status === 'playing' ? now : room.clockStartedAt,
+    serverNow: now,
+  }
 }
 
 export function broadcastPresence(code: string, playerId: string, online: boolean) {

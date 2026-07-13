@@ -12,13 +12,11 @@ import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
 import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
-import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { GameResultColor } from '@/features/chess/types/chess.types'
 import { GameResultModal } from './GameResultModal'
 import { toast } from 'sonner'
 import { chessAudio } from '@/lib/audio'
 import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/types/chess.types'
-import { THEME_COLORS } from '@/features/chess/types/chess.types'
 import { Copy, Check, Wifi, WifiOff, Send } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
@@ -35,24 +33,26 @@ interface Props {
 }
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
-  const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const { room, makeMove, resign, claimTimeout, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
-  const onlineTimeMs = TIME_CONTROL_MS.rapid_10
 
   const handleTimeout = useCallback((color: Color) => {
-    if (color === myColor && room.status === 'playing') {
-      resign()
-      chessAudio.gameLose()
+    if (color === room.turn && room.status === 'playing') {
+      void claimTimeout()
     }
-  }, [myColor, room.status, resign])
+  }, [claimTimeout, room.status, room.turn])
 
-  const { whiteMs, blackMs } = useTimer({
-    initialWhiteMs: onlineTimeMs,
-    initialBlackMs: onlineTimeMs,
+  const { whiteMs, blackMs, reset: resetDisplayedClock } = useTimer({
+    initialWhiteMs: room.whiteMs,
+    initialBlackMs: room.blackMs,
     activeColor:    room.status === 'playing' ? room.turn : null,
     onTimeout:      handleTimeout,
   })
+
+  useEffect(() => {
+    resetDisplayedClock(room.whiteMs, room.blackMs)
+  }, [room.whiteMs, room.blackMs, room.clockStartedAt, resetDisplayedClock])
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoves,     setLegalMoves]     = useState<string[]>([])
@@ -110,7 +110,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       if (last?.color !== myColor) chessAudio.chatMessage()
       prevMsgCountRef.current = room.messages.length
     }
-  }, [room.messages.length, myColor])
+  }, [room.messages, myColor])
 
   function copyCode() {
     navigator.clipboard.writeText(code)
@@ -146,7 +146,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       return
     }
 
-    const chess = new Chess(room.fen)
     const myMoves = getLegalTargetsForPlayer(room.fen, sq, myColor)
 
     if (myMoves.length > 0) {
@@ -204,8 +203,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     if (isMyTurn)  return '♟ Your move'
     return `Opponent's turn…`
   }
-
-  const colors = THEME_COLORS[theme]
 
   // Room no longer exists on the server (expired or server restarted)
   if (room.roomNotFound) {
@@ -267,7 +264,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
           </button>
           <span className="text-slate-600 text-[10px]">Share this code</span>
         </div>
-        <a href="/" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">← Leave</a>
+        <button onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)} className="text-slate-600 hover:text-slate-400 text-xs transition-colors cursor-pointer">← Leave</button>
       </header>
 
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}

@@ -111,6 +111,9 @@ const { error: upsertError } = await admin.from('private_rooms').upsert({
   moves: [],
   messages: [],
   draw_offered_by: null,
+  white_ms: 600000,
+  black_ms: 600000,
+  clock_started_at: null,
   last_activity_at: new Date().toISOString(),
 })
 

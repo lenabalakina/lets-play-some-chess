@@ -13,8 +13,9 @@ interface UseTimerOptions {
 export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeout }: UseTimerOptions) {
   const [whiteMs, setWhiteMs] = useState(initialWhiteMs)
   const [blackMs, setBlackMs] = useState(initialBlackMs)
+  const [resetVersion, setResetVersion] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastTickRef = useRef<number>(Date.now())
+  const lastTickRef = useRef<number>(0)
 
   const clear = () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -47,12 +48,14 @@ export function useTimer({ initialWhiteMs, initialBlackMs, activeColor, onTimeou
 
     return clear
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeColor])
+  }, [activeColor, resetVersion])
 
   const reset = useCallback((whiteMs: number, blackMs: number) => {
     clear()
+    lastTickRef.current = Date.now()
     setWhiteMs(whiteMs)
     setBlackMs(blackMs)
+    setResetVersion(v => v + 1)
   }, [])
 
   return { whiteMs, blackMs, reset }

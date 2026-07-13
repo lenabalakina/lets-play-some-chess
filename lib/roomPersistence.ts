@@ -1,6 +1,8 @@
 import { createAdminClient, isRoomPersistenceEnabled } from './supabase/admin'
 import type { ChatMessage, Room, RoomMove } from './roomTypes'
 
+const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
+
 interface DbPrivateRoom {
   code:             string
   fen:              string
@@ -12,6 +14,9 @@ interface DbPrivateRoom {
   moves:            RoomMove[]
   messages:         ChatMessage[]
   draw_offered_by:  'w' | 'b' | null
+  white_ms?:        number | null
+  black_ms?:        number | null
+  clock_started_at?: string | null
   created_at:       string
   last_activity_at: string
 }
@@ -30,6 +35,11 @@ function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
     moves:         row.moves ?? [],
     messages:      row.messages ?? [],
     drawOfferedBy: row.draw_offered_by,
+    whiteMs:       row.white_ms ?? PRIVATE_ROOM_TIME_MS,
+    blackMs:       row.black_ms ?? PRIVATE_ROOM_TIME_MS,
+    clockStartedAt: row.clock_started_at
+      ? new Date(row.clock_started_at).getTime()
+      : (row.status === 'playing' ? Date.now() : null),
     createdAt:     new Date(row.created_at).getTime(),
     lastActivityAt: new Date(row.last_activity_at).getTime(),
   }
@@ -50,9 +60,37 @@ function roomToRow(room: Room): Omit<DbPrivateRoom, 'created_at' | 'last_activit
     moves:           room.moves,
     messages:        room.messages,
     draw_offered_by: room.drawOfferedBy,
+    white_ms:        room.whiteMs,
+    black_ms:        room.blackMs,
+    clock_started_at: room.clockStartedAt === null ? null : new Date(room.clockStartedAt).toISOString(),
     created_at:      new Date(room.createdAt).toISOString(),
     last_activity_at: new Date(room.lastActivityAt).toISOString(),
   }
+}
+
+function legacyRoomToRow(room: Room): Omit<DbPrivateRoom, 'created_at' | 'last_activity_at'> & {
+  created_at: string
+  last_activity_at: string
+} {
+  return {
+    code:            room.code,
+    fen:             room.fen,
+    turn:            room.turn,
+    white:           room.white,
+    black:           room.black,
+    status:          room.status,
+    winner:          room.winner,
+    moves:           room.moves,
+    messages:        room.messages,
+    draw_offered_by: room.drawOfferedBy,
+    created_at:      new Date(room.createdAt).toISOString(),
+    last_activity_at: new Date(room.lastActivityAt).toISOString(),
+  }
+}
+
+function isMissingClockColumn(error: { message?: string; details?: string; hint?: string }): boolean {
+  const text = `${error.message ?? ''} ${error.details ?? ''} ${error.hint ?? ''}`.toLowerCase()
+  return text.includes('white_ms') || text.includes('black_ms') || text.includes('clock_started_at')
 }
 
 export async function loadRoomFromDb(code: string): Promise<Omit<Room, 'subscribers'> | null> {
@@ -74,7 +112,16 @@ export async function saveRoomToDb(room: Room): Promise<void> {
   if (!admin) return
 
   const { error } = await admin.from('private_rooms').upsert(roomToRow(room))
-  if (error) console.error('[roomPersistence] save failed:', error.message)
+  if (!error) return
+
+  if (isMissingClockColumn(error)) {
+    const { error: legacyError } = await admin.from('private_rooms').upsert(legacyRoomToRow(room))
+    if (legacyError) console.error('[roomPersistence] save failed:', legacyError.message)
+    else console.error('[roomPersistence] clock columns missing; run the latest private_rooms migration')
+    return
+  }
+
+  console.error('[roomPersistence] save failed:', error.message)
 }
 
 export async function roomCodeExistsInDb(code: string): Promise<boolean> {
