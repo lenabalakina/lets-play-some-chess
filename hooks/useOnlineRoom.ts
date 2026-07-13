@@ -37,6 +37,24 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const roomNotFoundRef = useRef(false)
   const typingTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [room, setRoom] = useState<OnlineRoomState>({
+    fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    turn:           'w',
+    status:         'waiting',
+    winner:         null,
+    moves:          [],
+    messages:       [],
+    whiteMs:        10 * 60 * 1000,
+    blackMs:        10 * 60 * 1000,
+    clockStartedAt: null,
+    connected:      false,
+    lastMove:       null,
+    drawOfferedBy:  null,
+    opponentTyping: false,
+    opponentOnline: false,
+    roomNotFound:   false,
+  })
+
   const mergeRemoteRoom = useCallback((
     local: OnlineRoomState,
     rm: {
@@ -98,7 +116,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     whiteMs?: number; blackMs?: number; clockStartedAt?: number | null
   }) => {
     setRoom(r => mergeRemoteRoom(r, rm) ?? r)
-  }, [mergeRemoteRoom])
+  }, [mergeRemoteRoom, setRoom])
 
   const fetchRoomState = useCallback(async () => {
     if (!code) return
@@ -109,24 +127,6 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       if (data.room) applyRemoteRoom(data.room)
     } catch { /* ignore */ }
   }, [code, applyRemoteRoom])
-
-  const [room, setRoom] = useState<OnlineRoomState>({
-    fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    turn:           'w',
-    status:         'waiting',
-    winner:         null,
-    moves:          [],
-    messages:       [],
-    whiteMs:        10 * 60 * 1000,
-    blackMs:        10 * 60 * 1000,
-    clockStartedAt: null,
-    connected:      false,
-    lastMove:       null,
-    drawOfferedBy:  null,
-    opponentTyping: false,
-    opponentOnline: false,
-    roomNotFound:   false,
-  })
 
   // SSE connection with auto-reconnect (exponential backoff, max 5 retries)
   useEffect(() => {
@@ -324,7 +324,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       }))
       return { ok: false, error: 'Network error' }
     }
-  }, [code, playerId, myColor])
+  }, [code, playerId, myColor, setRoom])
 
   const offerDraw = useCallback(async () => {
     await fetch(`/api/room/${code}/draw`, {

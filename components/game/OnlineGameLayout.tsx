@@ -17,7 +17,6 @@ import { GameResultModal } from './GameResultModal'
 import { toast } from 'sonner'
 import { chessAudio } from '@/lib/audio'
 import type { Color, Square, MoveRecord, BoardTheme } from '@/features/chess/types/chess.types'
-import { THEME_COLORS } from '@/features/chess/types/chess.types'
 import { Copy, Check, Wifi, WifiOff, Send } from 'lucide-react'
 import { PawnIcon } from '@/components/ui/PawnIcon'
 import { useBoardSize } from '@/hooks/useBoardSize'
@@ -111,7 +110,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       if (last?.color !== myColor) chessAudio.chatMessage()
       prevMsgCountRef.current = room.messages.length
     }
-  }, [room.messages.length, myColor])
+  }, [room.messages, myColor])
 
   function copyCode() {
     navigator.clipboard.writeText(code)
@@ -147,7 +146,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       return
     }
 
-    const chess = new Chess(room.fen)
     const myMoves = getLegalTargetsForPlayer(room.fen, sq, myColor)
 
     if (myMoves.length > 0) {
@@ -205,8 +203,6 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
     if (isMyTurn)  return '♟ Your move'
     return `Opponent's turn…`
   }
-
-  const colors = THEME_COLORS[theme]
 
   // Room no longer exists on the server (expired or server restarted)
   if (room.roomNotFound) {
@@ -268,7 +264,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
           </button>
           <span className="text-slate-600 text-[10px]">Share this code</span>
         </div>
-        <a href="/" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">← Leave</a>
+        <button onClick={() => isGameOver ? router.push('/') : setLeaveConfirm(true)} className="text-slate-600 hover:text-slate-400 text-xs transition-colors cursor-pointer">← Leave</button>
       </header>
 
       {/* ── MOBILE HEADER (< lg) ─────────────────────────────── */}
