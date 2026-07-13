@@ -269,9 +269,17 @@ CREATE TABLE IF NOT EXISTS public.private_rooms (
   moves             JSONB NOT NULL DEFAULT '[]'::jsonb,
   messages          JSONB NOT NULL DEFAULT '[]'::jsonb,
   draw_offered_by   TEXT CHECK (draw_offered_by IN ('w', 'b') OR draw_offered_by IS NULL),
+  white_ms          INTEGER NOT NULL DEFAULT 600000,
+  black_ms          INTEGER NOT NULL DEFAULT 600000,
+  clock_started_at  TIMESTAMPTZ,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_activity_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.private_rooms
+  ADD COLUMN IF NOT EXISTS white_ms INTEGER NOT NULL DEFAULT 600000,
+  ADD COLUMN IF NOT EXISTS black_ms INTEGER NOT NULL DEFAULT 600000,
+  ADD COLUMN IF NOT EXISTS clock_started_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_private_rooms_last_activity ON public.private_rooms(last_activity_at);
 

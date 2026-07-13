@@ -12,7 +12,6 @@ import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
 import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
-import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { GameResultColor } from '@/features/chess/types/chess.types'
 import { GameResultModal } from './GameResultModal'
 import { toast } from 'sonner'
@@ -35,24 +34,26 @@ interface Props {
 }
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
-  const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const { room, makeMove, resign, claimTimeout, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
-  const onlineTimeMs = TIME_CONTROL_MS.rapid_10
 
   const handleTimeout = useCallback((color: Color) => {
-    if (color === myColor && room.status === 'playing') {
-      resign()
-      chessAudio.gameLose()
+    if (color === room.turn && room.status === 'playing') {
+      void claimTimeout()
     }
-  }, [myColor, room.status, resign])
+  }, [claimTimeout, room.status, room.turn])
 
-  const { whiteMs, blackMs } = useTimer({
-    initialWhiteMs: onlineTimeMs,
-    initialBlackMs: onlineTimeMs,
+  const { whiteMs, blackMs, reset: resetDisplayedClock } = useTimer({
+    initialWhiteMs: room.whiteMs,
+    initialBlackMs: room.blackMs,
     activeColor:    room.status === 'playing' ? room.turn : null,
     onTimeout:      handleTimeout,
   })
+
+  useEffect(() => {
+    resetDisplayedClock(room.whiteMs, room.blackMs)
+  }, [room.whiteMs, room.blackMs, room.clockStartedAt, resetDisplayedClock])
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoves,     setLegalMoves]     = useState<string[]>([])

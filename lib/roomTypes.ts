@@ -23,9 +23,16 @@ export interface Room {
   moves:   RoomMove[]
   messages: ChatMessage[]
   drawOfferedBy: 'w' | 'b' | null
+  whiteMs:        number
+  blackMs:        number
+  clockStartedAt: number | null
   createdAt:       number
   lastActivityAt:  number
   subscribers: Map<string, ReadableStreamDefaultController<Uint8Array>>
 }
 
-export type SafeRoom = Omit<Room, 'subscribers'>
+export const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
+
+export type SafeRoom = Omit<Room, 'subscribers'> & {
+  serverNow: number
+}
