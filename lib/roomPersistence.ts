@@ -1,5 +1,7 @@
 import { createAdminClient, isRoomPersistenceEnabled } from './supabase/admin'
-import { PRIVATE_ROOM_TIME_MS, type ChatMessage, type Room, type RoomMove } from './roomTypes'
+import type { ChatMessage, Room, RoomMove } from './roomTypes'
+
+const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
 
 interface DbPrivateRoom {
   code:             string

@@ -31,8 +31,6 @@ export interface Room {
   subscribers: Map<string, ReadableStreamDefaultController<Uint8Array>>
 }
 
-export const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
-
 export type SafeRoom = Omit<Room, 'subscribers'> & {
   serverNow: number
 }
