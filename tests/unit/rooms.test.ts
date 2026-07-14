@@ -5,8 +5,8 @@ import {
   createRoom,
   joinRoom,
   applyMove,
+  offerDraw,
   rooms,
-  sendChat,
 } from '../../lib/rooms.ts'
 import type { Room, RoomMove } from '../../lib/rooms.ts'
 
@@ -124,7 +124,7 @@ describe('rooms', () => {
     assert.equal(move.ok, false)
   })
 
-  it('sendChat refreshes persisted room state before saving', async () => {
+  it('offerDraw refreshes persisted room state before saving', async () => {
     enableMockPersistence()
 
     const move: RoomMove = {
@@ -153,12 +153,12 @@ describe('rooms', () => {
       },
     })
 
-    const result = await sendChat('TEST', 'player-b', 'hello')
+    const result = await offerDraw('TEST', 'player-b')
 
     assert.equal(result.ok, true)
     assert.equal(saved?.fen, latest.fen)
     assert.equal(saved?.moves.length, 1)
-    assert.equal(saved?.messages.length, 1)
+    assert.equal(saved?.drawOfferedBy, 'b')
     assert.equal(expectedLastActivityAt, latest.lastActivityAt)
   })
 
@@ -172,12 +172,12 @@ describe('rooms', () => {
       saveRoomToDb:  async () => false,
     })
 
-    const result = await sendChat('TEST', 'player-b', 'hello')
+    const result = await offerDraw('TEST', 'player-b')
 
     assert.equal(result.ok, false)
     if (result.ok) return
     assert.match(result.error, /changed/i)
-    assert.equal(rooms.get('TEST')?.messages.length, 0)
+    assert.equal(rooms.get('TEST')?.drawOfferedBy, null)
     assert.equal(rooms.get('TEST')?.lastActivityAt, latest.lastActivityAt)
   })
 })

@@ -119,13 +119,13 @@ function cloneRoom(room: Room): Room {
 }
 
 /** Load room from memory cache or database. Preserves existing subscribers if cached. */
-export async function resolveRoom(code: string, options: { refresh?: boolean } = {}): Promise<Room | undefined> {
+export async function resolveRoom(code: string, _options: { refresh?: boolean } = {}): Promise<Room | undefined> {
   purgeStaleRooms()
   const upper = code.toUpperCase()
   const cached = rooms.get(upper)
-  const shouldRefresh = options.refresh || isPersistenceEnabled()
+  const persistenceEnabled = isPersistenceEnabled()
 
-  if (!shouldRefresh) return cached
+  if (!persistenceEnabled) return cached
 
   const row = await loadFromDb(upper)
   if (!row) {
