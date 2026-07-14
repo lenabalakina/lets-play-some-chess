@@ -119,7 +119,7 @@ function cloneRoom(room: Room): Room {
 }
 
 /** Load room from memory cache or database. Preserves existing subscribers if cached. */
-export async function resolveRoom(code: string, _options: { refresh?: boolean } = {}): Promise<Room | undefined> {
+export async function resolveRoom(code: string): Promise<Room | undefined> {
   purgeStaleRooms()
   const upper = code.toUpperCase()
   const cached = rooms.get(upper)
@@ -158,7 +158,7 @@ async function commitRoom(room: Room, expectedLastActivityAt?: number): Promise<
   try {
     const saved = await saveToDb(room, expectedLastActivityAt)
     if (!saved) {
-      await resolveRoom(room.code, { refresh: true })
+      await resolveRoom(room.code)
       return { ok: false, error: 'Room changed; please retry' }
     }
   } catch (error) {
@@ -216,7 +216,7 @@ export async function joinRoom(
   code: string, playerId: string,
 ): Promise<{ room: Room; color: 'w' | 'b' } | { error: string }> {
   return withRoomJoinLock(code, async () => {
-    const current = await resolveRoom(code, { refresh: true })
+    const current = await resolveRoom(code)
     if (!current) return { error: 'Room not found' }
 
     if (current.white === playerId) return { room: current, color: 'w' }
@@ -264,7 +264,7 @@ export async function applyMove(
 } | { ok: false; error: string }> {
   if (rateLimit(`move:${playerId}`, 60)) return { ok: false, error: 'Too many moves' }
 
-  const current = await resolveRoom(code, { refresh: true })
+  const current = await resolveRoom(code)
   if (!current)                     return { ok: false, error: 'Room not found' }
   if (current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
@@ -314,7 +314,7 @@ export async function sendChat(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (rateLimit(`chat:${playerId}`, 20)) return { ok: false, error: 'Too many messages' }
 
-  const current = await resolveRoom(code, { refresh: true })
+  const current = await resolveRoom(code)
   if (!current) return { ok: false, error: 'Room not found' }
 
   const color = current.white === playerId ? 'w' : current.black === playerId ? 'b' : null
@@ -336,7 +336,7 @@ export async function sendChat(
 }
 
 export async function offerDraw(code: string, playerId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const current = await resolveRoom(code, { refresh: true })
+  const current = await resolveRoom(code)
   if (!current || current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
   const color = current.white === playerId ? 'w' : current.black === playerId ? 'b' : null
@@ -355,7 +355,7 @@ export async function offerDraw(code: string, playerId: string): Promise<{ ok: t
 export async function respondDraw(
   code: string, playerId: string, accept: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const current = await resolveRoom(code, { refresh: true })
+  const current = await resolveRoom(code)
   if (!current || current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
   const color = current.white === playerId ? 'w' : current.black === playerId ? 'b' : null
@@ -379,7 +379,7 @@ export async function respondDraw(
 }
 
 export async function resignRoom(code: string, playerId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const current = await resolveRoom(code, { refresh: true })
+  const current = await resolveRoom(code)
   if (!current || current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
   const isWhite = current.white === playerId
