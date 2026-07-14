@@ -69,12 +69,27 @@ export async function loadRoomFromDb(code: string): Promise<Omit<Room, 'subscrib
   return rowToRoomData(data as DbPrivateRoom)
 }
 
-export async function saveRoomToDb(room: Room): Promise<void> {
+export async function saveRoomToDb(room: Room, expectedLastActivityAt?: number): Promise<boolean> {
   const admin = createAdminClient()
-  if (!admin) return
+  if (!admin) return false
 
-  const { error } = await admin.from('private_rooms').upsert(roomToRow(room))
-  if (error) console.error('[roomPersistence] save failed:', error.message)
+  const row = roomToRow(room)
+  if (expectedLastActivityAt === undefined) {
+    const { error } = await admin.from('private_rooms').upsert(row)
+    if (error) throw new Error(error.message)
+    return true
+  }
+
+  const { data, error } = await admin
+    .from('private_rooms')
+    .update(row)
+    .eq('code', room.code)
+    .eq('last_activity_at', new Date(expectedLastActivityAt).toISOString())
+    .select('code')
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return !!data
 }
 
 export async function roomCodeExistsInDb(code: string): Promise<boolean> {
