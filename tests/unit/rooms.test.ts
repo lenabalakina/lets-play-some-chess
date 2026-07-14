@@ -1,10 +1,69 @@
-import { describe, it, beforeEach } from 'node:test'
+import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { createRoom, joinRoom, applyMove, rooms } from '../../lib/rooms.ts'
+import {
+  __setRoomPersistenceForTests,
+  createRoom,
+  joinRoom,
+  applyMove,
+  rooms,
+  sendChat,
+} from '../../lib/rooms.ts'
+import type { Room, RoomMove } from '../../lib/rooms.ts'
+
+const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const originalServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+
+function restoreEnv() {
+  if (originalSupabaseUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL
+  else process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl
+
+  if (originalServiceRoleKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY
+  else process.env.SUPABASE_SERVICE_ROLE_KEY = originalServiceRoleKey
+}
+
+function enableMockPersistence() {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+}
+
+function makeRoom(overrides: Partial<Room> = {}): Room {
+  return {
+    code:          'TEST',
+    fen:           START_FEN,
+    turn:          'w',
+    white:         'player-a',
+    black:         'player-b',
+    status:        'playing',
+    winner:        null,
+    moves:         [],
+    messages:      [],
+    drawOfferedBy: null,
+    createdAt:      100,
+    lastActivityAt: 1000,
+    subscribers:    new Map(),
+    ...overrides,
+  }
+}
+
+function persisted(room: Room): Omit<Room, 'subscribers'> {
+  const { subscribers, ...rest } = room
+  void subscribers
+  return rest
+}
 
 describe('rooms', () => {
   beforeEach(() => {
     rooms.clear()
+    __setRoomPersistenceForTests(null)
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+  })
+
+  afterEach(() => {
+    __setRoomPersistenceForTests(null)
+    restoreEnv()
   })
 
   it('createRoom assigns creator as white', async () => {
@@ -63,5 +122,62 @@ describe('rooms', () => {
     await joinRoom(room.code, 'player-b')
     const move = await applyMove(room.code, 'player-b', 'e2', 'e4')
     assert.equal(move.ok, false)
+  })
+
+  it('sendChat refreshes persisted room state before saving', async () => {
+    enableMockPersistence()
+
+    const move: RoomMove = {
+      from: 'e2',
+      to:   'e4',
+      san:  'e4',
+      fen:  'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+    }
+    const stale = makeRoom()
+    const latest = makeRoom({
+      fen:            move.fen,
+      turn:           'b',
+      moves:          [move],
+      lastActivityAt: 2000,
+    })
+    rooms.set('TEST', stale)
+
+    let saved: Room | null = null
+    let expectedLastActivityAt: number | undefined
+    __setRoomPersistenceForTests({
+      loadRoomFromDb: async () => persisted(latest),
+      saveRoomToDb: async (room, expected) => {
+        saved = room
+        expectedLastActivityAt = expected
+        return true
+      },
+    })
+
+    const result = await sendChat('TEST', 'player-b', 'hello')
+
+    assert.equal(result.ok, true)
+    assert.equal(saved?.fen, latest.fen)
+    assert.equal(saved?.moves.length, 1)
+    assert.equal(saved?.messages.length, 1)
+    assert.equal(expectedLastActivityAt, latest.lastActivityAt)
+  })
+
+  it('keeps cached room unchanged when persisted save detects a conflict', async () => {
+    enableMockPersistence()
+
+    const latest = makeRoom({ lastActivityAt: 2000 })
+    rooms.set('TEST', makeRoom())
+    __setRoomPersistenceForTests({
+      loadRoomFromDb: async () => persisted(latest),
+      saveRoomToDb:  async () => false,
+    })
+
+    const result = await sendChat('TEST', 'player-b', 'hello')
+
+    assert.equal(result.ok, false)
+    if (result.ok) return
+    assert.match(result.error, /changed/i)
+    assert.equal(rooms.get('TEST')?.messages.length, 0)
+    assert.equal(rooms.get('TEST')?.lastActivityAt, latest.lastActivityAt)
   })
 })

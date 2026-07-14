@@ -3,6 +3,26 @@ import type { ChatMessage, Room, RoomMove } from './roomTypes'
 
 export type { ChatMessage, Room, RoomMove } from './roomTypes'
 
+type PersistedRoom = Omit<Room, 'subscribers'>
+
+interface RoomPersistenceAdapter {
+  loadRoomFromDb(code: string): Promise<PersistedRoom | null>
+  saveRoomToDb(room: Room, expectedLastActivityAt?: number): Promise<boolean>
+  roomCodeExistsInDb(code: string): Promise<boolean>
+  tryClaimBlackSeatInDb(code: string, playerId: string): Promise<PersistedRoom | null>
+  deleteStaleRoomsFromDb(olderThanMs: number): Promise<void>
+}
+
+let persistenceOverride: Partial<RoomPersistenceAdapter> | null = null
+
+export function __setRoomPersistenceForTests(adapter: Partial<RoomPersistenceAdapter> | null): void {
+  persistenceOverride = adapter
+}
+
+async function getPersistence(): Promise<Partial<RoomPersistenceAdapter>> {
+  return persistenceOverride ?? await import('./roomPersistence')
+}
+
 function isPersistenceEnabled(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -17,22 +37,34 @@ function isPersistenceEnabled(): boolean {
   return true
 }
 
-async function loadFromDb(code: string): Promise<Omit<Room, 'subscribers'> | null> {
+async function loadFromDb(code: string): Promise<PersistedRoom | null> {
   if (!isPersistenceEnabled()) return null
-  const { loadRoomFromDb } = await import('./roomPersistence')
-  return loadRoomFromDb(code)
+  const { loadRoomFromDb } = await getPersistence()
+  return loadRoomFromDb ? loadRoomFromDb(code) : null
 }
 
-async function saveToDb(room: Room): Promise<void> {
-  if (!isPersistenceEnabled()) return
-  const { saveRoomToDb } = await import('./roomPersistence')
-  await saveRoomToDb(room)
+async function saveToDb(room: Room, expectedLastActivityAt?: number): Promise<boolean> {
+  if (!isPersistenceEnabled()) return true
+  const { saveRoomToDb } = await getPersistence()
+  return saveRoomToDb ? saveRoomToDb(room, expectedLastActivityAt) : false
 }
 
 async function codeExistsInDb(code: string): Promise<boolean> {
   if (!isPersistenceEnabled()) return false
-  const { roomCodeExistsInDb } = await import('./roomPersistence')
-  return roomCodeExistsInDb(code)
+  const { roomCodeExistsInDb } = await getPersistence()
+  return roomCodeExistsInDb ? roomCodeExistsInDb(code) : false
+}
+
+async function claimBlackSeatInDb(code: string, playerId: string): Promise<PersistedRoom | null> {
+  if (!isPersistenceEnabled()) return null
+  const { tryClaimBlackSeatInDb } = await getPersistence()
+  return tryClaimBlackSeatInDb ? tryClaimBlackSeatInDb(code, playerId) : null
+}
+
+async function deleteStaleRoomsFromPersistence(olderThanMs: number): Promise<void> {
+  if (!isPersistenceEnabled()) return
+  const { deleteStaleRoomsFromDb } = await getPersistence()
+  await deleteStaleRoomsFromDb?.(olderThanMs)
 }
 
 // Persist across Next.js hot-reloads in dev
@@ -68,17 +100,40 @@ async function codeInUse(code: string): Promise<boolean> {
   return false
 }
 
+function roomFromPersisted(row: PersistedRoom, subscribers: Room['subscribers']): Room {
+  return {
+    ...row,
+    moves:    [...row.moves],
+    messages: [...row.messages],
+    subscribers,
+  }
+}
+
+function cloneRoom(room: Room): Room {
+  return {
+    ...room,
+    moves:    [...room.moves],
+    messages: [...room.messages],
+    subscribers: room.subscribers,
+  }
+}
+
 /** Load room from memory cache or database. Preserves existing subscribers if cached. */
-export async function resolveRoom(code: string): Promise<Room | undefined> {
+export async function resolveRoom(code: string, options: { refresh?: boolean } = {}): Promise<Room | undefined> {
   purgeStaleRooms()
   const upper = code.toUpperCase()
   const cached = rooms.get(upper)
-  if (cached) return cached
+  const shouldRefresh = options.refresh || isPersistenceEnabled()
+
+  if (!shouldRefresh) return cached
 
   const row = await loadFromDb(upper)
-  if (!row) return undefined
+  if (!row) {
+    rooms.delete(upper)
+    return undefined
+  }
 
-  const room: Room = { ...row, subscribers: new Map() }
+  const room = roomFromPersisted(row, cached?.subscribers ?? new Map())
   rooms.set(upper, room)
   return room
 }
@@ -99,9 +154,19 @@ async function withRoomJoinLock<T>(code: string, fn: () => Promise<T>): Promise<
   }
 }
 
-async function commitRoom(room: Room): Promise<void> {
+async function commitRoom(room: Room, expectedLastActivityAt?: number): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const saved = await saveToDb(room, expectedLastActivityAt)
+    if (!saved) {
+      await resolveRoom(room.code, { refresh: true })
+      return { ok: false, error: 'Room changed; please retry' }
+    }
+  } catch (error) {
+    console.error('[rooms] save failed:', error instanceof Error ? error.message : error)
+    return { ok: false, error: 'Unable to save room' }
+  }
   rooms.set(room.code, room)
-  await saveToDb(room)
+  return { ok: true }
 }
 
 function purgeStaleRooms(): void {
@@ -138,12 +203,11 @@ export async function createRoom(playerId: string): Promise<Room> {
     subscribers:    new Map(),
   }
 
-  await commitRoom(room)
+  const committed = await commitRoom(room)
+  if (!committed.ok) throw new Error(committed.error)
   purgeStaleRooms()
   if (isPersistenceEnabled()) {
-    void import('./roomPersistence').then(({ deleteStaleRoomsFromDb }) =>
-      deleteStaleRoomsFromDb(6 * 60 * 60 * 1000),
-    )
+    void deleteStaleRoomsFromPersistence(6 * 60 * 60 * 1000)
   }
   return room
 }
@@ -152,36 +216,41 @@ export async function joinRoom(
   code: string, playerId: string,
 ): Promise<{ room: Room; color: 'w' | 'b' } | { error: string }> {
   return withRoomJoinLock(code, async () => {
-    const room = await resolveRoom(code)
-    if (!room) return { error: 'Room not found' }
+    const current = await resolveRoom(code, { refresh: true })
+    if (!current) return { error: 'Room not found' }
 
-    if (room.white === playerId) return { room, color: 'w' }
-    if (room.black === playerId) return { room, color: 'b' }
+    if (current.white === playerId) return { room: current, color: 'w' }
+    if (current.black === playerId) return { room: current, color: 'b' }
 
-    if (room.status !== 'waiting') return { error: 'Room is already full' }
-    if (room.black !== null) return { error: 'Room is already full' }
+    if (current.status !== 'waiting') return { error: 'Room is already full' }
+    if (current.black !== null) return { error: 'Room is already full' }
 
     if (isPersistenceEnabled()) {
-      const { tryClaimBlackSeatInDb } = await import('./roomPersistence')
-      const claimed = await tryClaimBlackSeatInDb(room.code, playerId)
+      const claimed = await claimBlackSeatInDb(current.code, playerId)
       if (!claimed) {
-        const refreshed = await loadFromDb(room.code)
+        const refreshed = await loadFromDb(current.code)
         if (refreshed?.black === playerId) {
-          Object.assign(room, refreshed)
+          const room = roomFromPersisted(refreshed, current.subscribers)
+          rooms.set(room.code, room)
           return { room, color: 'b' }
         }
         return { error: 'Room is already full' }
       }
-      Object.assign(room, claimed)
+      const room = roomFromPersisted(claimed, current.subscribers)
+      rooms.set(room.code, room)
+      broadcast(code, { type: 'start', room: safeRoom(room) })
+      return { room, color: 'b' }
     } else {
+      const room = cloneRoom(current)
       room.black = playerId
       room.status = 'playing'
-    }
 
-    room.lastActivityAt = Date.now()
-    await commitRoom(room)
-    broadcast(code, { type: 'start', room: safeRoom(room) })
-    return { room, color: 'b' }
+      room.lastActivityAt = Date.now()
+      const committed = await commitRoom(room, current.lastActivityAt)
+      if (!committed.ok) return { error: committed.error }
+      broadcast(code, { type: 'start', room: safeRoom(room) })
+      return { room, color: 'b' }
+    }
   })
 }
 
@@ -195,44 +264,48 @@ export async function applyMove(
 } | { ok: false; error: string }> {
   if (rateLimit(`move:${playerId}`, 60)) return { ok: false, error: 'Too many moves' }
 
-  const room = await resolveRoom(code)
-  if (!room)                     return { ok: false, error: 'Room not found' }
-  if (room.status !== 'playing') return { ok: false, error: 'Game not active' }
+  const current = await resolveRoom(code, { refresh: true })
+  if (!current)                     return { ok: false, error: 'Room not found' }
+  if (current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
-  const myColor = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  const myColor = current.white === playerId ? 'w' : current.black === playerId ? 'b' : null
   if (!myColor)              return { ok: false, error: 'Not a player in this room' }
-  if (room.turn !== myColor) return { ok: false, error: 'Not your turn' }
+  if (current.turn !== myColor) return { ok: false, error: 'Not your turn' }
 
+  const room = cloneRoom(current)
   const chess = new Chess(room.fen)
+  let result: ReturnType<Chess['move']> | null = null
   try {
-    const result = chess.move({ from, to, promotion: promotion ?? 'q' })
+    result = chess.move({ from, to, promotion: promotion ?? 'q' })
     if (!result) return { ok: false, error: 'Illegal move' }
-
-    room.fen  = chess.fen()
-    room.turn = chess.turn() as 'w' | 'b'
-    const moveRecord: RoomMove = { from, to, promotion, san: result.san, fen: room.fen }
-    room.moves.push(moveRecord)
-    room.lastActivityAt = Date.now()
-
-    if (chess.isGameOver()) {
-      room.status = 'finished'
-      if (chess.isCheckmate()) room.winner = room.turn === 'w' ? 'b' : 'w'
-      else                     room.winner = 'draw'
-    }
-
-    await commitRoom(room)
-    broadcast(code, {
-      type: 'move', from, to, promotion,
-      san: result.san, fen: room.fen,
-      turn: room.turn, status: room.status, winner: room.winner,
-    })
-    return {
-      ok: true,
-      move: moveRecord,
-      room: { fen: room.fen, turn: room.turn, status: room.status, winner: room.winner },
-    }
   } catch {
     return { ok: false, error: 'Illegal move' }
+  }
+
+  room.fen  = chess.fen()
+  room.turn = chess.turn() as 'w' | 'b'
+  const moveRecord: RoomMove = { from, to, promotion, san: result.san, fen: room.fen }
+  room.moves.push(moveRecord)
+  room.lastActivityAt = Date.now()
+
+  if (chess.isGameOver()) {
+    room.status = 'finished'
+    if (chess.isCheckmate()) room.winner = room.turn === 'w' ? 'b' : 'w'
+    else                     room.winner = 'draw'
+  }
+
+  const committed = await commitRoom(room, current.lastActivityAt)
+  if (!committed.ok) return committed
+
+  broadcast(code, {
+    type: 'move', from, to, promotion,
+    san: result.san, fen: room.fen,
+    turn: room.turn, status: room.status, winner: room.winner,
+  })
+  return {
+    ok: true,
+    move: moveRecord,
+    room: { fen: room.fen, turn: room.turn, status: room.status, winner: room.winner },
   }
 }
 
@@ -241,10 +314,10 @@ export async function sendChat(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (rateLimit(`chat:${playerId}`, 20)) return { ok: false, error: 'Too many messages' }
 
-  const room = await resolveRoom(code)
-  if (!room) return { ok: false, error: 'Room not found' }
+  const current = await resolveRoom(code, { refresh: true })
+  if (!current) return { ok: false, error: 'Room not found' }
 
-  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  const color = current.white === playerId ? 'w' : current.black === playerId ? 'b' : null
   if (!color) return { ok: false, error: 'Not a player in this room' }
 
   const { moderateChatMessage } = await import('./chatModeration')
@@ -252,25 +325,29 @@ export async function sendChat(
   if (!mod.ok) return { ok: false, error: mod.reason }
   const trimmed = mod.text
 
+  const room = cloneRoom(current)
   const msg: ChatMessage = { color, text: trimmed, ts: Date.now() }
   room.messages.push(msg)
   room.lastActivityAt = Date.now()
-  await commitRoom(room)
+  const committed = await commitRoom(room, current.lastActivityAt)
+  if (!committed.ok) return committed
   broadcast(code, { type: 'chat', ...msg })
   return { ok: true }
 }
 
 export async function offerDraw(code: string, playerId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const room = await resolveRoom(code)
-  if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
+  const current = await resolveRoom(code, { refresh: true })
+  if (!current || current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
-  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  const color = current.white === playerId ? 'w' : current.black === playerId ? 'b' : null
   if (!color) return { ok: false, error: 'Not a player' }
-  if (room.drawOfferedBy) return { ok: false, error: 'Draw already offered' }
+  if (current.drawOfferedBy) return { ok: false, error: 'Draw already offered' }
 
+  const room = cloneRoom(current)
   room.drawOfferedBy = color
   room.lastActivityAt = Date.now()
-  await commitRoom(room)
+  const committed = await commitRoom(room, current.lastActivityAt)
+  if (!committed.ok) return committed
   broadcast(code, { type: 'draw_offer', by: color })
   return { ok: true }
 }
@@ -278,40 +355,43 @@ export async function offerDraw(code: string, playerId: string): Promise<{ ok: t
 export async function respondDraw(
   code: string, playerId: string, accept: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const room = await resolveRoom(code)
-  if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
+  const current = await resolveRoom(code, { refresh: true })
+  if (!current || current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
-  const color = room.white === playerId ? 'w' : room.black === playerId ? 'b' : null
+  const color = current.white === playerId ? 'w' : current.black === playerId ? 'b' : null
   if (!color) return { ok: false, error: 'Not a player' }
-  if (!room.drawOfferedBy || room.drawOfferedBy === color) {
+  if (!current.drawOfferedBy || current.drawOfferedBy === color) {
     return { ok: false, error: 'No draw offer to respond to' }
   }
 
+  const room = cloneRoom(current)
   room.drawOfferedBy = null
+  const event = accept ? { type: 'draw_accepted' } : { type: 'draw_declined' }
   if (accept) {
     room.status = 'finished'
     room.winner = 'draw'
-    broadcast(code, { type: 'draw_accepted' })
-  } else {
-    broadcast(code, { type: 'draw_declined' })
   }
   room.lastActivityAt = Date.now()
-  await commitRoom(room)
+  const committed = await commitRoom(room, current.lastActivityAt)
+  if (!committed.ok) return committed
+  broadcast(code, event)
   return { ok: true }
 }
 
 export async function resignRoom(code: string, playerId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const room = await resolveRoom(code)
-  if (!room || room.status !== 'playing') return { ok: false, error: 'Game not active' }
+  const current = await resolveRoom(code, { refresh: true })
+  if (!current || current.status !== 'playing') return { ok: false, error: 'Game not active' }
 
-  const isWhite = room.white === playerId
-  const isBlack = room.black === playerId
+  const isWhite = current.white === playerId
+  const isBlack = current.black === playerId
   if (!isWhite && !isBlack) return { ok: false, error: 'Not a player' }
 
+  const room = cloneRoom(current)
   room.status = 'finished'
   room.winner = isWhite ? 'b' : 'w'
   room.lastActivityAt = Date.now()
-  await commitRoom(room)
+  const committed = await commitRoom(room, current.lastActivityAt)
+  if (!committed.ok) return committed
   broadcast(code, { type: 'resign', winner: room.winner })
   return { ok: true }
 }
