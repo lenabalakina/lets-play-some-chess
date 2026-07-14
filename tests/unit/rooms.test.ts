@@ -142,12 +142,12 @@ describe('rooms', () => {
     })
     rooms.set('TEST', stale)
 
-    let saved: Room | null = null
+    const savedRooms: Room[] = []
     let expectedLastActivityAt: number | undefined
     __setRoomPersistenceForTests({
       loadRoomFromDb: async () => persisted(latest),
       saveRoomToDb: async (room, expected) => {
-        saved = room
+        savedRooms.push(room)
         expectedLastActivityAt = expected
         return true
       },
@@ -156,9 +156,11 @@ describe('rooms', () => {
     const result = await offerDraw('TEST', 'player-b')
 
     assert.equal(result.ok, true)
-    assert.equal(saved?.fen, latest.fen)
-    assert.equal(saved?.moves.length, 1)
-    assert.equal(saved?.drawOfferedBy, 'b')
+    const saved = savedRooms[0]
+    assert.ok(saved)
+    assert.equal(saved.fen, latest.fen)
+    assert.equal(saved.moves.length, 1)
+    assert.equal(saved.drawOfferedBy, 'b')
     assert.equal(expectedLastActivityAt, latest.lastActivityAt)
   })
 
