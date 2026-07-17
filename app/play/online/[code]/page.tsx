@@ -27,10 +27,13 @@ export default function OnlineGamePage({ params }: Props) {
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
-    const id = getOrCreatePlayerId()
-    setPlayerId(id)
+    let cancelled = false
 
     async function ensureJoined() {
+      const id = getOrCreatePlayerId()
+      if (cancelled) return
+      setPlayerId(id)
+
       try {
         const res = await fetch(`/api/room/${roomCode}`, {
           method:  'POST',
@@ -52,6 +55,7 @@ export default function OnlineGamePage({ params }: Props) {
     }
 
     ensureJoined()
+    return () => { cancelled = true }
   }, [roomCode])
 
   if (!playerId || myColor === null) {
