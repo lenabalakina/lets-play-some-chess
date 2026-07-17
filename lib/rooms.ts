@@ -317,8 +317,7 @@ export async function resignRoom(code: string, playerId: string): Promise<{ ok: 
 }
 
 export function safeRoom(room: Room) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { subscribers: _s, ...rest } = room
+  const { subscribers: _subscribers, white: _white, black: _black, ...rest } = room
   return rest
 }
 
