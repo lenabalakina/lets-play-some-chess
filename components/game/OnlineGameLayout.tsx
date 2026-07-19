@@ -11,8 +11,7 @@ import { PromotionDialog } from './PromotionDialog'
 import type { PromoPiece } from './PromotionDialog'
 import { useOnlineRoom } from '@/hooks/useOnlineRoom'
 import { getLegalTargetsForPlayer } from '@/features/chess/boardCoordinates'
-import { useTimer, formatTime } from '@/features/chess/hooks/useTimer'
-import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
+import { formatTime } from '@/features/chess/hooks/useTimer'
 import type { GameResultColor } from '@/features/chess/types/chess.types'
 import { GameResultModal } from './GameResultModal'
 import { toast } from 'sonner'
@@ -35,24 +34,9 @@ interface Props {
 }
 
 export function OnlineGameLayout({ code, playerId, myColor }: Props) {
-  const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, isMyTurn } = useOnlineRoom(code, playerId, myColor)
+  const { room, makeMove, resign, sendChat, sendTyping, offerDraw, respondToDraw, claimTimeout, isMyTurn } = useOnlineRoom(code, playerId, myColor)
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
-  const onlineTimeMs = TIME_CONTROL_MS.rapid_10
-
-  const handleTimeout = useCallback((color: Color) => {
-    if (color === myColor && room.status === 'playing') {
-      resign()
-      chessAudio.gameLose()
-    }
-  }, [myColor, room.status, resign])
-
-  const { whiteMs, blackMs } = useTimer({
-    initialWhiteMs: onlineTimeMs,
-    initialBlackMs: onlineTimeMs,
-    activeColor:    room.status === 'playing' ? room.turn : null,
-    onTimeout:      handleTimeout,
-  })
 
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoves,     setLegalMoves]     = useState<string[]>([])
@@ -76,6 +60,46 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
   const { ref: boardAreaRef, size: boardSize } = useBoardSize()
   const pendingPromoRef = useRef<{ from: string; to: string } | null>(null)
   const prevMoveCountRef = useRef(0)
+  const timeoutClaimRef = useRef<string | null>(null)
+  const [clockNow, setClockNow] = useState(Date.now())
+
+  const displayedClock = (() => {
+    let { whiteMs, blackMs } = room
+    if (room.status === 'playing' && room.clockStartedAt !== null) {
+      const elapsed = Math.max(0, clockNow - room.clockStartedAt)
+      if (room.turn === 'w') whiteMs = Math.max(0, whiteMs - elapsed)
+      else                   blackMs = Math.max(0, blackMs - elapsed)
+    }
+    return { whiteMs, blackMs }
+  })()
+  const whiteMs = displayedClock.whiteMs
+  const blackMs = displayedClock.blackMs
+
+  useEffect(() => {
+    if (room.status !== 'playing' || room.clockStartedAt === null) return
+    setClockNow(Date.now())
+    const timer = setInterval(() => setClockNow(Date.now()), 250)
+    return () => clearInterval(timer)
+  }, [room.status, room.clockStartedAt, room.turn, room.whiteMs, room.blackMs])
+
+  useEffect(() => {
+    if (room.status !== 'playing' || room.clockStartedAt === null) {
+      timeoutClaimRef.current = null
+      return
+    }
+
+    const activeMs = room.turn === 'w' ? whiteMs : blackMs
+    if (activeMs > 0) {
+      timeoutClaimRef.current = null
+      return
+    }
+
+    const claimKey = `${room.turn}:${room.clockStartedAt}`
+    if (timeoutClaimRef.current === claimKey) return
+    timeoutClaimRef.current = claimKey
+    if (room.turn === myColor) chessAudio.gameLose()
+    void claimTimeout()
+  }, [room.status, room.clockStartedAt, room.turn, whiteMs, blackMs, myColor, claimTimeout])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -183,6 +207,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
       : room.winner === 'b' ? 'black'
       : null)
     : null
+  const resultReason = isGameOver && (whiteMs === 0 || blackMs === 0) ? 'timeout' : 'checkmate'
 
   const moveHistory: MoveRecord[] = room.moves.map((m, i) => ({
     san:        m.san,
@@ -735,7 +760,7 @@ export function OnlineGameLayout({ code, playerId, myColor }: Props) {
         open={isGameOver}
         result={gameResult}
         myColor={myColor}
-        reason={room.winner === 'draw' ? 'draw' : 'checkmate'}
+        reason={room.winner === 'draw' ? 'draw' : resultReason}
         myUsername="You"
         oppUsername="Opponent"
         myElo={1200}

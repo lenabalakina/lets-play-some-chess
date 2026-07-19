@@ -12,6 +12,9 @@ interface DbPrivateRoom {
   moves:            RoomMove[]
   messages:         ChatMessage[]
   draw_offered_by:  'w' | 'b' | null
+  white_ms?:        number | null
+  black_ms?:        number | null
+  clock_started_at?: string | null
   created_at:       string
   last_activity_at: string
 }
@@ -30,6 +33,9 @@ function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
     moves:         row.moves ?? [],
     messages:      row.messages ?? [],
     drawOfferedBy: row.draw_offered_by,
+    whiteMs:       row.white_ms ?? 10 * 60 * 1000,
+    blackMs:       row.black_ms ?? 10 * 60 * 1000,
+    clockStartedAt: row.clock_started_at ? new Date(row.clock_started_at).getTime() : null,
     createdAt:     new Date(row.created_at).getTime(),
     lastActivityAt: new Date(row.last_activity_at).getTime(),
   }
@@ -50,6 +56,9 @@ function roomToRow(room: Room): Omit<DbPrivateRoom, 'created_at' | 'last_activit
     moves:           room.moves,
     messages:        room.messages,
     draw_offered_by: room.drawOfferedBy,
+    white_ms:        room.whiteMs,
+    black_ms:        room.blackMs,
+    clock_started_at: room.clockStartedAt === null ? null : new Date(room.clockStartedAt).toISOString(),
     created_at:      new Date(room.createdAt).toISOString(),
     last_activity_at: new Date(room.lastActivityAt).toISOString(),
   }
@@ -103,6 +112,7 @@ export async function tryClaimBlackSeatInDb(
     .update({
       black: playerId,
       status: 'playing',
+      clock_started_at: now,
       last_activity_at: now,
     })
     .eq('code', code)
