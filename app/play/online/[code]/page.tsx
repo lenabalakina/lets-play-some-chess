@@ -22,13 +22,12 @@ export default function OnlineGamePage({ params }: Props) {
   const router = useRouter()
   const roomCode = code.toUpperCase()
 
-  const [playerId, setPlayerId] = useState<string | null>(null)
-  const [myColor, setMyColor] = useState<Color | null>(null)
+  const [session, setSession] = useState<{ playerId: string; myColor: Color } | null>(null)
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     const id = getOrCreatePlayerId()
-    setPlayerId(id)
 
     async function ensureJoined() {
       try {
@@ -40,21 +39,25 @@ export default function OnlineGamePage({ params }: Props) {
         const data = await res.json()
 
         if (res.ok && data.color) {
-          setMyColor(data.color)
+          if (cancelled) return
+          setSession({ playerId: id, myColor: data.color })
           localStorage.setItem('chess_last_room', JSON.stringify({ code: roomCode, color: data.color }))
           return
         }
 
+        if (cancelled) return
         setJoinError(data.error ?? 'Could not join room')
       } catch {
+        if (cancelled) return
         setJoinError('Network error while joining room')
       }
     }
 
-    ensureJoined()
+    void ensureJoined()
+    return () => { cancelled = true }
   }, [roomCode])
 
-  if (!playerId || myColor === null) {
+  if (!session) {
     if (joinError) {
       return (
         <div className="min-h-screen bg-[#070d1a] flex flex-col items-center justify-center gap-6 text-white px-6">
@@ -82,8 +85,8 @@ export default function OnlineGamePage({ params }: Props) {
   return (
     <OnlineGameLayout
       code={roomCode}
-      playerId={playerId}
-      myColor={myColor}
+      playerId={session.playerId}
+      myColor={session.myColor}
     />
   )
 }
