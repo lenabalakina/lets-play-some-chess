@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js'
-import type { ChatMessage, Room, RoomMove } from './roomTypes'
+import type { ChatMessage, Room, RoomMove, SafeRoom } from './roomTypes'
 
 export type { ChatMessage, Room, RoomMove } from './roomTypes'
 
@@ -316,9 +316,9 @@ export async function resignRoom(code: string, playerId: string): Promise<{ ok: 
   return { ok: true }
 }
 
-export function safeRoom(room: Room) {
+export function safeRoom(room: Room): SafeRoom {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { subscribers: _s, ...rest } = room
+  const { subscribers: _s, white: _white, black: _black, ...rest } = room
   return rest
 }
 
