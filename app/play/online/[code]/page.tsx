@@ -27,17 +27,23 @@ export default function OnlineGamePage({ params }: Props) {
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
-    const id = getOrCreatePlayerId()
-    setPlayerId(id)
+    let cancelled = false
 
     async function ensureJoined() {
       try {
+        await Promise.resolve()
+        if (cancelled) return
+
+        const id = getOrCreatePlayerId()
+        setPlayerId(id)
+
         const res = await fetch(`/api/room/${roomCode}`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ playerId: id }),
         })
         const data = await res.json()
+        if (cancelled) return
 
         if (res.ok && data.color) {
           setMyColor(data.color)
@@ -45,27 +51,14 @@ export default function OnlineGamePage({ params }: Props) {
           return
         }
 
-        // Rejoin path: player already seated but POST failed (e.g. room full)
-        const getRes = await fetch(`/api/room/${roomCode}`)
-        const getData = await getRes.json()
-        if (getData.room?.white === id) {
-          setMyColor('w')
-          localStorage.setItem('chess_last_room', JSON.stringify({ code: roomCode, color: 'w' }))
-          return
-        }
-        if (getData.room?.black === id) {
-          setMyColor('b')
-          localStorage.setItem('chess_last_room', JSON.stringify({ code: roomCode, color: 'b' }))
-          return
-        }
-
         setJoinError(data.error ?? 'Could not join room')
       } catch {
-        setJoinError('Network error while joining room')
+        if (!cancelled) setJoinError('Network error while joining room')
       }
     }
 
-    ensureJoined()
+    void ensureJoined()
+    return () => { cancelled = true }
   }, [roomCode])
 
   if (!playerId || myColor === null) {

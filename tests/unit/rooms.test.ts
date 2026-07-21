@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { createRoom, joinRoom, applyMove, rooms } from '../../lib/rooms.ts'
+import { createRoom, joinRoom, applyMove, rooms, safeRoom } from '../../lib/rooms.ts'
 
 describe('rooms', () => {
   beforeEach(() => {
@@ -30,6 +30,19 @@ describe('rooms', () => {
     assert.ok(!('error' in result))
     if ('error' in result) return
     assert.equal(result.color, 'w')
+  })
+
+  it('safeRoom does not expose player seat ids', async () => {
+    const room = await createRoom('player-a')
+    await joinRoom(room.code, 'player-b')
+
+    const snapshot = safeRoom(room) as Record<string, unknown>
+
+    assert.equal(snapshot.white, undefined)
+    assert.equal(snapshot.black, undefined)
+    assert.equal(snapshot.subscribers, undefined)
+    assert.equal(snapshot.code, room.code)
+    assert.equal(snapshot.status, 'playing')
   })
 
   it('joinRoom rejects third player when room is full', async () => {
