@@ -45,7 +45,7 @@ Deno.serve(async (_req) => {
   for (const { game_id, loser } of games) {
     const result = loser === 'w' ? 'black' : 'white'
 
-    const { error: updateError } = await supabase
+    const { data: completedGame, error: updateError } = await supabase
       .from('games')
       .update({
         status:       'completed',
@@ -54,17 +54,12 @@ Deno.serve(async (_req) => {
       })
       .eq('id', game_id)
       .eq('status', 'active')   // guard against double-completion
+      .select('player_white, player_black')
+      .maybeSingle()
 
-    if (!updateError) {
-      // ELO update — fetch both players
-      const { data: game } = await supabase
-        .from('games')
-        .select('player_white, player_black')
-        .eq('id', game_id)
-        .single()
-
-      if (game?.player_white && game?.player_black) {
-        await updateElo(supabase, game.player_white, game.player_black, result as 'white' | 'black' | 'draw')
+    if (!updateError && completedGame) {
+      if (completedGame.player_white && completedGame.player_black) {
+        await updateElo(supabase, completedGame.player_white, completedGame.player_black, result as 'white' | 'black' | 'draw')
       }
       resolved++
     }
