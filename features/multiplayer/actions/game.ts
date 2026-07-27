@@ -99,8 +99,11 @@ export async function recordMove(
   }
 
   if (result) {
-    await completeGame(supabase, gameId, result)
-    await applyEloUpdate(supabase, game.player_white, game.player_black!, result)
+    const completed = await completeGame(supabase, gameId, result)
+    if (!completed) return { error: 'Game is not active' }
+    if (game.player_black) {
+      await applyEloUpdate(supabase, game.player_white, game.player_black, result)
+    }
   } else {
     await updateGameState(supabase, gameId, {
       fen:         chess.fen(),
@@ -134,7 +137,8 @@ export async function resignGame(gameId: string): Promise<{ error?: string }> {
   if (!isWhite && game.player_black !== user.id) return { error: 'Not a player' }
 
   const result = isWhite ? 'black' : 'white'
-  await completeGame(supabase, gameId, result)
+  const completed = await completeGame(supabase, gameId, result)
+  if (!completed) return { error: 'Game is not active' }
   if (game.player_black) {
     await applyEloUpdate(supabase, game.player_white, game.player_black, result)
   }
@@ -153,7 +157,8 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   if (!game) return { error: 'Game not found' }
   if (game.status !== 'active') return { error: 'Game not active' }
 
-  await completeGame(supabase, gameId, 'draw')
+  const completed = await completeGame(supabase, gameId, 'draw')
+  if (!completed) return { error: 'Game not active' }
   if (game.player_black) {
     await applyEloUpdate(supabase, game.player_white, game.player_black, 'draw')
   }

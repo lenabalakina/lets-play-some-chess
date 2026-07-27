@@ -56,8 +56,8 @@ export async function updateGameState(db: DB, gameId: string, params: {
   if (error) throw new Error(error.message)
 }
 
-export async function completeGame(db: DB, gameId: string, result: 'white' | 'black' | 'draw') {
-  const { error } = await db
+export async function completeGame(db: DB, gameId: string, result: 'white' | 'black' | 'draw'): Promise<boolean> {
+  const { data, error } = await db
     .from('games')
     .update({
       status:       'completed',
@@ -65,8 +65,12 @@ export async function completeGame(db: DB, gameId: string, result: 'white' | 'bl
       completed_at: new Date().toISOString(),
     })
     .eq('id', gameId)
+    .eq('status', 'active')
+    .select('id')
+    .maybeSingle()
 
   if (error) throw new Error(error.message)
+  return !!data
 }
 
 export async function getPlayerProfile(db: DB, userId: string): Promise<{
