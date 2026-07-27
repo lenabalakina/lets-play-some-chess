@@ -165,9 +165,8 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function applyEloUpdate(
-  supabase: any,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'
