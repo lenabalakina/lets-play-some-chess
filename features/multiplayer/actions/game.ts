@@ -99,7 +99,12 @@ export async function recordMove(
   }
 
   if (result) {
-    await completeGame(supabase, gameId, result)
+    await completeGame(supabase, gameId, result, {
+      fen:         chess.fen(),
+      moves:       [...currentMoves, { san: moveResult.san, from, to }],
+      whiteTimeMs: newWhiteMs,
+      blackTimeMs: newBlackMs,
+    })
     await applyEloUpdate(supabase, game.player_white, game.player_black!, result)
   } else {
     await updateGameState(supabase, gameId, {
@@ -160,9 +165,10 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GameDb = Parameters<typeof getGame>[0]
+
 async function applyEloUpdate(
-  supabase: any,
+  supabase: GameDb,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'
