@@ -165,9 +165,10 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GameDb = Parameters<typeof getGame>[0]
+
 async function applyEloUpdate(
-  supabase: any,
+  supabase: GameDb,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'
