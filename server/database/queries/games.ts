@@ -56,14 +56,32 @@ export async function updateGameState(db: DB, gameId: string, params: {
   if (error) throw new Error(error.message)
 }
 
-export async function completeGame(db: DB, gameId: string, result: 'white' | 'black' | 'draw') {
+export async function completeGame(
+  db: DB,
+  gameId: string,
+  result: 'white' | 'black' | 'draw',
+  finalState?: {
+    fen:          string
+    moves:        unknown[]
+    whiteTimeMs:  number
+    blackTimeMs:  number
+  }
+) {
+  const update = {
+    status:       'completed',
+    result,
+    completed_at: new Date().toISOString(),
+    ...(finalState ? {
+      fen:           finalState.fen,
+      moves:         finalState.moves,
+      white_time_ms: finalState.whiteTimeMs,
+      black_time_ms: finalState.blackTimeMs,
+    } : {}),
+  }
+
   const { error } = await db
     .from('games')
-    .update({
-      status:       'completed',
-      result,
-      completed_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq('id', gameId)
 
   if (error) throw new Error(error.message)
