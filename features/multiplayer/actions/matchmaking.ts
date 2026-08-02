@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAdminClient } from '@/lib/supabase/admin'
 import { createGame } from '@/server/database/queries/games'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { TimeControl } from '@/features/chess/types/chess.types'
@@ -47,6 +48,12 @@ export async function attemptMatch(): Promise<{ gameId: string } | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+  let writeDb
+  try {
+    writeDb = requireAdminClient()
+  } catch {
+    return null
+  }
 
   // Get current player's queue entry
   const { data: myEntry } = await supabase
@@ -86,7 +93,7 @@ export async function attemptMatch(): Promise<{ gameId: string } | null> {
   // Create game (this may race — let Supabase constraints handle duplicates)
   let game: { id: string }
   try {
-    game = await createGame(supabase, {
+    game = await createGame(writeDb, {
       playerWhite: whiteId,
       playerBlack: blackId,
       timeControl: myEntry.time_control,
@@ -108,7 +115,7 @@ export async function attemptMatch(): Promise<{ gameId: string } | null> {
   }
 
   // Remove both players from queue
-  await supabase
+  await writeDb
     .from('matchmaking_queue')
     .delete()
     .in('player_id', [user.id, opponent.player_id])

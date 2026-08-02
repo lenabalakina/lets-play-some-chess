@@ -2,6 +2,7 @@
 
 import { Chess } from 'chess.js'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdminClient } from '@/lib/supabase/admin'
 import { getGame, updateGameState, completeGame, getPlayerProfile, updatePlayerStats } from '@/server/database/queries/games'
 import { insertMove } from '@/server/database/queries/moves'
 import { calculateElo } from '@/features/rating/eloCalculator'
@@ -14,6 +15,14 @@ interface MoveResult {
   fen?:        string
   isGameOver?: boolean
   result?:     'white' | 'black' | 'draw'
+}
+
+function getWriteClient() {
+  try {
+    return requireAdminClient()
+  } catch {
+    return null
+  }
 }
 
 export async function recordMove(
@@ -30,6 +39,8 @@ export async function recordMove(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const writeDb = getWriteClient()
+  if (!writeDb) return { error: 'Server database writes are not configured' }
 
   // Rate limit: max 30 moves per 10 seconds per user
   const rl = await checkRateLimit({ supabase, userId: user.id, ...RATE_LIMITS.RECORD_MOVE })
@@ -70,7 +81,7 @@ export async function recordMove(
   const moveNumber   = currentMoves.length + 1
 
   // Persist move
-  await insertMove(supabase, {
+  await insertMove(writeDb, {
     gameId,
     playerId:    user.id,
     moveSan:     moveResult.san,
@@ -99,10 +110,10 @@ export async function recordMove(
   }
 
   if (result) {
-    await completeGame(supabase, gameId, result)
-    await applyEloUpdate(supabase, game.player_white, game.player_black!, result)
+    await completeGame(writeDb, gameId, result)
+    await applyEloUpdate(writeDb, game.player_white, game.player_black!, result)
   } else {
-    await updateGameState(supabase, gameId, {
+    await updateGameState(writeDb, gameId, {
       fen:         chess.fen(),
       moves:       [...currentMoves, { san: moveResult.san, from, to }],
       whiteTimeMs: newWhiteMs,
@@ -125,6 +136,8 @@ export async function resignGame(gameId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const writeDb = getWriteClient()
+  if (!writeDb) return { error: 'Server database writes are not configured' }
 
   const game = await getGame(supabase, gameId)
   if (!game) return { error: 'Game not found' }
@@ -134,9 +147,9 @@ export async function resignGame(gameId: string): Promise<{ error?: string }> {
   if (!isWhite && game.player_black !== user.id) return { error: 'Not a player' }
 
   const result = isWhite ? 'black' : 'white'
-  await completeGame(supabase, gameId, result)
+  await completeGame(writeDb, gameId, result)
   if (game.player_black) {
-    await applyEloUpdate(supabase, game.player_white, game.player_black, result)
+    await applyEloUpdate(writeDb, game.player_white, game.player_black, result)
   }
   return {}
 }
@@ -148,21 +161,22 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const writeDb = getWriteClient()
+  if (!writeDb) return { error: 'Server database writes are not configured' }
 
   const game = await getGame(supabase, gameId)
   if (!game) return { error: 'Game not found' }
   if (game.status !== 'active') return { error: 'Game not active' }
 
-  await completeGame(supabase, gameId, 'draw')
+  await completeGame(writeDb, gameId, 'draw')
   if (game.player_black) {
-    await applyEloUpdate(supabase, game.player_white, game.player_black, 'draw')
+    await applyEloUpdate(writeDb, game.player_white, game.player_black, 'draw')
   }
   return {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function applyEloUpdate(
-  supabase: any,
+  supabase: ReturnType<typeof requireAdminClient>,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'

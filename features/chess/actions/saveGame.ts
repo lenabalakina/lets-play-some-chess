@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAdminClient } from '@/lib/supabase/admin'
 import type { MoveRecord } from '@/features/chess/types/chess.types'
 
 interface SaveGameParams {
@@ -29,11 +30,12 @@ export async function saveGame(params: SaveGameParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    const writeDb = requireAdminClient()
 
     const lastFen = params.moveHistory.at(-1)?.fen
       ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
-    await supabase.from('games').insert({
+    await writeDb.from('games').insert({
       player_white:  user.id,
       player_black:  null,
       fen:           lastFen,
@@ -48,7 +50,7 @@ export async function saveGame(params: SaveGameParams) {
       board_theme:   params.theme,
     })
 
-    const { data: profile } = await supabase
+    const { data: profile } = await writeDb
       .from('users')
       .select('wins, losses, draws, games_played, elo_rating')
       .eq('id', user.id)
@@ -57,7 +59,7 @@ export async function saveGame(params: SaveGameParams) {
     // If no profile row exists yet (e.g. trigger didn't fire), create one with defaults
     const p = profile ?? { wins: 0, losses: 0, draws: 0, games_played: 0, elo_rating: 1200 }
     if (!profile) {
-      await supabase.from('users').upsert({
+      await writeDb.from('users').upsert({
         id: user.id,
         username: user.email?.split('@')[0] ?? 'player',
         elo_rating: 1200,
@@ -75,7 +77,7 @@ export async function saveGame(params: SaveGameParams) {
       newElo = calcNewElo(p.elo_rating, aiElo, score, p.games_played)
     }
 
-    await supabase.from('users').update({
+    await writeDb.from('users').update({
       games_played: p.games_played + 1,
       wins:         isWin  ? p.wins  + 1 : p.wins,
       losses:       !isWin && !isDraw ? p.losses + 1 : p.losses,
