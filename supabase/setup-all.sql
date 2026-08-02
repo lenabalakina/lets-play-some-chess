@@ -276,3 +276,26 @@ CREATE TABLE IF NOT EXISTS public.private_rooms (
 CREATE INDEX IF NOT EXISTS idx_private_rooms_last_activity ON public.private_rooms(last_activity_at);
 
 ALTER TABLE public.private_rooms ENABLE ROW LEVEL SECURITY;
+
+-- ── migration 004 ──
+
+-- Ranked write hardening: browser clients can read public/ranked data, but
+-- authoritative game state, move logs, and rating statistics are server-only.
+REVOKE INSERT, UPDATE, DELETE ON public.games FROM authenticated;
+GRANT SELECT ON public.games TO authenticated;
+
+REVOKE INSERT, UPDATE, DELETE ON public.moves FROM authenticated;
+GRANT SELECT ON public.moves TO authenticated;
+
+REVOKE INSERT, UPDATE, DELETE ON public.users FROM authenticated;
+GRANT SELECT ON public.users TO authenticated;
+GRANT INSERT (id, username, avatar_url) ON public.users TO authenticated;
+GRANT UPDATE (username, avatar_url) ON public.users TO authenticated;
+
+DROP POLICY IF EXISTS "games_update" ON public.games;
+CREATE POLICY "games_no_client_update" ON public.games FOR UPDATE
+  USING (false);
+
+DROP POLICY IF EXISTS "moves_insert" ON public.moves;
+CREATE POLICY "moves_no_client_insert" ON public.moves FOR INSERT
+  WITH CHECK (false);

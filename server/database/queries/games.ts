@@ -102,5 +102,6 @@ export async function updatePlayerStats(db: DB, userId: string, params: {
     draws:        (current.draws  ?? 0) + (params.result === 'draw' ? 1 : 0),
   }
 
-  await db.from('users').update(update).eq('id', userId)
+  const { error } = await db.from('users').update(update).eq('id', userId)
+  if (error) throw new Error(error.message)
 }

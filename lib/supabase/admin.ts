@@ -26,6 +26,12 @@ export function createAdminClient(): SupabaseClient | null {
   }
 }
 
+export function requireAdminClient(): SupabaseClient {
+  const client = createAdminClient()
+  if (!client) throw new Error('Server database write client is not configured')
+  return client
+}
+
 export function isRoomPersistenceEnabled(): boolean {
   return getAdminConfig() !== null
 }
