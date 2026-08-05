@@ -7,6 +7,7 @@ import { insertMove } from '@/server/database/queries/moves'
 import { calculateElo } from '@/features/rating/eloCalculator'
 import { validate, recordMoveSchema, gameIdSchema } from '@/lib/validate'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
+import { getServerMoveTiming } from '@/features/multiplayer/rankedClock'
 
 interface MoveResult {
   error?:      string
@@ -50,6 +51,18 @@ export async function recordMove(
   const expectedTurn = isWhite ? 'w' : 'b'
   if (currentTurn !== expectedTurn) return { error: 'Not your turn' }
 
+  const activeClockMs = isWhite ? game.white_time_ms : game.black_time_ms
+  const { elapsedMs: serverTimeTakenMs, timedOut } = getServerMoveTiming(game.updated_at, activeClockMs)
+  if (timedOut) {
+    const result = isWhite ? 'black' : 'white'
+    await completeGame(supabase, gameId, result)
+    await applyEloUpdate(supabase, game.player_white, game.player_black!, result)
+    return {
+      isGameOver: true,
+      result,
+    }
+  }
+
   let moveResult
   try {
     moveResult = chess.move({ from, to, promotion: promotion ?? 'q' })
@@ -60,10 +73,10 @@ export async function recordMove(
 
   // Update timers
   const newWhiteMs = isWhite
-    ? Math.max(0, game.white_time_ms - timeTakenMs)
+    ? Math.max(0, game.white_time_ms - serverTimeTakenMs)
     : game.white_time_ms
   const newBlackMs = isBlack
-    ? Math.max(0, game.black_time_ms - timeTakenMs)
+    ? Math.max(0, game.black_time_ms - serverTimeTakenMs)
     : game.black_time_ms
 
   const currentMoves = Array.isArray(game.moves) ? game.moves : []
@@ -79,7 +92,7 @@ export async function recordMove(
     fenAfter:    chess.fen(),
     moveNumber,
     color:       moveResult.color as 'w' | 'b',
-    timeTakenMs,
+    timeTakenMs: serverTimeTakenMs,
   })
 
   // Check game-over conditions
