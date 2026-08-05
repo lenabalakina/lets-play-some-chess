@@ -1,13 +1,17 @@
 'use server'
 
 import { Chess } from 'chess.js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/supabase/types'
 import { getGame, updateGameState, completeGame, getPlayerProfile, updatePlayerStats } from '@/server/database/queries/games'
 import { insertMove } from '@/server/database/queries/moves'
 import { calculateElo } from '@/features/rating/eloCalculator'
 import { validate, recordMoveSchema, gameIdSchema } from '@/lib/validate'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
 import { getServerMoveTiming } from '@/features/multiplayer/rankedClock'
+
+type DbClient = SupabaseClient<Database>
 
 interface MoveResult {
   error?:      string
@@ -173,9 +177,8 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function applyEloUpdate(
-  supabase: any,
+  supabase: DbClient,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'
