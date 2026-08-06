@@ -81,12 +81,20 @@ const admin = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
 
-const { error: tableError } = await admin.from('private_rooms').select('code').limit(1)
+const { error: tableError } = await admin
+  .from('private_rooms')
+  .select('code,white_time_ms,black_time_ms,clock_started_at')
+  .limit(1)
 
 if (tableError) {
-  if (tableError.message.includes('does not exist') || tableError.code === '42P01') {
+  if (
+    tableError.message.includes('does not exist') ||
+    tableError.message.includes('column') ||
+    tableError.code === '42P01' ||
+    tableError.code === '42703'
+  ) {
     console.log('\n── Migration required ──\n')
-    console.log('The private_rooms table is missing. Run this SQL in Supabase:')
+    console.log('The private_rooms table is missing or out of date. Run this SQL in Supabase:')
     console.log('  Dashboard → SQL Editor → New query\n')
     console.log(`  File: supabase/migrations/003_private_rooms.sql\n`)
     console.log('Or paste the migration from that file, then re-run:')
@@ -108,6 +116,9 @@ const { error: upsertError } = await admin.from('private_rooms').upsert({
   black: null,
   status: 'waiting',
   winner: null,
+  white_time_ms: 600000,
+  black_time_ms: 600000,
+  clock_started_at: null,
   moves: [],
   messages: [],
   draw_offered_by: null,

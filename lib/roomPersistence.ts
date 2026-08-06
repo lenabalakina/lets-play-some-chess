@@ -1,6 +1,8 @@
 import { createAdminClient, isRoomPersistenceEnabled } from './supabase/admin'
 import type { ChatMessage, Room, RoomMove } from './roomTypes'
 
+const PRIVATE_ROOM_TIME_MS = 10 * 60 * 1000
+
 interface DbPrivateRoom {
   code:             string
   fen:              string
@@ -9,6 +11,9 @@ interface DbPrivateRoom {
   black:            string | null
   status:           Room['status']
   winner:           Room['winner']
+  white_time_ms?:    number | null
+  black_time_ms?:    number | null
+  clock_started_at?: string | null
   moves:            RoomMove[]
   messages:         ChatMessage[]
   draw_offered_by:  'w' | 'b' | null
@@ -27,6 +32,9 @@ function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
     black:         row.black,
     status:        row.status,
     winner:        row.winner,
+    whiteMs:       row.white_time_ms ?? PRIVATE_ROOM_TIME_MS,
+    blackMs:       row.black_time_ms ?? PRIVATE_ROOM_TIME_MS,
+    clockStartedAt: row.clock_started_at ? new Date(row.clock_started_at).getTime() : null,
     moves:         row.moves ?? [],
     messages:      row.messages ?? [],
     drawOfferedBy: row.draw_offered_by,
@@ -47,6 +55,9 @@ function roomToRow(room: Room): Omit<DbPrivateRoom, 'created_at' | 'last_activit
     black:           room.black,
     status:          room.status,
     winner:          room.winner,
+    white_time_ms:   Math.max(0, Math.round(room.whiteMs)),
+    black_time_ms:   Math.max(0, Math.round(room.blackMs)),
+    clock_started_at: room.clockStartedAt ? new Date(room.clockStartedAt).toISOString() : null,
     moves:           room.moves,
     messages:        room.messages,
     draw_offered_by: room.drawOfferedBy,
@@ -103,6 +114,7 @@ export async function tryClaimBlackSeatInDb(
     .update({
       black: playerId,
       status: 'playing',
+      clock_started_at: now,
       last_activity_at: now,
     })
     .eq('code', code)
