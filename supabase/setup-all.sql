@@ -276,3 +276,9 @@ CREATE TABLE IF NOT EXISTS public.private_rooms (
 CREATE INDEX IF NOT EXISTS idx_private_rooms_last_activity ON public.private_rooms(last_activity_at);
 
 ALTER TABLE public.private_rooms ENABLE ROW LEVEL SECURITY;
+
+-- ── migration 004 ──
+
+-- Prevent concurrent submissions for the same turn from appending duplicate plies.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_moves_unique_game_move_number
+  ON public.moves (game_id, move_number);

@@ -8,6 +8,8 @@ import { calculateElo } from '@/features/rating/eloCalculator'
 import { validate, recordMoveSchema, gameIdSchema } from '@/lib/validate'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
 interface MoveResult {
   error?:      string
   san?:        string
@@ -69,18 +71,27 @@ export async function recordMove(
   const currentMoves = Array.isArray(game.moves) ? game.moves : []
   const moveNumber   = currentMoves.length + 1
 
-  // Persist move
-  await insertMove(supabase, {
-    gameId,
-    playerId:    user.id,
-    moveSan:     moveResult.san,
-    moveFrom:    from,
-    moveTo:      to,
-    fenAfter:    chess.fen(),
-    moveNumber,
-    color:       moveResult.color as 'w' | 'b',
-    timeTakenMs,
-  })
+  // Persist move. The database rejects duplicate game/ply numbers if two
+  // overlapping requests both read the same pre-move position.
+  try {
+    await insertMove(supabase, {
+      gameId,
+      playerId:    user.id,
+      moveSan:     moveResult.san,
+      moveFrom:    from,
+      moveTo:      to,
+      fenAfter:    chess.fen(),
+      moveNumber,
+      color:       moveResult.color as 'w' | 'b',
+      timeTakenMs,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (message.includes('idx_moves_unique_game_move_number')) {
+      return { error: 'Move already recorded' }
+    }
+    return { error: 'Move could not be recorded' }
+  }
 
   // Check game-over conditions
   const isGameOver = chess.isGameOver()
@@ -160,9 +171,8 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function applyEloUpdate(
-  supabase: any,
+  supabase: SupabaseServerClient,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'
