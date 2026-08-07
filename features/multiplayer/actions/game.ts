@@ -8,6 +8,8 @@ import { calculateElo } from '@/features/rating/eloCalculator'
 import { validate, recordMoveSchema, gameIdSchema } from '@/lib/validate'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
 interface MoveResult {
   error?:      string
   san?:        string
@@ -169,9 +171,8 @@ export async function offerDraw(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function applyEloUpdate(
-  supabase: any,
+  supabase: SupabaseServerClient,
   whiteId: string,
   blackId: string,
   result: 'white' | 'black' | 'draw'
