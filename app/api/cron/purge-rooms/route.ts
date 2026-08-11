@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { deleteStaleRoomsFromDb } from '@/lib/roomPersistence'
+import { deleteDefaultStaleRoomsFromDb, PLAYING_ROOM_STALE_MS } from '@/lib/roomPersistence'
 
 export const runtime = 'nodejs'
-
-const WAITING_MS = 6 * 60 * 60 * 1000   // 6h empty waiting rooms
-const PLAYING_MS = 12 * 60 * 60 * 1000  // 12h abandoned games
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET
@@ -15,9 +12,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  await deleteStaleRoomsFromDb(WAITING_MS)
-  // Second pass with longer horizon catches stale playing rooms
-  await deleteStaleRoomsFromDb(PLAYING_MS)
+  await deleteDefaultStaleRoomsFromDb()
 
-  return NextResponse.json({ ok: true, purgedBeforeMs: PLAYING_MS })
+  return NextResponse.json({ ok: true, purgedBeforeMs: PLAYING_ROOM_STALE_MS })
 }

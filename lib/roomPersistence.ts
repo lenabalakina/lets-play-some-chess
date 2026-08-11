@@ -18,6 +18,11 @@ interface DbPrivateRoom {
 
 export { isRoomPersistenceEnabled }
 
+export const WAITING_ROOM_STALE_MS = 6 * 60 * 60 * 1000
+export const PLAYING_ROOM_STALE_MS = 12 * 60 * 60 * 1000
+export const STALE_WAITING_ROOM_STATUSES: Room['status'][] = ['waiting', 'finished']
+export const STALE_PLAYING_ROOM_STATUSES: Room['status'][] = ['playing']
+
 function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
   return {
     code:          row.code,
@@ -115,10 +120,23 @@ export async function tryClaimBlackSeatInDb(
   return rowToRoomData(data as DbPrivateRoom)
 }
 
-export async function deleteStaleRoomsFromDb(olderThanMs: number): Promise<void> {
+export async function deleteStaleRoomsFromDb(
+  olderThanMs: number,
+  statuses?: Room['status'][],
+): Promise<void> {
   const admin = createAdminClient()
   if (!admin) return
 
   const cutoff = new Date(Date.now() - olderThanMs).toISOString()
-  await admin.from('private_rooms').delete().lt('last_activity_at', cutoff)
+  const query = admin.from('private_rooms').delete().lt('last_activity_at', cutoff)
+  if (statuses && statuses.length > 0) {
+    await query.in('status', statuses)
+    return
+  }
+  await query
+}
+
+export async function deleteDefaultStaleRoomsFromDb(): Promise<void> {
+  await deleteStaleRoomsFromDb(WAITING_ROOM_STALE_MS, STALE_WAITING_ROOM_STATUSES)
+  await deleteStaleRoomsFromDb(PLAYING_ROOM_STALE_MS, STALE_PLAYING_ROOM_STATUSES)
 }
