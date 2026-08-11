@@ -1,5 +1,11 @@
 import { createAdminClient, isRoomPersistenceEnabled } from './supabase/admin'
 import type { ChatMessage, Room, RoomMove } from './roomTypes'
+import {
+  PLAYING_ROOM_STALE_MS,
+  STALE_PLAYING_ROOM_STATUSES,
+  STALE_WAITING_ROOM_STATUSES,
+  WAITING_ROOM_STALE_MS,
+} from './roomRetention'
 
 interface DbPrivateRoom {
   code:             string
@@ -17,11 +23,12 @@ interface DbPrivateRoom {
 }
 
 export { isRoomPersistenceEnabled }
-
-export const WAITING_ROOM_STALE_MS = 6 * 60 * 60 * 1000
-export const PLAYING_ROOM_STALE_MS = 12 * 60 * 60 * 1000
-export const STALE_WAITING_ROOM_STATUSES: Room['status'][] = ['waiting', 'finished']
-export const STALE_PLAYING_ROOM_STATUSES: Room['status'][] = ['playing']
+export {
+  PLAYING_ROOM_STALE_MS,
+  STALE_PLAYING_ROOM_STATUSES,
+  STALE_WAITING_ROOM_STATUSES,
+  WAITING_ROOM_STALE_MS,
+} from './roomRetention'
 
 function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
   return {

@@ -5,7 +5,7 @@ import {
   STALE_PLAYING_ROOM_STATUSES,
   STALE_WAITING_ROOM_STATUSES,
   WAITING_ROOM_STALE_MS,
-} from '../../lib/roomPersistence.ts'
+} from '../../lib/roomRetention.ts'
 
 describe('private room persistence cleanup policy', () => {
   it('keeps active rooms on the longer stale-room retention window', () => {
