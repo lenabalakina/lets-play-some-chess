@@ -16,13 +16,6 @@ interface SaveGameParams {
 }
 
 const AI_DIFFICULTY: Record<string, number> = { easy: 5, intermediate: 8, hard: 20 }
-const AI_ELO:        Record<string, number> = { easy: 800, intermediate: 1400, hard: 2200 }
-
-function calcNewElo(myElo: number, oppElo: number, score: 0 | 0.5 | 1, gamesPlayed: number): number {
-  const K        = gamesPlayed < 30 ? 32 : gamesPlayed < 100 ? 24 : 16
-  const expected = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400))
-  return Math.max(100, Math.round(myElo + K * (score - expected)))
-}
 
 export async function saveGame(params: SaveGameParams) {
   try {
@@ -47,41 +40,8 @@ export async function saveGame(params: SaveGameParams) {
       ai_difficulty: AI_DIFFICULTY[params.aiLevel ?? 'easy'] ?? 10,
       board_theme:   params.theme,
     })
-
-    const { data: profile } = await supabase
-      .from('users')
-      .select('wins, losses, draws, games_played, elo_rating')
-      .eq('id', user.id)
-      .single()
-
-    // If no profile row exists yet (e.g. trigger didn't fire), create one with defaults
-    const p = profile ?? { wins: 0, losses: 0, draws: 0, games_played: 0, elo_rating: 1200 }
-    if (!profile) {
-      await supabase.from('users').upsert({
-        id: user.id,
-        username: user.email?.split('@')[0] ?? 'player',
-        elo_rating: 1200,
-      })
-    }
-
-    const isWin  = params.result === 'white'
-    const isDraw = params.result === 'draw'
-
-    // Only recalculate ELO for AI games — local pass-and-play has no real opponent
-    let newElo = p.elo_rating
-    if (params.isAiGame) {
-      const aiElo = AI_ELO[params.aiLevel ?? 'easy']
-      const score: 0 | 0.5 | 1 = isWin ? 1 : isDraw ? 0.5 : 0
-      newElo = calcNewElo(p.elo_rating, aiElo, score, p.games_played)
-    }
-
-    await supabase.from('users').update({
-      games_played: p.games_played + 1,
-      wins:         isWin  ? p.wins  + 1 : p.wins,
-      losses:       !isWin && !isDraw ? p.losses + 1 : p.losses,
-      draws:        isDraw ? p.draws + 1 : p.draws,
-      elo_rating:   newElo,
-    }).eq('id', user.id)
+    // Client-saved AI/local games are history-only. Authoritative stats and ELO
+    // must come from validated server-owned game-completion paths.
   } catch {
     // Fire-and-forget — never crash the game over a stat save
   }

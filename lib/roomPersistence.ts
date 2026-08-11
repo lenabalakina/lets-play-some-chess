@@ -1,5 +1,11 @@
 import { createAdminClient, isRoomPersistenceEnabled } from './supabase/admin'
 import type { ChatMessage, Room, RoomMove } from './roomTypes'
+import {
+  PLAYING_ROOM_STALE_MS,
+  STALE_PLAYING_ROOM_STATUSES,
+  STALE_WAITING_ROOM_STATUSES,
+  WAITING_ROOM_STALE_MS,
+} from './roomRetention'
 
 interface DbPrivateRoom {
   code:             string
@@ -17,6 +23,12 @@ interface DbPrivateRoom {
 }
 
 export { isRoomPersistenceEnabled }
+export {
+  PLAYING_ROOM_STALE_MS,
+  STALE_PLAYING_ROOM_STATUSES,
+  STALE_WAITING_ROOM_STATUSES,
+  WAITING_ROOM_STALE_MS,
+} from './roomRetention'
 
 function rowToRoomData(row: DbPrivateRoom): Omit<Room, 'subscribers'> {
   return {
@@ -115,10 +127,23 @@ export async function tryClaimBlackSeatInDb(
   return rowToRoomData(data as DbPrivateRoom)
 }
 
-export async function deleteStaleRoomsFromDb(olderThanMs: number): Promise<void> {
+export async function deleteStaleRoomsFromDb(
+  olderThanMs: number,
+  statuses?: Room['status'][],
+): Promise<void> {
   const admin = createAdminClient()
   if (!admin) return
 
   const cutoff = new Date(Date.now() - olderThanMs).toISOString()
-  await admin.from('private_rooms').delete().lt('last_activity_at', cutoff)
+  const query = admin.from('private_rooms').delete().lt('last_activity_at', cutoff)
+  if (statuses && statuses.length > 0) {
+    await query.in('status', statuses)
+    return
+  }
+  await query
+}
+
+export async function deleteDefaultStaleRoomsFromDb(): Promise<void> {
+  await deleteStaleRoomsFromDb(WAITING_ROOM_STALE_MS, STALE_WAITING_ROOM_STATUSES)
+  await deleteStaleRoomsFromDb(PLAYING_ROOM_STALE_MS, STALE_PLAYING_ROOM_STATUSES)
 }
