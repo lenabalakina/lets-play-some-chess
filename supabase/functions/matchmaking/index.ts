@@ -27,16 +27,39 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     )
 
-    // Get the player that just joined the queue
+    // Get the player that just joined the queue. The request body is only a
+    // hint from the webhook; public callers can forge it, so reload the row.
     const payload = await req.json()
-    const newPlayer = payload.record as {
+    const webhookPlayer = payload.record as {
       player_id: string
-      time_control: string
-      elo_rating: number
+      time_control?: string
     }
 
-    if (!newPlayer?.player_id) {
+    if (!webhookPlayer?.player_id) {
       return new Response('No player data', { status: 400 })
+    }
+
+    let queuedPlayerQuery = supabase
+      .from('matchmaking_queue')
+      .select('*')
+      .eq('player_id', webhookPlayer.player_id)
+
+    if (webhookPlayer.time_control) {
+      queuedPlayerQuery = queuedPlayerQuery.eq('time_control', webhookPlayer.time_control)
+    }
+
+    const { data: newPlayer, error: queuedPlayerError } = await queuedPlayerQuery.maybeSingle()
+
+    if (queuedPlayerError) {
+      console.error('Failed to verify queued player:', queuedPlayerError)
+      return new Response('Failed to verify queued player', { status: 500 })
+    }
+
+    if (!newPlayer) {
+      return new Response(JSON.stringify({ status: 'not_queued' }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // Find compatible opponent (different player, same time control, similar ELO, oldest first)
