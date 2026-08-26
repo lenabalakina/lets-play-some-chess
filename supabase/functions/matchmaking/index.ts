@@ -11,6 +11,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ELO_WINDOW = 300
+const ACTIVE_QUEUE_WINDOW_MS = 6000
 const TIME_CONTROLS: Record<string, number> = {
   bullet_1:   1  * 60 * 1000,
   blitz_3:    3  * 60 * 1000,
@@ -33,6 +34,7 @@ Deno.serve(async (req) => {
       player_id: string
       time_control: string
       elo_rating: number
+      last_seen_at?: string
     }
 
     if (!newPlayer?.player_id) {
@@ -47,6 +49,7 @@ Deno.serve(async (req) => {
       .neq('player_id', newPlayer.player_id)
       .gte('elo_rating', newPlayer.elo_rating - ELO_WINDOW)
       .lte('elo_rating', newPlayer.elo_rating + ELO_WINDOW)
+      .gte('last_seen_at', new Date(Date.now() - ACTIVE_QUEUE_WINDOW_MS).toISOString())
       .order('joined_at', { ascending: true })
       .limit(5)
 

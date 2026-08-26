@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS public.matchmaking_queue (
   player_id     UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   time_control  TEXT NOT NULL,
   elo_rating    INTEGER NOT NULL,
-  joined_at     TIMESTAMPTZ DEFAULT NOW()
+  joined_at     TIMESTAMPTZ DEFAULT NOW(),
+  last_seen_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── Indexes ──────────────────────────────────────────────────────────────────
@@ -96,6 +97,9 @@ CREATE POLICY "moves_insert" ON public.moves FOR INSERT
 -- Matchmaking: manage own queue entry
 CREATE POLICY "queue_select" ON public.matchmaking_queue FOR SELECT USING (true);
 CREATE POLICY "queue_insert" ON public.matchmaking_queue FOR INSERT WITH CHECK (player_id = auth.uid());
+CREATE POLICY "queue_update" ON public.matchmaking_queue FOR UPDATE
+  USING (player_id = auth.uid())
+  WITH CHECK (player_id = auth.uid());
 CREATE POLICY "queue_delete" ON public.matchmaking_queue FOR DELETE USING (player_id = auth.uid());
 
 -- ── Auto-update updated_at ────────────────────────────────────────────────────
@@ -169,6 +173,8 @@ CREATE INDEX IF NOT EXISTS idx_moves_game_move_number
 -- Matchmaking queue ordered by join time (FIFO within same time_control)
 CREATE INDEX IF NOT EXISTS idx_queue_time_control_joined
   ON public.matchmaking_queue (time_control, joined_at);
+CREATE INDEX IF NOT EXISTS idx_queue_time_control_last_seen_joined
+  ON public.matchmaking_queue (time_control, last_seen_at, joined_at);
 
 -- ── Game timeout detection function ──────────────────────────────────────────
 -- Called by the Edge Function (or manually) to mark games where time ran out.
@@ -251,7 +257,7 @@ CREATE OR REPLACE FUNCTION public.cleanup_stale_queue()
 RETURNS void AS $$
 BEGIN
   DELETE FROM public.matchmaking_queue
-  WHERE joined_at < NOW() - INTERVAL '5 minutes';
+  WHERE last_seen_at < NOW() - INTERVAL '30 seconds';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

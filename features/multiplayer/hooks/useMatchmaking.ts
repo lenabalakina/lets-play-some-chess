@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { joinQueue, leaveQueue, attemptMatch, getActiveGame } from '../actions/matchmaking'
+import { MATCHMAKING_POLL_INTERVAL_MS } from '../matchmakingPresence'
 import type { TimeControl } from '@/features/chess/types/chess.types'
 
 type MatchmakingState = 'idle' | 'searching' | 'matched' | 'error'
 
-const POLL_INTERVAL_MS = 2000
+const LEAVE_QUEUE_ENDPOINT = '/api/matchmaking/leave'
 
 export function useMatchmaking() {
   const [state, setState]           = useState<MatchmakingState>('idle')
@@ -16,6 +17,10 @@ export function useMatchmaking() {
   const [searchSeconds, setSearchSeconds] = useState(0)
   const pollRef    = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+  const searchIntentRef = useRef(false)
+  const queueActiveRef = useRef(false)
+  const abandonedRef   = useRef(false)
+  const searchIdRef    = useRef(0)
   const router     = useRouter()
 
   // On mount: check if already in an active game (reconnect)
@@ -32,21 +37,61 @@ export function useMatchmaking() {
     timerRef.current = null
   }, [])
 
+  const sendLeaveQueueRequest = useCallback(() => {
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      if (navigator.sendBeacon(LEAVE_QUEUE_ENDPOINT)) return
+    }
+
+    void fetch(LEAVE_QUEUE_ENDPOINT, {
+      method:      'POST',
+      credentials: 'same-origin',
+      keepalive:   true,
+    }).catch(() => {})
+  }, [])
+
+  const abandonSearch = useCallback(() => {
+    if (!searchIntentRef.current && !queueActiveRef.current) return
+    searchIntentRef.current = false
+    queueActiveRef.current = false
+    stopPolling()
+    sendLeaveQueueRequest()
+  }, [sendLeaveQueueRequest, stopPolling])
+
   const startSearching = useCallback(async () => {
+    const searchId = searchIdRef.current + 1
+    searchIdRef.current = searchId
+    searchIntentRef.current = true
+    abandonedRef.current = false
     setError(null)
     setSearchSeconds(0)
     setState('searching')
 
     const result = await joinQueue(timeControl)
+    if (abandonedRef.current || searchIdRef.current !== searchId) {
+      searchIntentRef.current = false
+      sendLeaveQueueRequest()
+      return
+    }
+
     if (result.error) {
+      searchIntentRef.current = false
       setError(result.error)
       setState('error')
       return
     }
 
+    queueActiveRef.current = true
+
     // Immediately try to match
     const match = await attemptMatch()
+    if (abandonedRef.current || searchIdRef.current !== searchId) {
+      abandonSearch()
+      return
+    }
+
     if (match) {
+      searchIntentRef.current = false
+      queueActiveRef.current = false
       setState('matched')
       router.push(`/game/${match.gameId}`)
       return
@@ -56,15 +101,21 @@ export function useMatchmaking() {
     timerRef.current = setInterval(() => setSearchSeconds(s => s + 1), 1000)
     pollRef.current  = setInterval(async () => {
       const m = await attemptMatch()
-      if (m) {
+      if (m && !abandonedRef.current && searchIdRef.current === searchId) {
+        searchIntentRef.current = false
+        queueActiveRef.current = false
         stopPolling()
         setState('matched')
         router.push(`/game/${m.gameId}`)
       }
-    }, POLL_INTERVAL_MS)
-  }, [timeControl, router, stopPolling])
+    }, MATCHMAKING_POLL_INTERVAL_MS)
+  }, [abandonSearch, router, sendLeaveQueueRequest, stopPolling, timeControl])
 
   const cancelSearch = useCallback(async () => {
+    searchIdRef.current += 1
+    abandonedRef.current = true
+    searchIntentRef.current = false
+    queueActiveRef.current = false
     stopPolling()
     await leaveQueue()
     setState('idle')
@@ -72,7 +123,21 @@ export function useMatchmaking() {
   }, [stopPolling])
 
   // Clean up on unmount
-  useEffect(() => () => { stopPolling() }, [stopPolling])
+  useEffect(() => {
+    const handlePageHide = () => {
+      searchIdRef.current += 1
+      abandonedRef.current = true
+      abandonSearch()
+    }
+
+    window.addEventListener('pagehide', handlePageHide)
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide)
+      searchIdRef.current += 1
+      abandonedRef.current = true
+      abandonSearch()
+    }
+  }, [abandonSearch])
 
   return {
     state,

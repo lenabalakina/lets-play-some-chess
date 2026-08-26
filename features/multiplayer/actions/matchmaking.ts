@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createGame } from '@/server/database/queries/games'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { TimeControl } from '@/features/chess/types/chess.types'
+import { matchmakingActiveSince } from '../matchmakingPresence'
 
 const ELO_WINDOW = 300  // match players within ±300 ELO
 
@@ -18,6 +19,8 @@ export async function joinQueue(timeControl: TimeControl): Promise<{ error?: str
     .eq('id', user.id)
     .single()
 
+  const now = new Date().toISOString()
+
   // Upsert in case player re-joins queue
   const { error } = await supabase
     .from('matchmaking_queue')
@@ -25,6 +28,8 @@ export async function joinQueue(timeControl: TimeControl): Promise<{ error?: str
       player_id:    user.id,
       time_control: timeControl,
       elo_rating:   profile?.elo_rating ?? 1200,
+      joined_at:    now,
+      last_seen_at: now,
     }, { onConflict: 'player_id' })
 
   if (error) return { error: error.message }
@@ -48,6 +53,11 @@ export async function attemptMatch(): Promise<{ gameId: string } | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  await supabase
+    .from('matchmaking_queue')
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq('player_id', user.id)
+
   // Get current player's queue entry
   const { data: myEntry } = await supabase
     .from('matchmaking_queue')
@@ -65,6 +75,7 @@ export async function attemptMatch(): Promise<{ gameId: string } | null> {
     .neq('player_id', user.id)
     .gte('elo_rating', myEntry.elo_rating - ELO_WINDOW)
     .lte('elo_rating', myEntry.elo_rating + ELO_WINDOW)
+    .gte('last_seen_at', matchmakingActiveSince())
     .order('joined_at', { ascending: true })
     .limit(5)
 
