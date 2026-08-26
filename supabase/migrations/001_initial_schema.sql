@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS public.matchmaking_queue (
   player_id     UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   time_control  TEXT NOT NULL,
   elo_rating    INTEGER NOT NULL,
-  joined_at     TIMESTAMPTZ DEFAULT NOW()
+  joined_at     TIMESTAMPTZ DEFAULT NOW(),
+  last_seen_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── Indexes ──────────────────────────────────────────────────────────────────
@@ -96,6 +97,9 @@ CREATE POLICY "moves_insert" ON public.moves FOR INSERT
 -- Matchmaking: manage own queue entry
 CREATE POLICY "queue_select" ON public.matchmaking_queue FOR SELECT USING (true);
 CREATE POLICY "queue_insert" ON public.matchmaking_queue FOR INSERT WITH CHECK (player_id = auth.uid());
+CREATE POLICY "queue_update" ON public.matchmaking_queue FOR UPDATE
+  USING (player_id = auth.uid())
+  WITH CHECK (player_id = auth.uid());
 CREATE POLICY "queue_delete" ON public.matchmaking_queue FOR DELETE USING (player_id = auth.uid());
 
 -- ── Auto-update updated_at ────────────────────────────────────────────────────

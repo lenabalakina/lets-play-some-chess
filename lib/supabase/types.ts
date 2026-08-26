@@ -119,15 +119,20 @@ export interface Database {
           time_control: string
           elo_rating: number
           joined_at: string
+          last_seen_at: string
         }
         Insert: {
           player_id: string
           time_control: string
           elo_rating: number
+          joined_at?: string
+          last_seen_at?: string
         }
         Update: {
           time_control?: string
           elo_rating?: number
+          joined_at?: string
+          last_seen_at?: string
         }
         Relationships: []
       }
