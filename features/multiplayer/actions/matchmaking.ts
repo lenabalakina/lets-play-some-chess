@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createGame } from '@/server/database/queries/games'
 import { TIME_CONTROL_MS } from '@/features/chess/types/chess.types'
 import type { TimeControl } from '@/features/chess/types/chess.types'
+import { findActiveGameForUser } from '../matchmakingActiveGame'
 
 const ELO_WINDOW = 300  // match players within ±300 ELO
 
@@ -55,7 +56,9 @@ export async function attemptMatch(): Promise<{ gameId: string } | null> {
     .eq('player_id', user.id)
     .single()
 
-  if (!myEntry) return null
+  if (!myEntry) {
+    return findActiveGameForUser(supabase, user.id)
+  }
 
   // Find the best opponent: same time control, closest ELO, not self
   const { data: opponents } = await supabase
@@ -94,17 +97,7 @@ export async function attemptMatch(): Promise<{ gameId: string } | null> {
     })
   } catch {
     // Another call already created the game — check if we're already in one
-    const { data: existing } = await supabase
-      .from('games')
-      .select('id')
-      .or(`player_white.eq.${user.id},player_black.eq.${user.id}`)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (existing) return { gameId: existing.id }
-    return null
+    return findActiveGameForUser(supabase, user.id)
   }
 
   // Remove both players from queue
@@ -125,15 +118,5 @@ export async function getActiveGame(): Promise<{ gameId: string } | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data } = await supabase
-    .from('games')
-    .select('id')
-    .or(`player_white.eq.${user.id},player_black.eq.${user.id}`)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-
-  if (!data) return null
-  return { gameId: data.id }
+  return findActiveGameForUser(supabase, user.id)
 }
