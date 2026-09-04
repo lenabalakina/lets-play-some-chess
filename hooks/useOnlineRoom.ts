@@ -28,73 +28,61 @@ export interface OnlineRoomState {
   roomNotFound:   boolean
 }
 
+type RemoteRoomSnapshot = {
+  fen: string; turn: 'w' | 'b'; status: OnlineRoomState['status']
+  winner: OnlineRoomState['winner']; moves?: RoomMove[]
+  messages?: ChatMessage[]; drawOfferedBy?: 'w' | 'b' | null
+}
+
+export function mergeRemoteRoomState(
+  local: OnlineRoomState,
+  rm: RemoteRoomSnapshot,
+): OnlineRoomState | null {
+  const rmMoves = rm.moves ?? local.moves
+  const rmMessages = rm.messages ?? []
+  const drawOfferedBy = rm.drawOfferedBy ?? null
+
+  // Client already applied a newer move; ignore stale server snapshot.
+  if (local.moves.length > rmMoves.length) return null
+
+  // Terminal state changes without a new move (resign/draw/timeout-resign) must
+  // not be rewound by an equal-ply stale poll or reconnect snapshot.
+  if (local.status === 'finished' && rm.status !== 'finished') return null
+
+  const messages = local.messages.length > rmMessages.length ? local.messages : rmMessages
+
+  if (
+    local.fen === rm.fen &&
+    local.moves.length === rmMoves.length &&
+    local.turn === rm.turn &&
+    local.status === rm.status &&
+    local.winner === rm.winner &&
+    local.drawOfferedBy === drawOfferedBy &&
+    local.messages.length === messages.length
+  ) {
+    return null
+  }
+
+  return {
+    ...local,
+    fen:           rm.fen,
+    turn:          rm.turn,
+    status:        rm.status,
+    winner:        rm.winner,
+    moves:         rmMoves,
+    messages,
+    drawOfferedBy,
+    lastMove: rmMoves.length
+      ? { from: rmMoves[rmMoves.length - 1].from, to: rmMoves[rmMoves.length - 1].to }
+      : local.lastMove,
+  }
+}
+
 export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
   const [retryKey,      setRetryKey]      = useState(0)
   const retryCountRef   = useRef(0)
   const roomNotFoundRef = useRef(false)
   const typingTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const mergeRemoteRoom = useCallback((
-    local: OnlineRoomState,
-    rm: {
-      fen: string; turn: 'w' | 'b'; status: OnlineRoomState['status']
-      winner: OnlineRoomState['winner']; moves?: RoomMove[]
-      messages?: ChatMessage[]; drawOfferedBy?: 'w' | 'b' | null
-    },
-  ): OnlineRoomState | null => {
-    const rmMoves = rm.moves ?? local.moves
-    const rmMessages = rm.messages ?? []
-    const drawOfferedBy = rm.drawOfferedBy ?? null
-
-    // Client already applied a newer move; ignore stale server snapshot.
-    if (local.moves.length > rmMoves.length) return null
-
-    const messages = local.messages.length > rmMessages.length ? local.messages : rmMessages
-
-    if (
-      local.fen === rm.fen &&
-      local.moves.length === rmMoves.length &&
-      local.turn === rm.turn &&
-      local.status === rm.status &&
-      local.winner === rm.winner &&
-      local.drawOfferedBy === drawOfferedBy &&
-      local.messages.length === messages.length
-    ) {
-      return null
-    }
-
-    return {
-      ...local,
-      fen:           rm.fen,
-      turn:          rm.turn,
-      status:        rm.status,
-      winner:        rm.winner,
-      moves:         rmMoves,
-      messages,
-      drawOfferedBy,
-      lastMove: rmMoves.length
-        ? { from: rmMoves[rmMoves.length - 1].from, to: rmMoves[rmMoves.length - 1].to }
-        : local.lastMove,
-    }
-  }, [])
-
-  const applyRemoteRoom = useCallback((rm: {
-    fen: string; turn: 'w' | 'b'; status: OnlineRoomState['status']
-    winner: OnlineRoomState['winner']; moves?: RoomMove[]
-    messages?: ChatMessage[]; drawOfferedBy?: 'w' | 'b' | null
-  }) => {
-    setRoom(r => mergeRemoteRoom(r, rm) ?? r)
-  }, [mergeRemoteRoom])
-
-  const fetchRoomState = useCallback(async () => {
-    if (!code) return
-    try {
-      const res = await fetch(`/api/room/${code}`)
-      if (!res.ok) return
-      const data = await res.json()
-      if (data.room) applyRemoteRoom(data.room)
-    } catch { /* ignore */ }
-  }, [code, applyRemoteRoom])
 
   const [room, setRoom] = useState<OnlineRoomState>({
     fen:            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -110,6 +98,20 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
     opponentOnline: false,
     roomNotFound:   false,
   })
+
+  const applyRemoteRoom = useCallback((rm: RemoteRoomSnapshot) => {
+    setRoom(r => mergeRemoteRoomState(r, rm) ?? r)
+  }, [setRoom])
+
+  const fetchRoomState = useCallback(async () => {
+    if (!code) return
+    try {
+      const res = await fetch(`/api/room/${code}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.room) applyRemoteRoom(data.room)
+    } catch { /* ignore */ }
+  }, [code, applyRemoteRoom])
 
   // SSE connection with auto-reconnect (exponential backoff, max 5 retries)
   useEffect(() => {
@@ -215,11 +217,11 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         const data = await res.json()
         const rm = data.room
         if (!rm) return
-        setRoom(r => mergeRemoteRoom(r, rm) ?? r)
+        setRoom(r => mergeRemoteRoomState(r, rm) ?? r)
       } catch { /* ignore poll errors */ }
     }, 5000)
     return () => clearInterval(poll)
-  }, [code, mergeRemoteRoom])
+  }, [code, setRoom])
 
   const applyMoveToState = useCallback((msg: {
     from: string; to: string; promotion?: string; san: string; fen: string
@@ -240,7 +242,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
         moves:    [...r.moves, { from: msg.from, to: msg.to, promotion: msg.promotion, san: msg.san, fen: msg.fen }],
       }
     })
-  }, [])
+  }, [setRoom])
 
   const makeMove = useCallback(async (from: string, to: string, promotion?: string): Promise<{ ok: boolean; error?: string }> => {
     try {
@@ -318,7 +320,7 @@ export function useOnlineRoom(code: string, playerId: string, myColor: Color) {
       }))
       return { ok: false, error: 'Network error' }
     }
-  }, [code, playerId, myColor])
+  }, [code, playerId, myColor, setRoom])
 
   const offerDraw = useCallback(async () => {
     await fetch(`/api/room/${code}/draw`, {
