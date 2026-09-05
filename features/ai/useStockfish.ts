@@ -23,12 +23,17 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
   const workerRef  = useRef<Worker | null>(null)
   const readyRef   = useRef(false)
   const pendingRef = useRef(false)
+  const stoppingRef = useRef(false)
+  const latestFenRef = useRef(fen)
+  const searchFenRef = useRef<string | null>(null)
   const onMoveRef  = useRef(onMove)
+  const [searchRevision, setSearchRevision] = useState(0)
   const [thinking, setThinking] = useState(false)
   const [ready, setReady] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => { onMoveRef.current = onMove }, [onMove])
+  useEffect(() => { latestFenRef.current = fen }, [fen])
 
   // Init worker once when enabled
   useEffect(() => {
@@ -39,6 +44,8 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
 
       worker.onerror = () => {
         pendingRef.current = false
+        stoppingRef.current = false
+        searchFenRef.current = null
         setThinking(false)
         setLoadError('AI engine failed to load')
       }
@@ -50,7 +57,18 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
           setReady(true)
         }
         if (line.startsWith('bestmove')) {
+          if (stoppingRef.current) {
+            stoppingRef.current = false
+            pendingRef.current = false
+            searchFenRef.current = null
+            setThinking(false)
+            setSearchRevision(revision => revision + 1)
+            return
+          }
+          if (!pendingRef.current || searchFenRef.current !== latestFenRef.current) return
+
           pendingRef.current = false
+          searchFenRef.current = null
           setThinking(false)
           const parts = line.split(' ')
           const move  = parts[1]
@@ -66,9 +84,10 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
       worker.postMessage('ucinewgame')
       worker.postMessage('isready')
       workerRef.current = worker
+      stoppingRef.current = false
     } catch (err) {
       console.warn('Stockfish worker failed to load:', err)
-      setLoadError('AI engine failed to load')
+      queueMicrotask(() => setLoadError('AI engine failed to load'))
     }
 
     return () => {
@@ -76,24 +95,28 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
       workerRef.current = null
       readyRef.current   = false
       pendingRef.current = false
+      stoppingRef.current = false
+      searchFenRef.current = null
       setThinking(false)
       setReady(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled])
 
   // Trigger AI move when it's the AI's turn
   useEffect(() => {
     if (!enabled) return
     if (turn === myColor) return
+    if (stoppingRef.current) return
     if (pendingRef.current) return
     if (!workerRef.current || !readyRef.current) return
 
     const cfg = LEVEL_MAP[level]
     pendingRef.current = true
+    searchFenRef.current = fen
+    let searchStarted = false
 
     const timer = setTimeout(() => {
-      if (!workerRef.current || !pendingRef.current) return
+      if (!workerRef.current || !pendingRef.current || searchFenRef.current !== fen) return
       setThinking(true)
       const w = workerRef.current
       if (cfg.elo !== null) {
@@ -104,17 +127,22 @@ export function useStockfish({ enabled, level, fen, myColor, turn, onMove }: Use
       }
       w.postMessage(`setoption name Skill Level value ${cfg.skill}`)
       w.postMessage(`position fen ${fen}`)
+      searchStarted = true
       w.postMessage(`go depth ${cfg.depth} movetime ${cfg.moveTime}`)
     }, cfg.delay)
 
     return () => {
       clearTimeout(timer)
+      const shouldStop = searchStarted && pendingRef.current
       pendingRef.current = false
+      searchFenRef.current = null
       setThinking(false)
-      workerRef.current?.postMessage('stop')
+      if (shouldStop && workerRef.current) {
+        stoppingRef.current = true
+        workerRef.current.postMessage('stop')
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, turn, fen, level, myColor, ready])
+  }, [enabled, turn, fen, level, myColor, ready, searchRevision])
 
   return { thinking, ready, loadError }
 }
