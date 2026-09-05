@@ -40,6 +40,64 @@ test('can make a move — e2 to e4', async ({ page }) => {
   await expect(page.locator('[data-square="e4"]')).toHaveAttribute('data-piece', 'P', { timeout: 5_000 })
 })
 
+test('ignores a stopped Stockfish search when difficulty changes mid-move', async ({ page }) => {
+  await page.addInitScript(() => {
+    class MockStockfishWorker {
+      onmessage: ((event: MessageEvent<string>) => void) | null = null
+      messages: string[] = []
+      private goCount = 0
+
+      constructor() {
+        ;(window as unknown as { __stockfishWorkers: MockStockfishWorker[] }).__stockfishWorkers.push(this)
+        setTimeout(() => this.emit('readyok'), 0)
+      }
+
+      postMessage(message: string) {
+        this.messages.push(message)
+        if (message === 'stop') {
+          setTimeout(() => this.emit('bestmove e7e5'), 25)
+          return
+        }
+        if (message.startsWith('go ')) {
+          this.goCount += 1
+          if (this.goCount > 1) {
+            setTimeout(() => this.emit('bestmove g8f6'), 25)
+          }
+        }
+      }
+
+      terminate() {}
+
+      private emit(data: string) {
+        this.onmessage?.({ data } as MessageEvent<string>)
+      }
+    }
+
+    ;(window as unknown as { __stockfishWorkers: MockStockfishWorker[] }).__stockfishWorkers = []
+    Object.defineProperty(window, 'Worker', {
+      configurable: true,
+      value: MockStockfishWorker,
+    })
+  })
+
+  await page.goto('/play/ai')
+  await page.getByText('Beginner').click()
+  await page.locator('[data-square]').first().waitFor({ timeout: 10_000 })
+
+  await page.locator('[data-square="e2"]').click()
+  await page.locator('[data-square="e4"]').click()
+  await page.waitForFunction(() => {
+    const workers = (window as unknown as { __stockfishWorkers?: Array<{ messages: string[] }> }).__stockfishWorkers
+    return workers?.some(worker => worker.messages.some(message => message.startsWith('go ')))
+  })
+
+  await page.getByRole('button', { name: /settings/i }).click()
+  await page.getByRole('button', { name: 'Intermediate' }).click()
+
+  await expect(page.locator('[data-square="f6"]')).toHaveAttribute('data-piece', 'n', { timeout: 3_000 })
+  await expect(page.locator('[data-square="e5"]')).not.toHaveAttribute('data-piece', 'p')
+})
+
 // Regression: game must stay loaded after clicking difficulty (history.pushState bug was resetting state)
 test('game stays loaded after clicking difficulty', async ({ page }) => {
   await page.goto('/play/ai')
